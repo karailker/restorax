@@ -1,18 +1,34 @@
+from __future__ import annotations
+
 import logging
 import time
 import uuid
 
+import structlog
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
-    """Attaches a unique X-Request-ID header to every request/response."""
+    """
+    Generates or propagates X-Request-ID and binds it to structlog context.
+    Also injects the request_id as an attribute on the active OTEL span.
+    """
 
     async def dispatch(self, request: Request, call_next: object) -> Response:
-        request_id = str(uuid.uuid4())
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(request_id=request_id)
+
+        try:
+            from opentelemetry import trace
+            trace.get_current_span().set_attribute("http.request_id", request_id)
+        except Exception:
+            pass
+
         request.state.request_id = request_id
         response: Response = await call_next(request)  # type: ignore[operator]
         response.headers["X-Request-ID"] = request_id
@@ -28,10 +44,10 @@ class TimingMiddleware(BaseHTTPMiddleware):
         elapsed_ms = (time.perf_counter() - start) * 1000
         response.headers["X-Process-Time"] = f"{elapsed_ms:.1f}ms"
         logger.debug(
-            "%s %s → %s (%.1fms)",
-            request.method,
-            request.url.path,
-            response.status_code,
-            elapsed_ms,
+            "request completed",
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_ms=round(elapsed_ms, 1),
         )
         return response
