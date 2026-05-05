@@ -1,15 +1,18 @@
-import logging
-import logging.config
+from __future__ import annotations
+
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 
 from restorax.api.middleware import RequestIDMiddleware, TimingMiddleware
 from restorax.api.routers import jobs, models, pipelines, ws
 from restorax.api.routers.health import router as health_router
 from restorax.config import settings
+from restorax.logging import configure_logging
+from restorax.telemetry import configure_telemetry
 
 
 @asynccontextmanager
@@ -20,10 +23,8 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 def create_app() -> FastAPI:
-    logging.basicConfig(
-        level=getattr(logging, settings.log_level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)-8s %(name)s  %(message)s",
-    )
+    configure_logging(app_env=settings.app_env, log_level=settings.log_level)
+    configure_telemetry(settings)
 
     app = FastAPI(
         title="RestoraX",
@@ -52,12 +53,12 @@ def create_app() -> FastAPI:
     app.include_router(pipelines.router)
     app.include_router(ws.router)
 
-    # Prometheus metrics — optional dependency
-    try:
-        from prometheus_fastapi_instrumentator import Instrumentator
-        Instrumentator().instrument(app).expose(app, endpoint="/metrics")
-    except ImportError:
-        pass  # prometheus-fastapi-instrumentator not installed — skip silently
+    # ── Prometheus /metrics ───────────────────────────────────────────────────
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+    @app.get("/metrics", include_in_schema=False)
+    async def metrics() -> Response:
+        return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     return app
 
