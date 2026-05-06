@@ -8,8 +8,11 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+import structlog
 
 import torch
 from celery import Task
@@ -22,7 +25,7 @@ from restorax.tasks.progress import ProgressReporter
 from restorax.video.reader import VideoReader
 from restorax.video.writer import VideoWriter
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Module-level registry — lives for the lifetime of the worker process
 _registry: ModelRegistry | None = None
@@ -93,6 +96,31 @@ def _get_audio_registry() -> object:
     return _audio_registry
 
 
+# ── Structlog context signals ─────────────────────────────────────────────────
+
+from celery.signals import task_failure, task_postrun, task_prerun
+
+
+@task_prerun.connect
+def _on_task_prerun(task_id: str, task: object, args: tuple, kwargs: dict, **_: object) -> None:
+    job_id = kwargs.get("job_id") or (args[0] if args else None)
+    structlog.contextvars.clear_contextvars()
+    ctx: dict[str, str] = {"celery_task_id": task_id}
+    if job_id:
+        ctx["job_id"] = str(job_id)
+    structlog.contextvars.bind_contextvars(**ctx)
+
+
+@task_postrun.connect
+def _on_task_postrun(**_: object) -> None:
+    structlog.contextvars.clear_contextvars()
+
+
+@task_failure.connect
+def _on_task_failure(**_: object) -> None:
+    structlog.contextvars.clear_contextvars()
+
+
 def _update_job_db(job_id: str, **kwargs: object) -> None:
     """Synchronous wrapper to update job status in the DB from a Celery worker."""
     import asyncio
@@ -121,6 +149,16 @@ class JobTask(Task):  # type: ignore[type-arg]
             except Exception:
                 pass
             ProgressReporter(str(job_id)).fail(str(exc))
+        try:
+            from restorax.telemetry import get_active_jobs_counter, get_jobs_counter
+            _jc = get_jobs_counter()
+            _ac = get_active_jobs_counter()
+            if _jc is not None:
+                _jc.add(1, {"status": "failed"})
+            if _ac is not None:
+                _ac.add(-1, {"pipeline": ""})
+        except Exception:
+            pass
         super().on_failure(exc, task_id, args, kwargs, einfo)
 
 
@@ -145,6 +183,14 @@ def run_job(
                        and remux processed audio into the output. Default False.
     """
     reporter = ProgressReporter(job_id)
+    _start_time = time.perf_counter()
+    try:
+        from restorax.telemetry import get_active_jobs_counter
+        ctr = get_active_jobs_counter()
+        if ctr is not None:
+            ctr.add(1, {"pipeline": pipeline_preset_path})
+    except Exception:
+        pass
     _update_job_db(job_id, status="running", started_at=datetime.now(timezone.utc))
     reporter.update(0.0, status="running")
 
@@ -155,8 +201,7 @@ def run_job(
 
     registry = _get_registry()
 
-    logger.info("Starting job %s | device=%s | preset=%s | audio=%s",
-                job_id, device, pipeline_preset_path, restore_audio)
+    logger.info("job started", device=str(device), preset=pipeline_preset_path, restore_audio=restore_audio)
 
     with VideoReader(input_path) as reader:
         meta = reader.meta
@@ -204,7 +249,26 @@ def run_job(
         completed_at=datetime.now(timezone.utc),
     )
     reporter.complete(output_path)
-    logger.info("Job %s completed → %s", job_id, output_path)
+    logger.info("job completed", output_path=output_path)
+    try:
+        from restorax.telemetry import (
+            get_active_jobs_counter,
+            get_job_duration_histogram,
+            get_jobs_counter,
+        )
+        _dur = time.perf_counter() - _start_time
+        _pipeline_name = Path(pipeline_preset_path).stem
+        _jc = get_jobs_counter()
+        _jd = get_job_duration_histogram()
+        _ac = get_active_jobs_counter()
+        if _jc is not None:
+            _jc.add(1, {"status": "completed"})
+        if _jd is not None:
+            _jd.record(_dur, {"pipeline": _pipeline_name})
+        if _ac is not None:
+            _ac.add(-1, {"pipeline": pipeline_preset_path})
+    except Exception:
+        pass
     return {"output_path": output_path, "metrics": {}}
 
 
@@ -222,7 +286,7 @@ def _run_audio_pipeline(
 
     audio_stages_cfg = config.get("audio_stages", [])
     if not audio_stages_cfg:
-        logger.debug("No audio_stages in preset — skipping audio pipeline")
+        logger.debug("no audio_stages in preset, skipping")
         return
 
     from restorax.audio.pipeline import (
@@ -243,7 +307,7 @@ def _run_audio_pipeline(
 
     processed = AudioPipelineRunner().run(pipeline, audio_arr, sr)
     AudioWriter().mux_into_video(output_path, processed, sr, output_path)
-    logger.info("Audio pipeline complete: %s stages applied", len(pipeline.stages))
+    logger.info("audio pipeline complete", stages=len(pipeline.stages))
 
 
 def _infer_output_scale(preset_path: str) -> int:

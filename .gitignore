@@ -96,4 +96,5 @@ CLAUDE.md
 PLAN.md
 PROGRESS.md
 graphify-out/
-.claude
+.claude.worktrees/
+.worktrees/
