@@ -56,13 +56,31 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+sr = [
+    "timm>=0.9.0",
+    "einops>=0.7.0",
+    "mamba-ssm>=2.0.3",
+]
 face = [
     "gfpgan>=1.3.8",
     "facexlib>=0.3.0",
+    "einops>=0.7.0",
+]
+diffusion = [
+    "diffusers>=0.27.0",
+    "transformers>=4.40.0",
+    "accelerate>=0.30.0",
+    "sentencepiece>=0.2.0",
+]
+extras = [
+    "einops>=0.7.0",
+    "kornia>=0.7.0",
+    "imageio[ffmpeg]>=2.34.0",
 ]
 apm = [
     "sentry-sdk[fastapi,celery]>=2.0.0",
 ]
+all = ["restorax[sr,face,diffusion,extras,apm]"]
 dev = [
     "pytest>=8.2.0",
     "pytest-asyncio>=0.23.0",
@@ -128,7 +146,11 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "-m 'not benchmark'"
 markers = [
+    "requires_weights: skip if named model weights are absent from model_dir",
+    "requires_assets: skip if standard test assets are not downloaded",
+    "benchmark: excluded from default run; invoke with pytest -m benchmark",
     "gpu: requires a CUDA GPU",
     "slow: slow integration tests",
 ]
