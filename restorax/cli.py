@@ -17,6 +17,8 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
+from restorax.cli_download import download_models_group
+
 console = Console()
 
 
@@ -219,6 +221,9 @@ def benchmark_compare(results_dir: str) -> None:
             for item in json.loads(f.read_text()):
                 all_results.append(BenchmarkResult(**item))
         console.print(BenchmarkSuite(results=all_results).to_markdown_table())
+
+
+cli.add_command(download_models_group)
 
 
 if __name__ == "__main__":
