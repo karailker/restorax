@@ -11,10 +11,9 @@ Paper: "CodeFormer++: Blind Face Restoration Using Deformable Registration
         and Deep Metric Learning" (2025)
 
 Follows the same interface as CodeFormerRestorer. The extra.fidelity weight
-(0.0–1.0) still controls the quality/fidelity tradeoff.
+(0.0-1.0) still controls the quality/fidelity tradeoff.
 
-When the real arch is not available, delegates to the installed CodeFormer
-(if present) as a quality fallback, or returns the input unchanged.
+Raises RestorerLoadError when the arch module or weights are unavailable.
 """
 from __future__ import annotations
 
@@ -44,7 +43,7 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
     """
     Improved blind face restoration with deformable registration.
 
-    Drop-in replacement for CodeFormerRestorer — better on severely
+    Drop-in replacement for CodeFormerRestorer - better on severely
     degraded faces while maintaining the same fidelity/quality tradeoff.
     """
 
@@ -87,16 +86,7 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
     def process_frame(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
         assert self._device is not None
         fidelity = float(params.extra.get("fidelity", _DEFAULT_FIDELITY))
-
-        if self._net is None:
-            return frame
-
-        # Real model path (same as CodeFormerRestorer)
-        if hasattr(self._net, "__call__") and self._face_helper is not None:
-            return self._restore(frame, fidelity)
-
-        # Stub: try CodeFormer as fallback, else identity
-        return self._codeformer_fallback(frame, fidelity)
+        return self._restore(frame, fidelity)
 
     def _restore(self, frame: np.ndarray, fidelity: float) -> np.ndarray:
         """Full CodeFormer++ inference with face detection."""
@@ -124,22 +114,16 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
         return result if result is not None else frame
 
     @staticmethod
-    def _codeformer_fallback(frame: np.ndarray, fidelity: float) -> np.ndarray:
-        """Use installed CodeFormer as quality fallback."""
-        try:
-            from restorax.restorers.face_restoration.codeformer import CodeFormerRestorer
-            r = CodeFormerRestorer()
-            r.load(torch.device("cpu"))
-            result = r.process_frame(frame, RestorerParams(extra={"fidelity": fidelity}))
-            r.unload()
-            return result
-        except Exception:
-            return frame
-
-    @staticmethod
-    def _build_model(device: torch.device) -> tuple[object | None, object | None]:
+    def _build_model(device: torch.device) -> tuple[object, object]:
         try:
             from restorax.restorers.face_restoration.codeformer_pp_arch import CodeFormerPP  # type: ignore[import]
+        except ImportError as exc:
+            raise RestorerLoadError(
+                f"CodeFormer++ arch module unavailable: {exc}. "
+                "Install the codeformer_pp_arch package to use this restorer."
+            ) from exc
+
+        try:
             from facexlib.utils.face_restoration_helper import FaceRestoreHelper
             from restorax.config import settings
 
@@ -162,6 +146,7 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
             )
             logger.info("CodeFormer++ arch loaded from vendored module")
             return net, face_helper
-        except (ImportError, Exception) as exc:
-            logger.info("CodeFormer++ arch unavailable (%s) — using fallback stub", exc)
-            return None, None
+        except Exception as exc:
+            raise RestorerLoadError(
+                f"CodeFormer++ failed to load weights: {exc}"
+            ) from exc
