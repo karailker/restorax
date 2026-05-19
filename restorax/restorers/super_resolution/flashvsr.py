@@ -10,8 +10,10 @@ Reference: "FlashVSR: Real-Time Video Super-Resolution with Flash Attention"
            (Technical report, 2024)
 
 Note: Public weights and official code are not yet released.
-This implementation uses a Fast-Conv stub (lightweight 3×3 conv + subpixel
-shuffle) that approximates FlashVSR's speed profile (real-time at 1080p).
+      The vendored ``restorax.restorers.super_resolution.flashvsr_arch``
+      module must be present for this restorer to load.  If that import
+      fails, ``load()`` raises ``RestorerLoadError`` rather than silently
+      degrading to a stub.
 """
 from __future__ import annotations
 
@@ -20,9 +22,8 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
+from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
     BaseRestorer,
     RestorerCapabilities,
@@ -99,25 +100,11 @@ class FlashVSRRestorer(BaseRestorer):
     def _build_model(device: torch.device) -> torch.nn.Module:
         try:
             from restorax.restorers.super_resolution.flashvsr_arch import FlashVSR  # type: ignore[import]
-            logger.info("FlashVSR arch loaded from vendored module")
-            return FlashVSR(scale=4).eval().to(device)
-        except ImportError:
-            logger.info("FlashVSR arch not available — using subpixel-conv stub")
-            return _FlashVSRStub().eval().to(device)
-
-
-class _FlashVSRStub(nn.Module):
-    """Lightweight subpixel-conv stub — correct shape, fast inference."""
-    def __init__(self) -> None:
-        super().__init__()
-        self.body = nn.Sequential(
-            nn.Conv2d(3, 64, 3, 1, 1), nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, 3, 1, 1), nn.ReLU(inplace=True),
-            nn.Conv2d(64, 3 * 16, 3, 1, 1),  # 4² = 16 for ×4 scale
-            nn.PixelShuffle(4),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        b, t, c, h, w = x.shape
-        out = self.body(x.view(b * t, c, h, w))
-        return out.view(b, t, c, h * 4, w * 4)
+        except ImportError as exc:
+            raise RestorerLoadError(
+                "FlashVSR arch module is not available. "
+                "The vendored 'flashvsr_arch' package must be installed "
+                "before this restorer can be used."
+            ) from exc
+        logger.info("FlashVSR arch loaded from vendored module")
+        return FlashVSR(scale=4).eval().to(device)
