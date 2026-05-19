@@ -20,7 +20,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
@@ -125,12 +124,9 @@ class MambaIRRestorer(BaseRestorer):
             model.eval().to(device)
             logger.info("MambaIR arch loaded from vendored module")
             return model
-        except (ImportError, Exception) as exc:
-            logger.info("MambaIR arch unavailable (%s) — using bicubic stub", exc)
-            return _MambaIRStub()
-
-
-class _MambaIRStub(torch.nn.Module):
-    """Bicubic 4× upscale stub — correct shape/dtype without real weights."""
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return F.interpolate(x, scale_factor=4, mode="bicubic", align_corners=False)
+        except ImportError as exc:
+            raise RestorerLoadError(
+                f"MambaIR unavailable: {exc}. Install: pip install mamba-ssm"
+            ) from exc
+        except Exception as exc:
+            raise RestorerLoadError(f"MambaIR failed to load: {exc}") from exc
