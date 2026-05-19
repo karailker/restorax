@@ -3,17 +3,16 @@ Waifu2x super-resolution restorer.
 
 Waifu2x (2014) was the first CNN-based image SR model to gain widespread
 community adoption, specifically targeting anime/illustration-style content.
-It uses a noise-reduction step followed by 2× upscaling and was trained on
+It uses a noise-reduction step followed by 2x upscaling and was trained on
 anime artwork, making it the reference baseline for anime SR.
 
 Available implementations:
   - waifu2x-caffe (original, Windows-only)
-  - waifu2x-ncnn-vulkan (cross-platform, GPU via Vulkan — recommended)
+  - waifu2x-ncnn-vulkan (cross-platform, GPU via Vulkan - recommended)
   - waifu2x-torch (PyTorch reimplementation)
 
-This wrapper targets the PyTorch reimplementation. When not available,
-a sharpened-bicubic stub approximates Waifu2x's characteristic output
-(clean, lightly sharpened, no hallucinations).
+This wrapper targets the PyTorch reimplementation. If the arch module or
+weights are unavailable, load() raises RestorerLoadError - no silent fallback.
 
 Model source: Original paper by nagadomi (2014)
 Paper equivalent: ACM Multimedia 2016, "Real-Time Single Image and Video
@@ -28,6 +27,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
     BaseRestorer,
     RestorerCapabilities,
@@ -40,10 +40,10 @@ logger = logging.getLogger(__name__)
 
 class Waifu2xRestorer(BaseRestorer):
     """
-    2× super-resolution using Waifu2x (anime/illustration optimised).
+    2x super-resolution using Waifu2x (anime/illustration optimised).
 
-    Supports noise levels 0–3 via params.extra["noise_level"] (default 1).
-    Noise level 0 = upscale only; 1–3 = increasing denoising strength.
+    Supports noise levels 0-3 via params.extra["noise_level"] (default 1).
+    Noise level 0 = upscale only; 1-3 = increasing denoising strength.
     """
 
     def __init__(self) -> None:
@@ -106,30 +106,35 @@ class Waifu2xRestorer(BaseRestorer):
     def _build_model(device: torch.device) -> torch.nn.Module:
         try:
             from restorax.restorers.super_resolution.waifu2x_arch import UpConvNet  # type: ignore[import]
-            from restorax.config import settings
-            weight_path = Path(settings.model_dir) / "waifu2x" / "waifu2x_x2.pth"
-            if not weight_path.exists():
+        except ImportError as exc:
+            raise RestorerLoadError(
+                "waifu2x_arch module not found - install the waifu2x optional dependency group"
+            ) from exc
+
+        from restorax.config import settings
+        weight_path = Path(settings.model_dir) / "waifu2x" / "waifu2x_x2.pth"
+
+        if not weight_path.exists():
+            try:
                 from huggingface_hub import hf_hub_download
                 weight_path.parent.mkdir(parents=True, exist_ok=True)
-                hf_hub_download(repo_id="deepghs/waifu2x", filename="waifu2x_x2.pth",
-                                local_dir=str(weight_path.parent))
+                hf_hub_download(
+                    repo_id="deepghs/waifu2x",
+                    filename="waifu2x_x2.pth",
+                    local_dir=str(weight_path.parent),
+                )
+            except Exception as exc:
+                raise RestorerLoadError(
+                    f"Failed to download waifu2x weights to {weight_path}: {exc}"
+                ) from exc
+
+        try:
             model = UpConvNet(scale=2)
             ckpt = torch.load(weight_path, map_location="cpu", weights_only=True)
             model.load_state_dict(ckpt.get("params", ckpt), strict=False)
-            model.eval().to(device)
+            model.to(device)
             return model
-        except (ImportError, Exception) as exc:
-            logger.info("Waifu2x arch unavailable (%s) — sharpened-bicubic stub", exc)
-            return _Waifu2xStub()
-
-
-class _Waifu2xStub(torch.nn.Module):
-    """Sharpened-bicubic 2× stub — characteristic Waifu2x look without real weights."""
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        up = F.interpolate(x, scale_factor=2, mode="bicubic", align_corners=False)
-        # Light sharpening kernel (Waifu2x characteristic)
-        b, c, h, w = up.shape
-        kernel = torch.tensor([[[[0, -0.05, 0], [-0.05, 1.2, -0.05], [0, -0.05, 0]]]], device=x.device)
-        kernel = kernel.expand(c, 1, 3, 3)
-        sharpened = torch.nn.functional.conv2d(up, kernel, padding=1, groups=c)
-        return sharpened.clamp(0, 1)
+        except Exception as exc:
+            raise RestorerLoadError(
+                f"Failed to load waifu2x weights from {weight_path}: {exc}"
+            ) from exc
