@@ -15,7 +15,7 @@ Model source: https://github.com/sczhou/ProPainter (NeurIPS 2023)
 
 Integration: ProPainter wraps its own flow estimator (RAFT) and
 recurrent inpainting network. The class below loads the full ProPainter
-pipeline or falls back to a median-filter stub for testing.
+pipeline; raises RestorerLoadError if the arch or weights are unavailable.
 """
 from __future__ import annotations
 
@@ -106,9 +106,8 @@ class ScratchRemovalRestorer(BaseRestorer):
         """
         Temporally-aware scratch removal using ProPainter inpainting.
 
-        Detects scratches via inter-frame temporal difference, then either
-        uses ProPainter's recurrent network or falls back to per-frame
-        median inpainting when the model arch is not available.
+        Detects scratches via inter-frame temporal difference, then delegates
+        to the ProPainter recurrent network.
         """
         if len(frames) < 2:
             return [self.process_frame(f, params) for f in frames]
@@ -116,15 +115,7 @@ class ScratchRemovalRestorer(BaseRestorer):
         # Detect scratch masks via temporal incoherence
         masks = self._detect_scratches_temporal(frames)
 
-        # Use real ProPainter if available
-        if hasattr(self._model, "inpaint"):
-            return self._propainter_inpaint(frames, masks)
-
-        # Fallback: per-frame inpainting
-        return [
-            self._inpaint_single(f, m) if m.any() else f
-            for f, m in zip(frames, masks)
-        ]
+        return self._propainter_inpaint(frames, masks)
 
     # ── Detection ─────────────────────────────────────────────────────────────
 
@@ -188,12 +179,8 @@ class ScratchRemovalRestorer(BaseRestorer):
         masks: list[np.ndarray],
     ) -> list[np.ndarray]:
         """Delegate to ProPainter recurrent network."""
-        try:
-            results = self._model.inpaint(frames, masks)  # type: ignore[union-attr]
-            return results
-        except Exception as exc:
-            logger.warning("ProPainter inpaint failed (%s) — using per-frame fallback", exc)
-            return [self._inpaint_single(f, m) for f, m in zip(frames, masks)]
+        results = self._model.inpaint(frames, masks)  # type: ignore[union-attr]
+        return results
 
     # ── Build model ───────────────────────────────────────────────────────────
 
@@ -202,6 +189,13 @@ class ScratchRemovalRestorer(BaseRestorer):
         try:
             # ProPainter ships as a standalone project — try vendored import
             from restorax.restorers.artifact_removal.propainter_arch import ProPainterPipeline  # type: ignore[import]
+        except ImportError as exc:
+            raise RestorerLoadError(
+                "ProPainter arch not vendored — cannot load ScratchRemoval restorer. "
+                "Add restorax/restorers/artifact_removal/propainter_arch.py."
+            ) from exc
+
+        try:
             from restorax.config import settings
 
             weight_dir = Path(settings.model_dir) / "propainter"
@@ -211,20 +205,15 @@ class ScratchRemovalRestorer(BaseRestorer):
             model = ProPainterPipeline(weight_dir=str(weight_dir), device=device)
             logger.info("ProPainter arch loaded from vendored module")
             return model
-        except ImportError:
-            logger.info("ProPainter arch not vendored — using OpenCV inpainting fallback")
-            return _OpenCVInpaintStub()
+        except Exception as exc:
+            raise RestorerLoadError(f"Failed to load ProPainter weights: {exc}") from exc
 
 
 def _download_propainter_weights(weight_dir: Path) -> None:
     try:
         from huggingface_hub import snapshot_download
-        snapshot_download(repo_id=_HF_REPO, local_dir=str(weight_dir))
-        logger.info("ProPainter weights downloaded to %s", weight_dir)
-    except Exception as exc:
-        logger.warning("Could not download ProPainter weights: %s", exc)
+    except ImportError as exc:
+        raise RestorerLoadError("huggingface_hub required to download ProPainter weights.") from exc
 
-
-class _OpenCVInpaintStub:
-    """Fallback stub that delegates to OpenCV Telea inpainting."""
-    pass
+    snapshot_download(repo_id=_HF_REPO, local_dir=str(weight_dir))
+    logger.info("ProPainter weights downloaded to %s", weight_dir)
