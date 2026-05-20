@@ -170,11 +170,8 @@ class UpscaleAVideoRestorer(BaseRestorer):
             pipe = pipe.to(device)
             logger.info("Upscale-A-Video pipeline loaded from vendored module")
             return pipe
-        except ImportError:
-            logger.info("Upscale-A-Video arch not vendored — using NN upscale stub")
-            return _UpscaleStub()
-
-
-class _UpscaleStub:
-    """Nearest-neighbour upscale stub — correct contract without the real pipeline."""
-    pass
+        except ImportError as exc:
+            raise RestorerLoadError(
+                f"Upscale-A-Video arch unavailable: {exc}. "
+                "Install with: pip install 'restorax[diffusion]'"
+            ) from exc
