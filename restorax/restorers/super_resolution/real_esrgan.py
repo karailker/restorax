@@ -66,21 +66,17 @@ class RealESRGANx4Restorer(BaseRestorer):
         try:
             from basicsr.archs.rrdbnet_arch import RRDBNet
         except (ImportError, Exception) as exc:
-            logger.warning(
-                "basicsr unavailable (%s) — RealESRGANx4Restorer using bicubic stub", exc
-            )
-            self._model = _RealESRGANStub().to(device)
-            self._device = device
-            self._loaded = True
-            return
+            raise RestorerLoadError(
+                "basicsr is required for RealESRGANx4Restorer. "
+                "Install with: pip install basicsr"
+            ) from exc
 
         weight_path = self._try_resolve_weight_path()
         if weight_path is None:
-            logger.warning("Real-ESRGAN weights unavailable — using bicubic stub")
-            self._model = _RealESRGANStub().to(device)
-            self._device = device
-            self._loaded = True
-            return
+            raise RestorerLoadError(
+                "Real-ESRGAN weights could not be resolved. "
+                "Ensure huggingface_hub is installed and network is available."
+            )
 
         logger.info("Loading Real-ESRGAN x4plus from %s on %s", weight_path, device)
 
@@ -206,10 +202,3 @@ class RealESRGANx4Restorer(BaseRestorer):
             local_dir=str(model_dir),
         )
         return Path(path)
-
-
-class _RealESRGANStub(torch.nn.Module):
-    """4× bicubic fallback used when basicsr is unavailable or broken."""
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.nn.functional.interpolate(x, scale_factor=4, mode="bicubic", align_corners=False)
