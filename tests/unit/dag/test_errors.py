@@ -8,6 +8,8 @@ def test_node_execution_error_carries_cause():
     assert err.node_id == "my_node"
     assert err.attempt == 2
     assert err.__cause__ is cause
+    assert "attempt 2" in str(err)
+    assert "weights missing" in str(err)
 
 
 def test_port_type_mismatch_is_dag_validation_error():

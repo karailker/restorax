@@ -50,6 +50,7 @@ class NodeExecutionError(RestoraXError):
         self.node_id = node_id
         self.attempt = attempt
         self.__cause__ = cause
+        self.__suppress_context__ = True
 
 
 class PortTypeMismatchError(DAGValidationError):
