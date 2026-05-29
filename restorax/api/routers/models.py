@@ -49,7 +49,7 @@ _RESTORER_CLASSES = [
 async def list_models() -> ModelListResponse:
     restorers = []
     for cls in _RESTORER_CLASSES:
-        instance = object.__new__(cls)
+        instance = object.__new__(cls)  # FRAGILE: assumes capabilities is a pure property with no instance state
         caps = cls.capabilities.fget(instance)  # type: ignore[attr-defined]
 
         if isinstance(caps, RestorerCapabilities):
@@ -80,4 +80,6 @@ async def list_models() -> ModelListResponse:
                     loaded=False,  # Phase 3: wire into live registry
                 )
             )
+        else:
+            raise TypeError(f"Unrecognised capabilities type for {cls!r}: {type(caps)}")
     return ModelListResponse(restorers=restorers)

@@ -35,9 +35,14 @@ def test_models_lists_all_categories(client):
 def test_models_response_fields(client):
     resp = client.get("/models")
     assert resp.status_code == 200
+    audio_categories = {"source_separation", "speech_enhancement", "noise_suppression"}
     for r in resp.json()["restorers"]:
         assert "name" in r
         assert "category" in r
-        assert "scale_factor" in r
-        assert "min_vram_gb" in r
         assert "tags" in r
+        if r["category"] in audio_categories:
+            assert r.get("min_ram_gb") is not None, f"audio restorer {r['name']} missing min_ram_gb"
+            assert r.get("supports_stereo") is not None, f"audio restorer {r['name']} missing supports_stereo"
+        else:
+            assert r.get("input_color_space") is not None, f"video restorer {r['name']} missing input_color_space"
+            assert r.get("min_vram_gb") is not None, f"video restorer {r['name']} missing min_vram_gb"
