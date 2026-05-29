@@ -1,14 +1,14 @@
 """Unit tests for RIFERestorer — no GPU, no real weights."""
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 import torch
 
 from restorax.core.restorer import RestorerCategory, RestorerParams
-from restorax.restorers.frame_interpolation.rife import RIFERestorer, _RIFEBlendStub
+from restorax.restorers.frame_interpolation.rife import RIFERestorer
 
 
 @pytest.fixture
@@ -16,7 +16,9 @@ def loaded_restorer() -> RIFERestorer:
     restorer = RIFERestorer()
 
     def fake_load(device: torch.device) -> None:
-        restorer._model = _RIFEBlendStub()
+        mock_model = MagicMock()
+        mock_model.inference.side_effect = lambda t0, t1, timestep=0.5: (t0 + t1) / 2
+        restorer._model = mock_model
         restorer._device = device
         restorer._loaded = True
 
@@ -59,7 +61,6 @@ def test_process_sequence_two_frames(loaded_restorer: RIFERestorer) -> None:
     result = loaded_restorer.process_sequence([f0, f1], params)
     # 2 frames → 3 output (f0, mid, f1)
     assert len(result) == 3
-    # Mid frame should be between the two (blend stub averages them)
     assert result[0].shape == (16, 16, 3)
     assert result[1].shape == (16, 16, 3)
     assert result[2].shape == (16, 16, 3)
@@ -82,12 +83,3 @@ def test_process_frame_is_passthrough(loaded_restorer: RIFERestorer) -> None:
 def test_unload(loaded_restorer: RIFERestorer) -> None:
     loaded_restorer.unload()
     assert not loaded_restorer.is_loaded
-
-
-def test_blend_stub_midpoint() -> None:
-    stub = _RIFEBlendStub()
-    t0 = torch.zeros(1, 3, 8, 8)
-    t1 = torch.ones(1, 3, 8, 8)
-    mid = stub.inference(t0, t1, timestep=0.5)
-    assert mid.shape == (1, 3, 8, 8)
-    assert abs(float(mid.mean()) - 0.5) < 1e-5

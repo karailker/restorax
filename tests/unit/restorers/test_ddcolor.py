@@ -1,14 +1,14 @@
 """Unit tests for DDColorRestorer — no GPU, no real weights."""
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 import torch
 
 from restorax.core.restorer import RestorerCategory, RestorerParams
-from restorax.restorers.colorization.ddcolor import DDColorRestorer, _DDColorStub
+from restorax.restorers.colorization.ddcolor import DDColorRestorer
 
 
 @pytest.fixture
@@ -16,7 +16,9 @@ def loaded_restorer() -> DDColorRestorer:
     restorer = DDColorRestorer()
 
     def fake_load(device: torch.device) -> None:
-        restorer._model = _DDColorStub()
+        mock_model = MagicMock()
+        mock_model.side_effect = lambda x: torch.zeros(x.shape[0], 2, x.shape[2], x.shape[3])
+        restorer._model = mock_model
         restorer._device = device
         restorer._loaded = True
 
@@ -62,10 +64,3 @@ def test_unload(loaded_restorer: DDColorRestorer) -> None:
     loaded_restorer.unload()
     assert not loaded_restorer.is_loaded
     assert loaded_restorer._model is None
-
-
-def test_stub_forward_shape() -> None:
-    stub = _DDColorStub()
-    x = torch.zeros(1, 3, 64, 64)
-    out = stub(x)
-    assert out.shape == (1, 2, 64, 64)

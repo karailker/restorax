@@ -122,17 +122,18 @@ def list_models() -> None:
     table.add_column("Min VRAM")
     table.add_column("Tags")
 
+    from restorax.audio.restorer import AudioRestorerCapabilities
     for cls in _RESTORER_CLASSES:
         inst = object.__new__(cls)
         caps = cls.capabilities.fget(inst)  # type: ignore[attr-defined]
         name = cls.name.fget(inst)  # type: ignore[attr-defined]
-        table.add_row(
-            name,
-            caps.category.value,
-            f"{caps.scale_factor}×",
-            f"{caps.min_vram_gb:.0f} GB",
-            ", ".join(caps.tags),
-        )
+        if isinstance(caps, AudioRestorerCapabilities):
+            scale_col = "—"
+            vram_col = f"{caps.min_ram_gb:.0f} GB RAM"
+        else:
+            scale_col = f"{caps.scale_factor}×"
+            vram_col = f"{caps.min_vram_gb:.0f} GB"
+        table.add_row(name, caps.category.value, scale_col, vram_col, ", ".join(caps.tags))
 
     console.print(table)
 

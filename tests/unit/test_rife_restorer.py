@@ -14,7 +14,7 @@ from restorax.restorers.frame_interpolation.rife import RIFERestorer
 
 class TestRIFEMeta:
     def test_name(self):
-        assert RIFERestorer().name == "rife"
+        assert RIFERestorer().name == "rife_v4"
 
     def test_category(self):
         assert RIFERestorer().capabilities.category == RestorerCategory.FRAME_INTERPOLATION

@@ -1,6 +1,8 @@
 """Unit tests for Phase 5 restorers: Upscale-A-Video, VRT + tiling enhancement."""
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import numpy as np
 import pytest
 import torch
@@ -13,9 +15,10 @@ from restorax.core.restorer import RestorerCategory, RestorerParams
 class TestUpscaleAVideo:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.super_resolution.upscale_a_video import UpscaleAVideoRestorer, _UpscaleStub
+        from restorax.restorers.super_resolution.upscale_a_video import UpscaleAVideoRestorer
         r = UpscaleAVideoRestorer()
-        r._pipe = _UpscaleStub()
+        # _pipe=None has no __call__, so process_sequence falls back to _stub_upscale (4× nearest-neighbour)
+        r._pipe = None
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -51,9 +54,16 @@ class TestUpscaleAVideo:
 class TestVRT:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.super_resolution.vrt import VRTRestorer, _VRTStub
+        from restorax.restorers.super_resolution.vrt import VRTRestorer
         r = VRTRestorer()
-        r._model = _VRTStub()
+        mock_model = MagicMock()
+        # VRT processes (1, T, C, H, W) and returns (1, T, C, H*4, W*4)
+        mock_model.side_effect = lambda x: torch.nn.functional.interpolate(
+            x.reshape(-1, x.shape[2], x.shape[3], x.shape[4]),
+            scale_factor=4,
+            mode="nearest",
+        ).reshape(x.shape[0], x.shape[1], x.shape[2], x.shape[3] * 4, x.shape[4] * 4)
+        r._model = mock_model
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -72,13 +82,6 @@ class TestVRT:
         result = restorer.process_sequence(frames, RestorerParams(half_precision=False))
         assert len(result) == 4
         assert result[0].shape == (64, 64, 3)
-
-    def test_vrt_stub_output_shape(self):
-        from restorax.restorers.super_resolution.vrt import _VRTStub
-        stub = _VRTStub()
-        x = torch.zeros(1, 4, 3, 16, 16)
-        out = stub(x)
-        assert out.shape == (1, 4, 3, 64, 64)
 
     def test_padding_shorter_than_window(self, restorer):
         """Sequences shorter than WINDOW_SIZE must be padded and output original count."""

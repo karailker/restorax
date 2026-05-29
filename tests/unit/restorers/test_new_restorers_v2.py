@@ -1,6 +1,8 @@
 """Unit tests for Waifu2x, FlashVSR, EvTexture, SeedVR, DicFace restorers."""
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import numpy as np
 import pytest
 import torch
@@ -13,9 +15,11 @@ from restorax.core.restorer import RestorerCategory, RestorerParams
 class TestWaifu2x:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.super_resolution.waifu2x import Waifu2xRestorer, _Waifu2xStub
+        from restorax.restorers.super_resolution.waifu2x import Waifu2xRestorer
         r = Waifu2xRestorer()
-        r._model = _Waifu2xStub()
+        mock_model = MagicMock()
+        mock_model.side_effect = lambda x: torch.nn.functional.interpolate(x, scale_factor=2, mode="nearest")
+        r._model = mock_model
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -37,13 +41,6 @@ class TestWaifu2x:
         assert result.shape == (32, 32, 3)
         assert result.dtype == np.uint8
 
-    def test_stub_forward_shape(self):
-        from restorax.restorers.super_resolution.waifu2x import _Waifu2xStub
-        stub = _Waifu2xStub()
-        x = torch.zeros(1, 3, 16, 16)
-        out = stub(x)
-        assert out.shape == (1, 3, 32, 32)
-
     def test_unload(self, restorer):
         restorer.unload()
         assert not restorer.is_loaded
@@ -54,9 +51,14 @@ class TestWaifu2x:
 class TestFlashVSR:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.super_resolution.flashvsr import FlashVSRRestorer, _FlashVSRStub
+        from restorax.restorers.super_resolution.flashvsr import FlashVSRRestorer
         r = FlashVSRRestorer()
-        r._model = _FlashVSRStub()
+        mock_model = MagicMock()
+        # video shape: (1, T, C, H, W) → output same shape with 4x spatial
+        mock_model.side_effect = lambda v: torch.nn.functional.interpolate(
+            v.flatten(0, 1), scale_factor=4, mode="nearest"
+        ).unflatten(0, (v.shape[0], v.shape[1]))
+        r._model = mock_model
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -78,13 +80,6 @@ class TestFlashVSR:
         assert len(result) == 3
         assert result[0].shape == (64, 64, 3)
 
-    def test_stub_forward_shape(self):
-        from restorax.restorers.super_resolution.flashvsr import _FlashVSRStub
-        stub = _FlashVSRStub()
-        x = torch.zeros(1, 2, 3, 16, 16)
-        out = stub(x)
-        assert out.shape == (1, 2, 3, 64, 64)
-
     def test_unload(self, restorer):
         restorer.unload()
         assert not restorer.is_loaded
@@ -95,9 +90,14 @@ class TestFlashVSR:
 class TestEvTexture:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.super_resolution.evtexture import EvTextureRestorer, _EvTextureStub
+        from restorax.restorers.super_resolution.evtexture import EvTextureRestorer
         r = EvTextureRestorer()
-        r._model = _EvTextureStub()
+        mock_model = MagicMock()
+        # video shape: (1, T, C, H, W); events also passed but we ignore it
+        mock_model.side_effect = lambda v, e: torch.nn.functional.interpolate(
+            v.flatten(0, 1), scale_factor=4, mode="nearest"
+        ).unflatten(0, (v.shape[0], v.shape[1]))
+        r._model = mock_model
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -134,9 +134,19 @@ class TestEvTexture:
 class TestSeedVR:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.super_resolution.seedvr import SeedVRRestorer, _SeedVRStub
+        from restorax.restorers.super_resolution.seedvr import SeedVRRestorer
+        from PIL import Image
         r = SeedVRRestorer()
-        r._pipe = _SeedVRStub()
+        mock_pipe = MagicMock()
+        def _fake_pipe(image, num_inference_steps, guidance_scale):
+            result = MagicMock()
+            result.frames = [
+                Image.fromarray(np.zeros((f.height * 4, f.width * 4, 3), dtype=np.uint8))
+                for f in image
+            ]
+            return result
+        mock_pipe.side_effect = _fake_pipe
+        r._pipe = mock_pipe
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -170,8 +180,10 @@ class TestDicFace:
     def restorer(self):
         from restorax.restorers.face_restoration.dicface import DicFaceRestorer
         r = DicFaceRestorer()
-        r._net = None   # no arch → passthrough
-        r._face_helper = None
+        r._net = None
+        mock_helper = MagicMock()
+        mock_helper.cropped_faces = []  # no faces → early return with original frame
+        r._face_helper = mock_helper
         r._device = torch.device("cpu")
         r._loaded = True
         return r

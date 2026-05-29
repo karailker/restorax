@@ -1,7 +1,7 @@
 """Unit tests for Phase 4 restorers: scratch removal, HDR, stabilization, deinterlacing."""
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -19,7 +19,9 @@ class TestScratchRemoval:
         r = ScratchRemovalRestorer()
         r._device = torch.device("cpu")
         r._loaded = True
-        r._model = None
+        mock_model = MagicMock()
+        mock_model.inpaint.side_effect = lambda frames, masks: frames
+        r._model = mock_model
         return r
 
     def test_name(self, restorer):
@@ -64,9 +66,11 @@ class TestScratchRemoval:
 class TestHDRTVDM:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.hdr.hdrtvdm import HDRTVDMRestorer, _HDRStub
+        from restorax.restorers.hdr.hdrtvdm import HDRTVDMRestorer
         r = HDRTVDMRestorer()
-        r._model = _HDRStub()
+        mock_model = MagicMock()
+        mock_model.side_effect = lambda t: t  # passthrough: same shape tensor
+        r._model = mock_model
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -85,15 +89,6 @@ class TestHDRTVDM:
         result = restorer.process_frame(frame, RestorerParams())
         assert result.shape == (32, 32, 3)
         assert result.dtype == np.uint8
-
-    def test_gamma_expansion_stub(self):
-        from restorax.restorers.hdr.hdrtvdm import HDRTVDMRestorer
-        dark = np.full((16, 16, 3), 50, dtype=np.uint8)
-        bright = np.full((16, 16, 3), 200, dtype=np.uint8)
-        # Bright pixels should remain bright (highlights preserved)
-        dark_out = HDRTVDMRestorer._gamma_expansion_stub(dark)
-        bright_out = HDRTVDMRestorer._gamma_expansion_stub(bright)
-        assert dark_out.mean() < bright_out.mean()
 
     def test_unload(self, restorer):
         restorer.unload()
@@ -149,7 +144,11 @@ class TestAIDeinterlace:
     def restorer(self):
         from restorax.restorers.deinterlacing.ai_deinterlace import AIDeinterlaceRestorer
         r = AIDeinterlaceRestorer()
-        r.load(torch.device("cpu"))
+        mock_model = MagicMock()
+        mock_model.side_effect = lambda t: t  # passthrough: same-shape tensor
+        r._model = mock_model
+        r._device = torch.device("cpu")
+        r._loaded = True
         return r
 
     def test_name(self, restorer):
@@ -178,12 +177,6 @@ class TestAIDeinterlace:
         for i in range(64):
             frame[i] = i * 3
         assert not AIDeinterlaceRestorer._is_interlaced(frame)
-
-    def test_yadif_single_output_size(self):
-        from restorax.restorers.deinterlacing.ai_deinterlace import AIDeinterlaceRestorer
-        frame = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
-        out = AIDeinterlaceRestorer._yadif_single(frame)
-        assert out.shape == (64, 64, 3)
 
     def test_unload(self, restorer):
         restorer.unload()

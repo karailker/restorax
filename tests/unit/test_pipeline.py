@@ -110,10 +110,13 @@ def test_compute_output_fps_identity_restorer() -> None:
 
 def test_compute_output_fps_rife_doubles() -> None:
     """RIFE has temporal_scale=2 → fps doubles."""
-    from restorax.restorers.frame_interpolation.rife import RIFERestorer, _RIFEBlendStub
+    from unittest.mock import MagicMock
     import torch
+    from restorax.restorers.frame_interpolation.rife import RIFERestorer
     restorer = RIFERestorer()
-    restorer._model = _RIFEBlendStub()
+    mock_model = MagicMock()
+    mock_model.inference.side_effect = lambda t0, t1, timestep=0.5: (t0 + t1) / 2
+    restorer._model = mock_model
     restorer._device = torch.device("cpu")
     restorer._loaded = True
     pipeline = Pipeline("rife_test", [Stage(restorer=restorer, params=RestorerParams())])
@@ -122,10 +125,13 @@ def test_compute_output_fps_rife_doubles() -> None:
 
 def test_compute_output_fps_disabled_rife_no_change() -> None:
     """Disabled RIFE stage should not multiply fps."""
-    from restorax.restorers.frame_interpolation.rife import RIFERestorer, _RIFEBlendStub
+    from unittest.mock import MagicMock
     import torch
+    from restorax.restorers.frame_interpolation.rife import RIFERestorer
     restorer = RIFERestorer()
-    restorer._model = _RIFEBlendStub()
+    mock_model = MagicMock()
+    mock_model.inference.side_effect = lambda t0, t1, timestep=0.5: (t0 + t1) / 2
+    restorer._model = mock_model
     restorer._device = torch.device("cpu")
     restorer._loaded = True
     pipeline = Pipeline("disabled", [Stage(restorer=restorer, params=RestorerParams(), enabled=False)])

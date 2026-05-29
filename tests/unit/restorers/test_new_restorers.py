@@ -1,7 +1,7 @@
 """Unit tests for MambaIR, TDM, CodeFormer++, and GaVS restorers."""
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -15,9 +15,11 @@ from restorax.core.restorer import RestorerCategory, RestorerParams
 class TestMambaIR:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.super_resolution.mamba_ir import MambaIRRestorer, _MambaIRStub
+        from restorax.restorers.super_resolution.mamba_ir import MambaIRRestorer
         r = MambaIRRestorer()
-        r._model = _MambaIRStub()
+        mock_model = MagicMock()
+        mock_model.side_effect = lambda x: torch.nn.functional.interpolate(x, scale_factor=4, mode="nearest")
+        r._model = mock_model
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -40,13 +42,6 @@ class TestMambaIR:
         assert result.shape == (64, 64, 3)
         assert result.dtype == np.uint8
 
-    def test_stub_forward_shape(self):
-        from restorax.restorers.super_resolution.mamba_ir import _MambaIRStub
-        stub = _MambaIRStub()
-        x = torch.zeros(1, 3, 16, 16)
-        out = stub(x)
-        assert out.shape == (1, 3, 64, 64)
-
     def test_tiling_delegates(self, restorer):
         frame = np.zeros((64, 64, 3), dtype=np.uint8)
         with patch.object(restorer, "_process_tiled") as mock_tiled:
@@ -65,9 +60,19 @@ class TestMambaIR:
 class TestTDM:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.super_resolution.tdm import TDMRestorer, _TDMStub
+        from restorax.restorers.super_resolution.tdm import TDMRestorer
+        from PIL import Image
         r = TDMRestorer()
-        r._pipe = _TDMStub()
+        mock_pipe = MagicMock()
+        def _fake_pipe(image, tasks, num_inference_steps, guidance_scale):
+            result = MagicMock()
+            result.frames = [
+                Image.fromarray(np.zeros((f.height * 4, f.width * 4, 3), dtype=np.uint8))
+                for f in image
+            ]
+            return result
+        mock_pipe.side_effect = _fake_pipe
+        r._pipe = mock_pipe
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -94,12 +99,6 @@ class TestTDM:
         assert result[0].shape == (64, 64, 3)
         assert result[0].dtype == np.uint8
 
-    def test_stub_upscale_shape(self):
-        from restorax.restorers.super_resolution.tdm import TDMRestorer
-        frame = np.zeros((16, 16, 3), dtype=np.uint8)
-        frames = TDMRestorer._stub_upscale([frame])
-        assert frames[0].shape == (64, 64, 3)
-
     def test_unload(self, restorer):
         restorer.unload()
         assert not restorer.is_loaded
@@ -112,8 +111,10 @@ class TestCodeFormerPlusPlus:
     def restorer(self):
         from restorax.restorers.face_restoration.codeformer_pp import CodeFormerPlusPlusRestorer
         r = CodeFormerPlusPlusRestorer()
-        r._net = None   # stub: fallback to identity
-        r._face_helper = None
+        r._net = None
+        mock_helper = MagicMock()
+        mock_helper.cropped_faces = []  # no faces → early return with original frame
+        r._face_helper = mock_helper
         r._device = torch.device("cpu")
         r._loaded = True
         return r
