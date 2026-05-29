@@ -45,3 +45,38 @@ async def _check_redis() -> str:
         return "ok"
     except Exception:
         return "fail"
+
+
+def _celery_inspect():
+    """Return a Celery Inspect instance. Extracted for testability."""
+    from restorax.tasks.celery_app import celery_app
+    return celery_app.control.inspect(timeout=2.0)
+
+
+@router.get("/health/celery")
+async def celery_health() -> dict:
+    """Return Celery worker count, active task count, and queued task count."""
+    try:
+        inspect = _celery_inspect()
+        active_raw = inspect.active()
+        reserved_raw = inspect.reserved()
+    except Exception:
+        return {"status": "unavailable", "workers": 0, "active_tasks": 0, "queued_tasks": 0}
+
+    if active_raw is None:
+        return {"status": "unavailable", "workers": 0, "active_tasks": 0, "queued_tasks": 0}
+
+    active = active_raw or {}
+    reserved = reserved_raw or {}
+
+    workers = len(set(list(active.keys()) + list(reserved.keys())))
+    active_tasks = sum(len(tasks) for tasks in active.values())
+    queued_tasks = sum(len(tasks) for tasks in reserved.values())
+    status = "ok" if workers > 0 else "degraded"
+
+    return {
+        "status": status,
+        "workers": workers,
+        "active_tasks": active_tasks,
+        "queued_tasks": queued_tasks,
+    }
