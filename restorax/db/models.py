@@ -30,6 +30,7 @@ class JobModel(Base):
     output_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     metrics: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    dag_run: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Celery
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True)

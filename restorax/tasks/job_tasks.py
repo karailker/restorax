@@ -272,6 +272,80 @@ def run_job(
     return {"output_path": output_path, "metrics": {}}
 
 
+@celery_app.task(bind=True, base=JobTask, name="restorax.tasks.job_tasks.run_dag_job")
+def run_dag_job(
+    self,
+    job_id: str,
+    dag_id: str,
+    input_path: str,
+    output_path: str,
+) -> dict:
+    """
+    Execute a DAG pipeline on a video file.
+    Loads the DAG from DB, builds ExecutionContext, runs DAGExecutor.
+    No Celery canvas — all orchestration is internal.
+    """
+    import asyncio as _asyncio
+    import uuid as _uuid
+
+    from restorax.dag import DAGExecutor
+    from restorax.dag.context import ExecutionContext, ProgressEmitter
+    from restorax.dag.serializer import DAGSerializer
+    from restorax.dag.nodes import control, io, map_node, merge, parallel, restore  # noqa: F401 — registers node types
+
+    reporter = ProgressReporter(job_id)
+    _update_job_db(job_id, status="running", started_at=datetime.now(timezone.utc))
+    reporter.update(0.0, status="running")
+
+    device_str = settings.device
+    if device_str.startswith("cuda") and "CUDA_VISIBLE_DEVICES" in os.environ:
+        device_str = "cuda:0"
+    device = torch.device(device_str if torch.cuda.is_available() or device_str == "cpu" else "cpu")
+
+    async def _load_dag():
+        from restorax.db.repositories.pipeline_repo import PipelineRepository
+        from restorax.db.session import AsyncSessionLocal
+        from restorax.core.exceptions import PipelineConfigError
+        async with AsyncSessionLocal() as session:
+            repo = PipelineRepository(session)
+            try:
+                template = await repo.get(dag_id)
+            except PipelineConfigError:
+                raise ValueError(f"DAG '{dag_id}' not found in database")
+        return DAGSerializer.from_dict(template.config)
+
+    dag = _asyncio.run(_load_dag())
+
+    work_dir = Path(output_path).parent / "dag_work"
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    emitter = ProgressEmitter(job_id=job_id, redis_url=settings.redis_url)
+    ctx = ExecutionContext(
+        run_id=str(_uuid.uuid4()),
+        job_id=job_id,
+        work_dir=work_dir,
+        device=device,
+        registry=_get_registry(),
+        progress_emitter=emitter,
+        logger=logger,
+        config={"input_path": input_path, "output_path": output_path},
+    )
+
+    dag_run = _asyncio.run(DAGExecutor().execute(dag, ctx))
+    _update_job_db(job_id, status="running", dag_run=dag_run.to_dict())
+
+    if not dag_run.succeeded:
+        raise RuntimeError(dag_run.error or "DAG execution failed")
+
+    _update_job_db(
+        job_id, status="completed",
+        progress=1.0, output_path=output_path,
+        completed_at=datetime.now(timezone.utc),
+    )
+    reporter.complete(output_path)
+    return {"output_path": output_path}
+
+
 def _run_audio_pipeline(
     preset_path: str,
     input_path: str,

@@ -44,6 +44,7 @@ class JobRepository:
         output_path: str | None = None,
         error: str | None = None,
         metrics: dict | None = None,
+        dag_run: dict | None = None,
     ) -> JobModel:
         job = await self.get(job_id)
         job.status = status
@@ -61,6 +62,8 @@ class JobRepository:
             job.error = error
         if metrics is not None:
             job.metrics = metrics
+        if dag_run is not None:
+            job.dag_run = dag_run
         await self._session.commit()
         await self._session.refresh(job)
         return job
