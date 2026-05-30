@@ -2,12 +2,14 @@
 
 **Open-source AI video restoration toolkit for old films, home videos, and archival footage.**
 
-[![Tests](https://img.shields.io/badge/tests-309%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-430%2B%20passing-brightgreen)](tests/)
 [![Python](https://img.shields.io/badge/python-3.11-blue)](pyproject.toml)
 [![PyTorch](https://img.shields.io/badge/pytorch-2.3%2B-orange)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-RestoraX combines 21 AI models into a single, modular restoration pipeline with a web UI, REST API, and CLI — designed to be a competitive open-source alternative to Topaz Video AI and DaVinci Resolve Super Scale.
+RestoraX combines 21 AI models into a single, modular restoration pipeline with a **visual node-based pipeline builder**, REST API, and CLI — designed to be a competitive open-source alternative to Topaz Video AI and DaVinci Resolve Super Scale.
+
+Beyond linear presets, RestoraX ships a **Pipeline DAG Engine** (typed ports, parallel branches, merge strategies, retry policies, per-branch progress) and a **ComfyUI-style visual builder** — drag restorers onto a canvas, wire them into branching graphs, and run them with live progress.
 
 ---
 
@@ -60,7 +62,7 @@ This starts four processes from [Procfile.dev](Procfile.dev):
 |---|---|---|
 | `api` | <http://localhost:8000> | FastAPI — REST API + WebSocket progress |
 | `worker` | — | Celery — runs restoration jobs on GPU/CPU |
-| `frontend` | <http://localhost:3000> | Next.js — drag-and-drop web UI |
+| `frontend` | <http://localhost:3000> | Vite + React 18 — visual pipeline builder (shadcn/ui + React Flow) |
 | `flower` | <http://localhost:5555> | Celery monitor (optional) |
 
 Start individual processes when needed:
@@ -228,7 +230,7 @@ Each row shows three stages: the **original** clean source, the **degraded input
 ## Architecture
 
 ```
-Web UI (Next.js)  ──────►  FastAPI REST API  ──►  Celery + Redis  ──►  GPU Worker
+Web UI (Vite/React)  ───►  FastAPI REST API  ──►  Celery + Redis  ──►  GPU Worker
      CLI (Click)  ──────►                                               │
                                                                         ▼
                                                               PipelineRunner
