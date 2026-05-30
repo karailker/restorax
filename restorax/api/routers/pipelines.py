@@ -15,11 +15,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from restorax.api.deps import get_db
 from restorax.api.schemas.pipeline import (
+    DAGCreateRequest,
+    DAGResponse,
     PipelineCreateRequest,
     PipelineListResponse,
     PipelineResponse,
 )
-from restorax.core.exceptions import PipelineConfigError
+from restorax.core.exceptions import DAGValidationError, PipelineConfigError
+from restorax.dag.serializer import DAGSerializer
 from restorax.db.models import PipelineTemplateModel
 from restorax.db.repositories.pipeline_repo import PipelineRepository
 
@@ -87,3 +90,42 @@ async def delete_pipeline(pipeline_id: str, db: AsyncSession = Depends(get_db)) 
     except PipelineConfigError:
         raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline_id}' not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ── DAG endpoints ─────────────────────────────────────────────────────────────
+
+
+@router.post("/dag", response_model=DAGResponse, status_code=status.HTTP_201_CREATED, tags=["dag"])
+async def create_dag(
+    req: DAGCreateRequest,
+    db: AsyncSession = Depends(get_db),
+) -> DAGResponse:
+    """Create a DAG pipeline. Config must be a valid DAGSerializer.to_dict() output."""
+    # Validate the DAG structure before persisting
+    try:
+        DAGSerializer.from_dict(req.config)
+    except (DAGValidationError, Exception) as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid DAG config: {exc}")
+
+    repo = PipelineRepository(db)
+    p = PipelineTemplateModel(
+        id=req.id,
+        name=req.name,
+        description=req.description,
+        config=req.config,  # already has schema_type: "dag"
+    )
+    try:
+        created = await repo.create(p)
+    except Exception:
+        raise HTTPException(status_code=409, detail=f"DAG '{req.id}' already exists")
+    return DAGResponse.model_validate(created)
+
+
+@router.get("/dag/{dag_id}", response_model=DAGResponse, tags=["dag"])
+async def get_dag(dag_id: str, db: AsyncSession = Depends(get_db)) -> DAGResponse:
+    repo = PipelineRepository(db)
+    try:
+        p = await repo.get(dag_id)
+    except PipelineConfigError:
+        raise HTTPException(status_code=404, detail=f"DAG '{dag_id}' not found")
+    return DAGResponse.model_validate(p)
