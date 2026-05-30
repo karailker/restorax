@@ -18,7 +18,7 @@
 # Processes and URLs:
 #   api      → http://localhost:8000   (FastAPI + WebSocket)
 #   worker   →                         (Celery GPU worker)
-#   frontend → http://localhost:3000   (Next.js UI)
+#   frontend → http://localhost:3000   (Vite + React UI)
 #   flower   → http://localhost:5555   (Celery monitor — optional)
 #
 # Each process runs inside the 'restorax' conda env regardless of which
