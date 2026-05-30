@@ -34,3 +34,21 @@ class JobResponse(BaseModel):
 class JobListResponse(BaseModel):
     jobs: list[JobResponse]
     total: int
+
+
+class BranchInfo(BaseModel):
+    branch_index: int
+    name: str
+    status: str
+    progress: float
+    output_path: str | None = None
+
+
+class BranchListResponse(BaseModel):
+    job_id: str
+    branches: list[BranchInfo]
+
+
+class MergeRequest(BaseModel):
+    strategy: str = Field(..., description="'blend' or 'select'")
+    branch_index: int = Field(0, description="Used when strategy='select'")

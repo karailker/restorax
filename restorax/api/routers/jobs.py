@@ -18,7 +18,14 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from restorax.api.deps import get_db
-from restorax.api.schemas.job import JobCreateRequest, JobListResponse, JobResponse
+from restorax.api.schemas.job import (
+    BranchInfo,
+    BranchListResponse,
+    JobCreateRequest,
+    JobListResponse,
+    JobResponse,
+    MergeRequest,
+)
 from restorax.config import settings
 from restorax.core.exceptions import JobNotFoundError
 from restorax.db.models import JobModel
@@ -30,7 +37,8 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
     file: UploadFile = File(..., description="Input video file"),
-    pipeline_id: str = Form(...),
+    pipeline_id: str | None = Form(None),
+    dag_id: str | None = Form(None, description="DAG pipeline ID (alternative to pipeline_id)"),
     output_format: str = Form("mp4"),
     output_codec: str = Form("libx264"),
     output_crf: int = Form(18),
@@ -39,6 +47,9 @@ async def create_job(
     db: AsyncSession = Depends(get_db),
 ) -> JobResponse:
     """Upload a video and enqueue a restoration job."""
+    if pipeline_id is None and dag_id is None:
+        raise HTTPException(status_code=422, detail="Either pipeline_id or dag_id is required")
+
     job_id = str(uuid.uuid4())
 
     # Save uploaded file to local storage root
@@ -53,8 +64,8 @@ async def create_job(
 
     output_path = str(storage_root / "outputs" / job_id / f"output.{output_format}")
 
-    # Resolve preset YAML path
-    preset_path = _resolve_preset(pipeline_id)
+    # Resolve preset YAML path (sequential pipelines only)
+    preset_path = _resolve_preset(pipeline_id) if pipeline_id else None
 
     # Persist job to database
     repo = JobRepository(db)
@@ -62,7 +73,7 @@ async def create_job(
         id=job_id,
         status="queued",
         input_path=str(input_path),
-        pipeline_id=pipeline_id,
+        pipeline_id=dag_id or pipeline_id,  # store whichever was provided
         output_format=output_format,
         output_codec=output_codec,
         output_crf=output_crf,
@@ -71,17 +82,28 @@ async def create_job(
     )
     await repo.create(job_model)
 
-    # Dispatch Celery task
-    from restorax.tasks.job_tasks import run_job
-    task = run_job.apply_async(
-        kwargs={
-            "job_id": job_id,
-            "pipeline_preset_path": preset_path,
-            "input_path": str(input_path),
-            "output_path": output_path,
-            "restore_audio": restore_audio,
-        }
-    )
+    # Dispatch appropriate Celery task
+    if dag_id is not None:
+        from restorax.tasks.job_tasks import run_dag_job
+        task = run_dag_job.apply_async(
+            kwargs={
+                "job_id": job_id,
+                "dag_id": dag_id,
+                "input_path": str(input_path),
+                "output_path": output_path,
+            }
+        )
+    else:
+        from restorax.tasks.job_tasks import run_job
+        task = run_job.apply_async(
+            kwargs={
+                "job_id": job_id,
+                "pipeline_preset_path": preset_path,
+                "input_path": str(input_path),
+                "output_path": output_path,
+                "restore_audio": restore_audio,
+            }
+        )
     await repo.update_status(job_id, status="queued", celery_task_id=task.id)
 
     job_model = await repo.get(job_id)
@@ -199,6 +221,67 @@ async def create_batch_jobs(
         created.append(await repo.get(job_id))
 
     return JobListResponse(jobs=[_to_response(j) for j in created], total=len(created))
+
+
+@router.get("/{job_id}/branches", response_model=BranchListResponse)
+async def get_job_branches(job_id: str, db: AsyncSession = Depends(get_db)) -> BranchListResponse:
+    """Return per-branch status, progress, and output paths for a DAG job."""
+    repo = JobRepository(db)
+    try:
+        job = await repo.get(job_id)
+    except JobNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    dag_run: dict = job.dag_run or {}
+    node_states: dict = dag_run.get("node_states", {})
+
+    # Find parallel nodes from dag_run and extract branch info
+    branches: list[BranchInfo] = []
+    for node_id, state in node_states.items():
+        if "parallel" in node_id.lower() or "branch" in node_id.lower():
+            branches.append(BranchInfo(
+                branch_index=len(branches),
+                name=node_id,
+                status=state,
+                progress=1.0 if state == "succeeded" else 0.0,
+            ))
+
+    if not branches:
+        # No DAG run data yet — return empty
+        return BranchListResponse(job_id=job_id, branches=[])
+
+    return BranchListResponse(job_id=job_id, branches=branches)
+
+
+@router.post("/{job_id}/merge", response_model=JobResponse)
+async def merge_job_branches(
+    job_id: str,
+    req: MergeRequest,
+    db: AsyncSession = Depends(get_db),
+) -> JobResponse:
+    """
+    Trigger merge for a DAG job that has completed its parallel branches.
+    Updates the MergeNode strategy/select_index in the stored DAGRun and
+    marks the job for re-execution of the merge step.
+    """
+    repo = JobRepository(db)
+    try:
+        job = await repo.get(job_id)
+    except JobNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    dag_run: dict = job.dag_run or {}
+    if not dag_run:
+        raise HTTPException(status_code=409, detail="Job has no DAG run data (not a DAG job or not yet executed)")
+
+    # Store merge decision in job metrics for the worker to pick up
+    metrics = dict(job.metrics or {})
+    metrics["merge_strategy"] = req.strategy
+    metrics["merge_branch_index"] = req.branch_index
+    await repo.update_status(job_id, status=job.status, metrics=metrics)
+
+    job = await repo.get(job_id)
+    return _to_response(job)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
