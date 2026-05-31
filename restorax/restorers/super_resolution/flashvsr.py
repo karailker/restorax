@@ -29,6 +29,7 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,8 @@ class FlashVSRRestorer(BaseRestorer):
     Designed for scenarios where BasicVSR++ quality is not required but
     speed matters: live-streaming restoration, real-time preview, edge devices.
     """
+
+    PARAM_SCHEMA = [HALF_PRECISION_SPEC]
 
     def __init__(self) -> None:
         self._model: torch.nn.Module | None = None

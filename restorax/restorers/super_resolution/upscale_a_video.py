@@ -39,6 +39,7 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,13 @@ class UpscaleAVideoRestorer(BaseRestorer):
     provide short-sequence consistency; the flow-guided recurrent latent
     propagation extends it across the full video via chunk overlap.
     """
+
+    PARAM_SCHEMA = [
+        ParamSpec("num_inference_steps", "int", _DEFAULT_NUM_INFERENCE_STEPS, "Inference steps",
+                  minimum=1, maximum=100, step=1),
+        ParamSpec("guidance_scale", "float", _DEFAULT_GUIDANCE_SCALE, "Guidance scale",
+                  minimum=1.0, maximum=20.0, step=0.5),
+    ]
 
     def __init__(self) -> None:
         self._pipe: object | None = None

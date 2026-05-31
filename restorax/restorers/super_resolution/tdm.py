@@ -26,6 +26,7 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,13 @@ class TDMRestorer(BaseRestorer):
       num_inference_steps: int (default 20, lower = faster but lower quality)
       guidance_scale: float (default 7.5)
     """
+
+    PARAM_SCHEMA = [
+        ParamSpec("num_inference_steps", "int", _DEFAULT_STEPS, "Inference steps",
+                  minimum=1, maximum=100, step=1),
+        ParamSpec("guidance_scale", "float", 7.5, "Guidance scale",
+                  minimum=1.0, maximum=20.0, step=0.5),
+    ]
 
     def __init__(self) -> None:
         self._pipe: object | None = None

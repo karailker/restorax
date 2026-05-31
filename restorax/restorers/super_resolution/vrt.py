@@ -30,6 +30,7 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,8 @@ class VRTRestorer(BaseRestorer):
     VRT processes temporal windows of 7 frames with mutual attention,
     so requires_temporal=True and chunk_size in presets should be ≥7.
     """
+
+    PARAM_SCHEMA = [HALF_PRECISION_SPEC]
 
     def __init__(self) -> None:
         self._model: torch.nn.Module | None = None

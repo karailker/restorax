@@ -33,6 +33,9 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    TILE_SIZE_SPEC,
+    TILE_OVERLAP_SPEC,
+    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,6 +48,8 @@ class Waifu2xRestorer(BaseRestorer):
     Supports noise levels 0-3 via params.extra["noise_level"] (default 1).
     Noise level 0 = upscale only; 1-3 = increasing denoising strength.
     """
+
+    PARAM_SCHEMA = [TILE_SIZE_SPEC, TILE_OVERLAP_SPEC, HALF_PRECISION_SPEC]
 
     def __init__(self) -> None:
         self._model: torch.nn.Module | None = None

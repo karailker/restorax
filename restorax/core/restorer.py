@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import torch
@@ -42,12 +42,52 @@ class RestorerParams:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class ParamSpec:
+    """
+    Declares one tunable parameter a restorer actually reads, so UIs can render
+    a typed control instead of a raw JSON blob.
+
+    `target` says where the value lives in the serialised params dict:
+      - "param": a top-level RestorerParams field (e.g. tile_size)
+      - "extra": a key inside RestorerParams.extra (restorer-specific)
+    """
+    name: str
+    kind: Literal["int", "float", "bool", "enum", "multiselect"]
+    default: Any
+    label: str
+    target: Literal["param", "extra"] = "extra"
+    minimum: float | None = None
+    maximum: float | None = None
+    step: float | None = None
+    choices: tuple[Any, ...] | None = None
+    help: str | None = None
+
+
+# Reusable specs for the common RestorerParams fields, shared by tiling/fp16 restorers.
+TILE_SIZE_SPEC = ParamSpec(
+    "tile_size", "int", 0, "Tile size", target="param",
+    minimum=0, maximum=2048, step=32, help="0 = no tiling; raise for high-res inputs to avoid OOM",
+)
+TILE_OVERLAP_SPEC = ParamSpec(
+    "tile_overlap", "int", 32, "Tile overlap", target="param", minimum=0, maximum=256, step=8,
+)
+HALF_PRECISION_SPEC = ParamSpec(
+    "half_precision", "bool", True, "Half precision (fp16)", target="param",
+    help="Faster, lower VRAM; CUDA only",
+)
+
+
 class BaseRestorer(ABC):
     """
     Contract every restorer must satisfy.
 
     Lifecycle per worker: __init__ → load() → process_* (many calls) → unload()
     """
+
+    # Tunable parameters this restorer actually reads. Empty = no user-facing knobs.
+    # Override on subclasses that read params.tile_size / params.extra[...] etc.
+    PARAM_SCHEMA: list[ParamSpec] = []
 
     @property
     @abstractmethod

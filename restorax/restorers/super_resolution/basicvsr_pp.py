@@ -26,6 +26,7 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,8 @@ class BasicVSRPlusPlusRestorer(BaseRestorer):
     Requires a temporal sequence — override process_sequence instead of
     process_frame to exploit inter-frame information.
     """
+
+    PARAM_SCHEMA = [HALF_PRECISION_SPEC]
 
     def __init__(self) -> None:
         self._model: torch.nn.Module | None = None

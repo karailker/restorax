@@ -25,6 +25,7 @@ from restorax.audio.restorer import (
     AudioRestorerCategory,
     AudioRestorerParams,
 )
+from restorax.core.restorer import ParamSpec
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,11 @@ class VoiceFixerRestorer(AudioRestorer):
             0: original VoiceFixer
             1: without vocoder (faster, slightly lower quality)
     """
+
+    PARAM_SCHEMA = [
+        ParamSpec("mode", "enum", 0, "Mode", choices=(0, 1, 2),
+                  help="VoiceFixer inference mode (0-2)"),
+    ]
 
     def __init__(self) -> None:
         self._model: object | None = None

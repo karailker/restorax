@@ -22,6 +22,9 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    TILE_SIZE_SPEC,
+    TILE_OVERLAP_SPEC,
+    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,6 +39,8 @@ _WEIGHT_SHA256_PREFIX = "4fa0d38905f75ac"
 
 class RealESRGANx4Restorer(BaseRestorer):
     """4× blind real-world super-resolution using Real-ESRGAN."""
+
+    PARAM_SCHEMA = [TILE_SIZE_SPEC, TILE_OVERLAP_SPEC, HALF_PRECISION_SPEC]
 
     def __init__(self) -> None:
         self._model: torch.nn.Module | None = None

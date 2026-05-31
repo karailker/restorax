@@ -27,6 +27,9 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    TILE_SIZE_SPEC,
+    TILE_OVERLAP_SPEC,
+    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,6 +45,8 @@ class MambaIRRestorer(BaseRestorer):
     More efficient than transformer-based VRT while achieving similar quality.
     Suitable for lower-VRAM GPUs (3 GB vs 8 GB for VRT).
     """
+
+    PARAM_SCHEMA = [TILE_SIZE_SPEC, TILE_OVERLAP_SPEC, HALF_PRECISION_SPEC]
 
     def __init__(self) -> None:
         self._model: torch.nn.Module | None = None

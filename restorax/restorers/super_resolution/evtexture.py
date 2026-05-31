@@ -28,6 +28,7 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,8 @@ class EvTextureRestorer(BaseRestorer):
     guides fine texture recovery. Superior to BasicVSR++ on scenes with
     rapid motion or intricate repeating textures (fabric, foliage, text).
     """
+
+    PARAM_SCHEMA = [HALF_PRECISION_SPEC]
 
     def __init__(self) -> None:
         self._model: torch.nn.Module | None = None

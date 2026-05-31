@@ -23,6 +23,20 @@ export interface Job {
   celery_task_id: string | null;
 }
 
+export interface ParamSpec {
+  name: string;
+  kind: "int" | "float" | "bool" | "enum" | "multiselect";
+  default: unknown;
+  label: string;
+  /** "param" = top-level RestorerParams field; "extra" = nested under params.extra. */
+  target: "param" | "extra";
+  minimum?: number | null;
+  maximum?: number | null;
+  step?: number | null;
+  choices?: unknown[] | null;
+  help?: string | null;
+}
+
 export interface RestorerInfo {
   name: string;
   category: string;
@@ -36,6 +50,7 @@ export interface RestorerInfo {
   sample_rates?: number[] | null;
   tags: string[];
   loaded: boolean;
+  param_schema?: ParamSpec[];
 }
 
 export interface BranchInfo {

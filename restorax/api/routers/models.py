@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from restorax.api.schemas.model import ModelListResponse, RestorerInfo
+from dataclasses import asdict
+
+from restorax.api.schemas.model import ModelListResponse, ParamSpecSchema, RestorerInfo
 from restorax.audio.restorer import AudioRestorerCapabilities
 from restorax.core.restorer import RestorerCapabilities
 from restorax.restorers.artifact_removal.scratch_removal import ScratchRemovalRestorer
@@ -51,6 +53,7 @@ async def list_models() -> ModelListResponse:
     for cls in _RESTORER_CLASSES:
         instance = object.__new__(cls)  # FRAGILE: assumes capabilities is a pure property with no instance state
         caps = cls.capabilities.fget(instance)  # type: ignore[attr-defined]
+        param_schema = [ParamSpecSchema(**asdict(spec)) for spec in cls.PARAM_SCHEMA]
 
         if isinstance(caps, RestorerCapabilities):
             # Video restorer (color space aware)
@@ -65,6 +68,7 @@ async def list_models() -> ModelListResponse:
                     scale_factor=caps.scale_factor,
                     tags=caps.tags,
                     loaded=False,  # Phase 3: wire into live registry
+                    param_schema=param_schema,
                 )
             )
         elif isinstance(caps, AudioRestorerCapabilities):
@@ -78,6 +82,7 @@ async def list_models() -> ModelListResponse:
                     sample_rates=caps.sample_rates,
                     tags=caps.tags,
                     loaded=False,  # Phase 3: wire into live registry
+                    param_schema=param_schema,
                 )
             )
         else:

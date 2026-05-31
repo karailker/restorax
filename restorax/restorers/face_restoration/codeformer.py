@@ -29,6 +29,7 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,12 @@ class CodeFormerRestorer(BaseRestorer):
       - 1.0: maximum fidelity to input (preserves original structure)
       - 0.5: recommended default
     """
+
+    PARAM_SCHEMA = [
+        ParamSpec("fidelity", "float", _DEFAULT_FIDELITY, "Fidelity",
+                  minimum=0.0, maximum=1.0, step=0.05,
+                  help="0 = best quality, 1 = best identity preservation"),
+    ]
 
     def __init__(self) -> None:
         self._net: torch.nn.Module | None = None

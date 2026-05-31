@@ -25,6 +25,7 @@ from restorax.audio.restorer import (
     AudioRestorerCategory,
     AudioRestorerParams,
 )
+from restorax.core.restorer import ParamSpec
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,11 @@ class DemucsRestorer(AudioRestorer):
              or None to return the full mix (identity for testing).
              Supported: "vocals", "drums", "bass", "other"
     """
+
+    PARAM_SCHEMA = [
+        ParamSpec("stems", "multiselect", list(_DEFAULT_STEMS), "Stems to keep",
+                  choices=("vocals", "drums", "bass", "other")),
+    ]
 
     def __init__(self) -> None:
         self._model: object | None = None

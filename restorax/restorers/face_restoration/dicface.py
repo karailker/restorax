@@ -26,6 +26,7 @@ from restorax.core.restorer import (
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
+    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,12 @@ class DicFaceRestorer(BaseRestorer):
     extra params:
       fidelity: float 0.0–1.0 (0=max enhancement, 1=max fidelity)
     """
+
+    PARAM_SCHEMA = [
+        ParamSpec("fidelity", "float", _DEFAULT_FIDELITY, "Fidelity",
+                  minimum=0.0, maximum=1.0, step=0.05,
+                  help="0 = best quality, 1 = best identity preservation"),
+    ]
 
     def __init__(self) -> None:
         self._net: object | None = None

@@ -18,6 +18,8 @@ from typing import Any
 import numpy as np
 import torch
 
+from restorax.core.restorer import ParamSpec
+
 
 class AudioRestorerCategory(str, Enum):
     SOURCE_SEPARATION = "source_separation"     # Demucs: separate vocals/instruments
@@ -51,6 +53,9 @@ class AudioRestorer(ABC):
         - Output: np.ndarray float32 (num_samples, num_channels), values in [-1.0, 1.0]
         - Shape is preserved: output.shape == input.shape
     """
+
+    # Tunable parameters this restorer reads from params.extra. Empty = no knobs.
+    PARAM_SCHEMA: list[ParamSpec] = []
 
     @property
     @abstractmethod
