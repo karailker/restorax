@@ -17,11 +17,13 @@ const HANDLE_CLASS = "!h-3 !w-3 !rounded-full !border-2 !border-card";
 
 function PortRow({ port, side }: { port: PortDef; side: "input" | "output" }) {
   const isInput = side === "input";
+  // Handle anchors to the node's left/right border (left:0 / right:0 of this
+  // row); padding keeps the label clear of the socket.
   return (
     <div
       className={cn(
         "relative flex items-center",
-        isInput ? "justify-start" : "justify-end",
+        isInput ? "justify-start pl-3" : "justify-end pr-3",
       )}
     >
       <Handle
@@ -60,7 +62,7 @@ export function NodeShell({
           <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
         )}
       </div>
-      <div className="flex justify-between gap-6 px-3 py-2">
+      <div className="flex justify-between gap-6 py-2">
         <div className="flex flex-col gap-2">
           {inputs.map((p) => (
             <PortRow key={p.name} port={p} side="input" />

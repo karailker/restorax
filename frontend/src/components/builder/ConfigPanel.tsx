@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ParamSpec, RestorerInfo } from "@/types";
 import { fetchModels } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -160,7 +160,7 @@ function RestoreFields({
         />
       ))}
 
-      <AdvancedParams params={params} onChange={setParams} nodeId={node.id} />
+      <AdvancedExtra params={params} onChange={setParams} nodeId={node.id} />
     </>
   );
 }
@@ -272,8 +272,13 @@ function MultiSelect({
   );
 }
 
-/** Collapsible escape hatch: edit the whole params dict as raw JSON. */
-function AdvancedParams({
+/**
+ * Collapsible escape hatch for restorer-specific keys, scoped to `params.extra`
+ * only — so the typed widgets keep sole control of the top-level RestorerParams
+ * fields and a stray key here can never crash `RestorerParams(**params_dict)`.
+ * Re-syncs from upstream (typed-widget edits, node switch) while not being typed in.
+ */
+function AdvancedExtra({
   params,
   onChange,
   nodeId,
@@ -282,20 +287,21 @@ function AdvancedParams({
   onChange: (params: Params) => void;
   nodeId: string;
 }) {
-  const [text, setText] = useState(() => JSON.stringify(params, null, 2));
+  const extra = (params.extra as Params | undefined) ?? {};
+  const [text, setText] = useState(() => JSON.stringify(extra, null, 2));
   const [err, setErr] = useState(false);
+  const editing = useRef(false);
 
   useEffect(() => {
-    setText(JSON.stringify(params, null, 2));
+    if (editing.current) return; // don't clobber active typing
+    setText(JSON.stringify(((params.extra as Params | undefined) ?? {}), null, 2));
     setErr(false);
-    // Re-sync when a different node is selected.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId]);
+  }, [params, nodeId]);
 
   return (
     <details className="group">
       <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
-        Advanced — raw params (JSON)
+        Advanced — extra params (JSON)
       </summary>
       <Textarea
         className={cn(
@@ -303,20 +309,35 @@ function AdvancedParams({
           err && "border-destructive",
         )}
         value={text}
+        onFocus={() => {
+          editing.current = true;
+        }}
+        onBlur={() => {
+          editing.current = false;
+        }}
         onChange={(e) => {
           const next = e.target.value;
           setText(next);
           try {
             const parsed = JSON.parse(next || "{}");
+            if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+              setErr(true);
+              return;
+            }
             setErr(false);
-            onChange(parsed);
+            onChange({ ...params, extra: parsed });
           } catch {
             setErr(true);
           }
         }}
       />
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Restorer-specific keys, merged into <code>params.extra</code>.
+      </p>
       {err && (
-        <p className="mt-1 text-xs text-destructive">Invalid JSON — not saved.</p>
+        <p className="mt-1 text-xs text-destructive">
+          Must be a JSON object — not saved.
+        </p>
       )}
     </details>
   );
