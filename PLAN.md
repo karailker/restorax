@@ -1,9 +1,9 @@
 # RestoraX — Project Plan
 
-**Last updated:** 2026-06-21
+**Last updated:** 2026-06-22
 **Owner:** İlker Kara
 
-This is the single source of truth for RestoraX's history and roadmap — what shipped, what's in flight, and what's next. It replaces the original phase-based `PLAN.md`/`PROGRESS.md` and the `docs/superpowers/` master plan, which are now archived (see [Archive](#archive) below) rather than duplicated here.
+This is the single source of truth for RestoraX's history and roadmap — what shipped, what's in flight, and what's next. It replaces the original phase-based `PLAN.md`/`PROGRESS.md` and the `docs/superpowers/` master plan, which are now archived (see [Archive](#6-archive) below) rather than duplicated here.
 
 ---
 
@@ -22,7 +22,7 @@ An open-source AI video restoration platform for old films, home videos, and arc
 ### Tech stack
 
 | Layer | Technology |
-|---|---|
+| --- | --- |
 | Language | Python 3.11 |
 | ML Backend | PyTorch 2.5+, CUDA 12.1 |
 | API | FastAPI, async, Pydantic v2, WebSocket |
@@ -42,7 +42,7 @@ An open-source AI video restoration platform for old films, home videos, and arc
 ### Model catalog (25 restorers, `restorax/api/routers/models.py::_RESTORER_CLASSES`)
 
 | Category | Restorers |
-|---|---|
+| --- | --- |
 | Super-Resolution | Real-ESRGAN x4, BasicVSR++, Upscale-A-Video, VRT, MambaIR, TDM, SeedVR, Waifu2x, FlashVSR, EvTexture |
 | Face Restoration | CodeFormer, CodeFormer++, GFPGAN, DicFace |
 | Colorization | DDColor |
@@ -57,7 +57,7 @@ Every restorer raises `RestorerLoadError` instead of silently falling back to a 
 
 ### API surface
 
-```
+```text
 GET  /health, /ready, /health/celery
 POST   /jobs                      GET /jobs            GET /jobs/{id}
 GET    /jobs/{id}/download        DELETE /jobs/{id}     POST /jobs/batch
@@ -69,7 +69,7 @@ WS     /ws/jobs/{job_id}/progress
 
 ### Repository structure (top level)
 
-```
+```text
 restorax/
   core/          BaseRestorer ABC, Pipeline/PipelineRunner, ModelRegistry (LRU)
   dag/           typed-port DAG engine (node/edge/graph/executor/serializer + nodes/)
@@ -93,22 +93,29 @@ docs/superpowers/archive/  historical plan/spec docs (see §6)
 ## 3. History — What Shipped
 
 ### 3.1 Original build-out (Phases 1–6, through 2026-04-30)
+
 Foundation → MVP restorers → Web UI placeholder → extended restorer library → advanced models/performance → hardening. Delivered the core architecture still in use today: `BaseRestorer` ABC, chunked `PipelineRunner`, LRU `ModelRegistry`, PyAV video I/O, Celery/Redis job execution, REST API, Docker Compose. 309 backend + 25 frontend tests passing at the time. Frontend at this point was a placeholder later fully replaced (§3.6).
 
 ### 3.2 Backend Hardening (2026-05-04)
+
 Production observability: `structlog` structured logging, OpenTelemetry traces, Prometheus metrics (`/metrics`), `/health` + `/ready` probes, request-ID propagation, optional Sentry APM. Wired into FastAPI app and Celery worker startup, all env-driven.
 
 ### 3.3 Real Model Activation (2026-05-06, "Track 2")
+
 Vendored 15 architecture files from official repos, wired weight auto-download via `huggingface_hub`, and replaced every silent stub fallback with explicit `RestorerLoadError`. Audio stubs (Demucs/VoiceFixer/RNNoise) are the only approved stub exceptions. Canary test (`test_no_silent_stubs.py`) enforces this permanently.
 
 ### 3.4 Sub-project 1 — Backend Foundations (2026-05-20)
+
 `GET /models` exposes all restorers including audio; global exception handlers map `RestorerLoadError`→503, `RestorerNotFoundError`/`JobNotFoundError`→404, `PipelineConfigError`→422; `GET /health/celery` (queue depth + worker count); CLI `models` command handles audio capabilities.
 
 ### 3.5 Sub-project 2 — Pipeline DAG Engine (2026-05-29/30)
+
 Replaced purely-sequential pipelines with a full DAG orchestrator (`restorax/dag/`): typed multi-socket ports with construction-time validation, cycle detection, topological execution, per-node `RetryPolicy`, downstream-skip on failure, `ParallelNode`/`MergeNode` (blend or select), `MapNode`/`ChoiceNode`/`PassNode`. Runs inside a single `run_dag_job` Celery task (no Celery canvas) with per-branch progress over Redis pub/sub. New API: `POST/GET /pipelines/dag`, `dag_id` on `/jobs`, `/jobs/{id}/branches`, `/jobs/{id}/merge`. 430 unit tests passing at completion. Designed to be extractable as a standalone `restorax-dag` library later.
 
 ### 3.6 Sub-project 3 — Modern UI (in progress since 2026-05-30)
+
 Full replacement of the placeholder frontend:
+
 - **Foundation + views (PRs #10–11):** Vite + React 18 + TS + Tailwind v4, ReactFlow canvas. Three views: Dashboard (stats + preset quick-launch + jobs table), Pipeline Builder (drag-to-canvas, typed nodes, save/load DAG), Job Detail (live WS progress, branch comparison via `react-compare-slider`, merge panel).
 - **Official shadcn/ui adoption (PR #12)** and **shadcn form controls (PR #13):** replaced hand-rolled primitives and native form elements with the official Radix-based registry.
 - **README sync (PR #14).**
@@ -121,13 +128,25 @@ Full replacement of the placeholder frontend:
 - **CORS + audio palette fix (PR #21):** configurable `cors_origins` (was wildcard-with-credentials, broken/insecure in prod); `/models` now tags `kind: video|audio` and the builder palette filters out non-DAG-runnable audio restorers.
 
 ### 3.7 YADIF classical deinterlacer (branch `feat/yadif-deinterlace`, 2026-06-21, **on top of main, not yet merged**)
+
 Weight-free motion-adaptive deinterlacer shelling out to system `ffmpeg`, with a numpy "bob" fallback and progressive-frame auto-detection (pass-through, never softens non-interlaced footage). Enabled by default in `classic_film.yaml` (previously a disabled placeholder stage). `cli.py` now registers all restorers via `registry.register_all()` instead of just Real-ESRGAN. Fixed a `pipeline.py` bug where disabled YAML stages still tried to resolve a (possibly-unregistered) restorer. 18 new tests; full suite green except one pre-existing, unrelated env-leakage failure (`test_config.py::test_default_device_is_cuda`).
+
+### 3.8 SP3 live verification + fixes (2026-06-22)
+
+Stood up the full dev stack (Redis, FastAPI/uvicorn, Celery worker, Vite) and drove it with the `browse` headless-browser skill (not just build/typecheck evidence) to confirm M1–M4 actually work end-to-end, then did a visual design pass. Found and fixed two real bugs:
+
+- **Event-loop-blocking bug (`restorax/api/routers/health.py::celery_health`):** `inspect.active()`/`inspect.reserved()` are synchronous Celery broker calls invoked directly inside an `async def` route, blocking the single uvicorn worker's event loop for the full broker round-trip (~4s observed). This froze *every other concurrent request* (`/jobs`, `/models`) for that window — looked like a hung jobs-list bug in the UI but was actually loop starvation. Fixed by wrapping both calls in `asyncio.to_thread(...)`. Verified via concurrent-request test: `/jobs` now resolves in ~0.03s even while `/health/celery` is mid-flight.
+- **No responsive layout (`frontend/src/components/layout/AppShell.tsx`):** sidebar nav was a fixed `w-60` block with no breakpoint handling — on narrow viewports (375px) it ate the full screen and clipped all page content. Added a `md:hidden` top bar with a hamburger trigger, an off-canvas drawer (`fixed` + `-translate-x-full`/`translate-x-0` + backdrop) below the `md` breakpoint, and kept the original static sidebar unchanged at `md:` and above. Verified via screenshots at 375px (collapsed + drawer-open) and 1280px (unchanged).
+
+Desktop visual quality otherwise holds up: consistent dark shadcn theme, clear hierarchy, no other layout defects found across Dashboard and Pipeline Builder (including the restorer palette, which loads correctly once `/models` resolves — initial "empty palette" observation was the event-loop bug above, not a frontend defect).
+
+M4 canvas-run flow (§4.1) was *not* re-verified this session (no job was actually submitted/run against live Celery+weights) — that item remains open.
 
 ---
 
 ## 4. Active / Next Tracks
 
-```
+```text
 SP3 — Modern UI polish          ⏳ remaining items below
 SP4 — ComfyUI Node Pack         ⏳ not started (independent of SP3)
 Backend hardening follow-ups    ⏳ not started
@@ -135,14 +154,19 @@ Track E — Documentation Refactor ⏳ deliberately LAST (after everything above
 ```
 
 ### 4.1 SP3 polish (deferred, needs verification against real backend + GPU)
+
 - Branch-output image URLs: `BranchCompare` assumes `${API_BASE}/<output_path>` — confirm the backend actually serves branch artifacts at that path (vs. `/files/`, `/artifacts/`, or a dedicated per-branch frame endpoint).
 - Parallel-branch authoring: builder saves `parallel` nodes with `branches: []` — there's no UI yet to author branch steps. Confirm backend's tolerance for empty branches or build the authoring UI.
 - Preset IDs (`sr_x4`, `classic_film`, `vhs_restoration`, `newsreel`) used by Dashboard quick-launch — confirmed to exist in `configs/presets/` as of the 2026-05-31 review; re-verify if presets change.
-- M4 canvas-run flow has not been verified end-to-end with Redis + Celery + real weights live.
+- M4 canvas-run flow still has not been verified end-to-end with a real job actually submitted/run against live Redis + Celery + real weights (stack was confirmed live and wired correctly in §3.8, but no job was actually executed).
 - Deferred from M4: inline per-node intermediate-frame previews (would need new backend per-node artifact endpoints — its own milestone).
+- ~~Event-loop-blocking `/health/celery` call freezing concurrent requests~~ — **fixed 2026-06-22, §3.8.**
+- ~~No mobile-responsive sidebar layout~~ — **fixed 2026-06-22, §3.8.**
 
 ### 4.2 Sub-project 4 — ComfyUI Node Pack (independent track)
+
 All 25 restorers as ComfyUI custom nodes (`comfyui_nodes/`), distributed via ComfyUI-Manager.
+
 - Tensor↔numpy conversion shared in `_base.py` (ComfyUI `IMAGE` = `(B,H,W,C)` float32 [0,1] ↔ RestoraX `(H,W,3)` uint8).
 - Temporal restorers accept batched `IMAGE` (B>1 = sequence).
 - Audio nodes use ComfyUI `AUDIO` type.
@@ -150,11 +174,13 @@ All 25 restorers as ComfyUI custom nodes (`comfyui_nodes/`), distributed via Com
 - Phases: base conversion layer → SR nodes → face/color/interpolation nodes → stabilization/deinterlace/HDR/artifact nodes → audio nodes → manifest + ComfyUI-Manager PR.
 
 ### 4.3 Backend hardening follow-ups
+
 - **Alembic migrations:** `alembic/versions/` is empty; schema is created via `Base.metadata.create_all` at startup. Fine for SQLite/dev; unversioned for Postgres prod (`create_all` won't `ALTER` existing tables). Generate an initial revision and wire it into deploy.
 - **Test isolation:** full `pytest` run shows cross-file failures (each file passes alone). Root cause: async SQLAlchemy `AsyncAdaptedQueuePool` "Exception during reset" leaking across integration/system tests, plus env-var leakage into `test_config` override tests. Fix: per-test engine disposal + event-loop scoping in `conftest.py`, explicit env cleanup.
 - **Frontend lint:** no ESLint config (eslint v9 needs flat `eslint.config.js`); only `tsc` typecheck today, no `lint` script.
 
 ### 4.4 Track E — Documentation Refactor (last)
+
 Transform docs from working-notebook style into model cards, ADRs, an AI-tooling guide, `ROADMAP.md`, `CHANGELOG.md` — executed only after SP3/SP4 ship, so docs reflect final state rather than a moving target. Detailed plan/spec in archive (§6).
 
 ---

@@ -99,3 +99,4 @@ CLAUDE.md
 graphify-out/
 .claude.worktrees/
 .worktrees/
+.gstack/
