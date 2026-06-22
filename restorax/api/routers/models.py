@@ -16,6 +16,7 @@ from restorax.restorers.super_resolution.seedvr import SeedVRRestorer
 from restorax.restorers.super_resolution.waifu2x import Waifu2xRestorer
 from restorax.restorers.colorization.ddcolor import DDColorRestorer
 from restorax.restorers.deinterlacing.ai_deinterlace import AIDeinterlaceRestorer
+from restorax.restorers.deinterlacing.yadif_deinterlace import YadifDeinterlaceRestorer
 from restorax.restorers.face_restoration.codeformer import CodeFormerRestorer
 from restorax.restorers.face_restoration.codeformer_pp import CodeFormerPlusPlusRestorer
 from restorax.restorers.face_restoration.gfpgan import GFPGANRestorer
@@ -42,7 +43,7 @@ _RESTORER_CLASSES = [
     CodeFormerRestorer, CodeFormerPlusPlusRestorer, GFPGANRestorer, DicFaceRestorer,
     DDColorRestorer, RIFERestorer,
     ScratchRemovalRestorer, HDRTVDMRestorer, VideoStabilizationRestorer,
-    GaVSRestorer, AIDeinterlaceRestorer,
+    GaVSRestorer, AIDeinterlaceRestorer, YadifDeinterlaceRestorer,
     DemucsRestorer, VoiceFixerRestorer, RNNoiseRestorer,
 ]
 

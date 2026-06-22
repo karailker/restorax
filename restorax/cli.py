@@ -40,7 +40,6 @@ def run(input_path: str, pipeline: str, output_path: str | None, device: str | N
     from restorax.config import settings
     from restorax.core.pipeline import PipelineRunner, load_pipeline_from_yaml
     from restorax.core.registry import ModelRegistry
-    from restorax.restorers.super_resolution.real_esrgan import RealESRGANx4Restorer
     from restorax.video.reader import VideoReader
     from restorax.video.writer import VideoWriter
 
@@ -67,7 +66,8 @@ def run(input_path: str, pipeline: str, output_path: str | None, device: str | N
     console.print(f"  pipeline: [cyan]{preset_path}[/cyan]  device: [cyan]{torch_device}[/cyan]")
 
     registry = ModelRegistry(max_loaded=settings.registry_max_loaded)
-    registry.register(RealESRGANx4Restorer)
+    from restorax.api.routers.models import _RESTORER_CLASSES
+    registry.register_all(_RESTORER_CLASSES)
 
     with VideoReader(input_path) as reader:
         meta = reader.meta

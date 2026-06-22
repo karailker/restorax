@@ -8,11 +8,10 @@ chunk_size: 16
 chunk_overlap: 2
 
 stages:
-  # Stage 1 — Remove interlacing (placeholder: will use AI deinterlacer in Phase 4.3)
-  # Disabled by default until the AI deinterlacer is implemented.
-  # Enable manually or replace with a custom deinterlacer restorer.
+  # Stage 1 — Remove interlacing (classical motion-adaptive YADIF, no weights).
+  # Progressive frames are auto-detected and passed through unchanged.
   - restorer: yadif_deinterlace
-    enabled: false
+    enabled: true
     scale: 1
 
   # Stage 2 — 4× super-resolution

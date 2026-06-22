@@ -169,6 +169,8 @@ def load_pipeline_from_yaml(path: str | Path, registry: object) -> Pipeline:
     device = torch.device(settings.device)
     stages: list[Stage] = []
     for stage_cfg in config.get("stages", []):
+        if not stage_cfg.get("enabled", True):
+            continue  # disabled stages are inert — don't resolve a possibly-unregistered restorer
         restorer = registry.get(stage_cfg["restorer"], device)
         params = RestorerParams(
             scale=stage_cfg.get("scale", restorer.capabilities.scale_factor),

@@ -58,8 +58,8 @@ async def celery_health() -> dict:
     """Return Celery worker count, active task count, and queued task count."""
     try:
         inspect = _celery_inspect()
-        active_raw = inspect.active()
-        reserved_raw = inspect.reserved()
+        active_raw = await asyncio.to_thread(inspect.active)
+        reserved_raw = await asyncio.to_thread(inspect.reserved)
     except Exception:
         return {"status": "unavailable", "workers": 0, "active_tasks": 0, "queued_tasks": 0}
 
