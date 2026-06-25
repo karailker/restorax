@@ -91,6 +91,7 @@ dev = [
     "mypy>=1.10.0",
     "types-pyyaml>=6.0.12",
     "types-redis>=4.6.0",
+    "comfy-cli>=1.2.0",
 ]
 
 [project.scripts]
@@ -150,6 +151,7 @@ addopts = "-m 'not benchmark'"
 markers = [
     "requires_weights: skip if named model weights are absent from model_dir",
     "requires_assets: skip if standard test assets are not downloaded",
+    "requires_comfyui: needs a real ComfyUI checkout at $COMFYUI_PATH",
     "benchmark: excluded from default run; invoke with pytest -m benchmark",
     "gpu: requires a CUDA GPU",
     "slow: slow integration tests",
