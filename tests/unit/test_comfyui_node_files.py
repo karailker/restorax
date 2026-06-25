@@ -30,3 +30,22 @@ def test_deinterlacing_module_exports_two_nodes():
     assert len(dei.NODE_CLASS_MAPPINGS) == 2
     for node_cls in dei.NODE_CLASS_MAPPINGS.values():
         assert node_cls.CATEGORY == "RestoraX/Deinterlacing"
+
+
+def test_artifact_removal_module_exports_one_node():
+    from comfyui_nodes import artifact_removal as ar
+    assert len(ar.NODE_CLASS_MAPPINGS) == 1
+    assert next(iter(ar.NODE_CLASS_MAPPINGS.values())).CATEGORY == "RestoraX/Artifact Removal"
+
+
+def test_hdr_module_exports_one_node():
+    from comfyui_nodes import hdr
+    assert len(hdr.NODE_CLASS_MAPPINGS) == 1
+    assert next(iter(hdr.NODE_CLASS_MAPPINGS.values())).CATEGORY == "RestoraX/HDR Conversion"
+
+
+def test_stabilization_module_exports_two_nodes():
+    from comfyui_nodes import stabilization as stab
+    assert len(stab.NODE_CLASS_MAPPINGS) == 2
+    for node_cls in stab.NODE_CLASS_MAPPINGS.values():
+        assert node_cls.CATEGORY == "RestoraX/Stabilization"
