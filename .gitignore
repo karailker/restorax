@@ -100,3 +100,7 @@ graphify-out/
 .claude.worktrees/
 .worktrees/
 .gstack/
+
+# ── Local dev cruft ───────────────────────────────────────────────────────
+.serena/
+samples/
