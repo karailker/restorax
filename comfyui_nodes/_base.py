@@ -11,7 +11,8 @@ import numpy as np
 import torch
 
 from restorax.core.registry import ModelRegistry
-from restorax.core.restorer import ParamSpec
+from restorax.core.restorer import BaseRestorer, ParamSpec, RestorerParams
+from restorax.video.utils import from_rgb, to_rgb
 
 _registry: ModelRegistry | None = None
 
@@ -70,3 +71,60 @@ def param_spec_to_input(spec: ParamSpec) -> tuple:
         default_str = ",".join(str(v) for v in (spec.default or []))
         return ("STRING", {"default": default_str, "multiline": False})
     raise ValueError(f"Unsupported ParamSpec.kind: {spec.kind!r}")
+
+
+def _instance_attr(restorer_cls: type[BaseRestorer], attr_name: str):
+    """Read a no-init-dependency property (name/capabilities) the same way
+    restorax.core.registry.ModelRegistry does, without calling __init__."""
+    instance = object.__new__(restorer_cls)
+    return getattr(restorer_cls, attr_name).fget(instance)
+
+
+def make_restorer_node(restorer_cls: type[BaseRestorer], category_label: str) -> type:
+    """Build a ComfyUI node class for a single RestoraX video restorer."""
+    name = _instance_attr(restorer_cls, "name")
+    caps = _instance_attr(restorer_cls, "capabilities")
+    param_specs = restorer_cls.PARAM_SCHEMA
+
+    @classmethod
+    def INPUT_TYPES(cls):  # noqa: N802 — ComfyUI's required casing
+        required: dict = {"image": ("IMAGE",)}
+        if caps.scale_factor != 1:
+            required["scale"] = ("INT", {"default": caps.scale_factor, "min": 1, "max": 8})
+        for spec in param_specs:
+            required[spec.name] = param_spec_to_input(spec)
+        return {"required": required}
+
+    def restore(self, image, scale=None, **kwargs):
+        restorer = get_registry().get(name, get_device())
+        params = RestorerParams(scale=scale if scale is not None else caps.scale_factor)
+        for spec in param_specs:
+            value = kwargs.get(spec.name, spec.default)
+            if spec.kind == "multiselect" and isinstance(value, str):
+                value = [v for v in value.split(",") if v]
+            if spec.target == "param":
+                setattr(params, spec.name, value)
+            else:
+                params.extra[spec.name] = value
+
+        frames = comfy_image_to_frames(image)
+        out_frames = []
+        for frame in frames:
+            converted_in = from_rgb(frame, caps.input_color_space) if caps.input_color_space != "rgb" else frame
+            processed = restorer.process_frame(converted_in, params)
+            out_frames.append(
+                to_rgb(processed, caps.output_color_space) if caps.output_color_space != "rgb" else processed
+            )
+        return (frames_to_comfy_image(out_frames),)
+
+    return type(
+        f"{restorer_cls.__name__}Node",
+        (object,),
+        {
+            "INPUT_TYPES": INPUT_TYPES,
+            "RETURN_TYPES": ("IMAGE",),
+            "FUNCTION": "restore",
+            "CATEGORY": f"RestoraX/{category_label}",
+            "restore": restore,
+        },
+    )

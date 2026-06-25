@@ -84,3 +84,106 @@ def test_multiselect_spec_maps_to_comma_separated_string():
 def test_multiselect_spec_handles_empty_default():
     spec = ParamSpec("tags", "multiselect", None, "Tags")
     assert param_spec_to_input(spec) == ("STRING", {"default": "", "multiline": False})
+
+
+from restorax.core.restorer import (
+    BaseRestorer, RestorerCapabilities, RestorerCategory, RestorerParams, ParamSpec,
+)
+from comfyui_nodes._base import make_restorer_node
+
+
+class _FakeUpscaler(BaseRestorer):
+    """Doubles every pixel value and reports the resulting params for assertions."""
+    PARAM_SCHEMA = [ParamSpec("boost", "float", 1.0, "Boost", target="extra", minimum=0.0, maximum=4.0)]
+    last_params: RestorerParams | None = None
+
+    @property
+    def name(self) -> str:
+        return "fake_upscaler"
+
+    @property
+    def capabilities(self) -> RestorerCapabilities:
+        return RestorerCapabilities(
+            category=RestorerCategory.SUPER_RESOLUTION,
+            input_color_space="rgb", output_color_space="rgb", scale_factor=2,
+        )
+
+    def load(self, device):
+        pass
+
+    def unload(self):
+        pass
+
+    def process_frame(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
+        _FakeUpscaler.last_params = params
+        boosted = np.clip(frame.astype(np.float32) * params.extra.get("boost", 1.0), 0, 255)
+        return boosted.astype(np.uint8)
+
+
+class _FakeBGRFaceRestorer(BaseRestorer):
+    """BGR in/out — exercises the color-space conversion path."""
+
+    @property
+    def name(self) -> str:
+        return "fake_bgr_face"
+
+    @property
+    def capabilities(self) -> RestorerCapabilities:
+        return RestorerCapabilities(
+            category=RestorerCategory.FACE_RESTORATION,
+            input_color_space="bgr", output_color_space="bgr",
+        )
+
+    def load(self, device):
+        pass
+
+    def unload(self):
+        pass
+
+    def process_frame(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
+        # Identity — just proves the node round-trips BGR<->RGB correctly.
+        return frame
+
+
+def test_make_restorer_node_builds_input_types_from_param_schema():
+    node_cls = make_restorer_node(_FakeUpscaler, "Super Resolution")
+    input_types = node_cls.INPUT_TYPES()
+    assert input_types["required"]["image"] == ("IMAGE",)
+    assert input_types["required"]["boost"] == ("FLOAT", {"default": 1.0, "min": 0.0, "max": 4.0})
+    assert input_types["required"]["scale"] == ("INT", {"default": 2, "min": 1, "max": 8})
+    assert node_cls.RETURN_TYPES == ("IMAGE",)
+    assert node_cls.FUNCTION == "restore"
+    assert node_cls.CATEGORY == "RestoraX/Super Resolution"
+
+
+def test_node_restore_doubles_pixel_values_via_extra_param(monkeypatch):
+    import comfyui_nodes._base as base
+    fresh_registry = ModelRegistry()
+    fresh_registry.register(_FakeUpscaler)
+    monkeypatch.setattr(base, "get_registry", lambda: fresh_registry)
+
+    node_cls = make_restorer_node(_FakeUpscaler, "Super Resolution")
+    node = node_cls()
+    image = torch.tensor([[[[0.2, 0.2, 0.2]]]], dtype=torch.float32)  # (1,1,1,3)
+
+    (result,) = node.restore(image, scale=2, boost=2.0)
+
+    assert _FakeUpscaler.last_params.extra["boost"] == 2.0
+    assert _FakeUpscaler.last_params.scale == 2
+    expected_value = min(round(0.2 * 255) * 2, 255) / 255
+    assert torch.allclose(result[0, 0, 0], torch.tensor([expected_value] * 3), atol=1e-3)
+
+
+def test_node_restore_round_trips_bgr_restorer_without_color_shift(monkeypatch):
+    import comfyui_nodes._base as base
+    fresh_registry = ModelRegistry()
+    fresh_registry.register(_FakeBGRFaceRestorer)
+    monkeypatch.setattr(base, "get_registry", lambda: fresh_registry)
+
+    node_cls = make_restorer_node(_FakeBGRFaceRestorer, "Face Restoration")
+    node = node_cls()
+    image = torch.tensor([[[[0.1, 0.4, 0.8]]]], dtype=torch.float32)
+
+    (result,) = node.restore(image)
+
+    assert torch.allclose(result, image, atol=1 / 255)
