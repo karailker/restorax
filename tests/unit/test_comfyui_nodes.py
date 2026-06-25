@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from comfyui_nodes._base import comfy_image_to_frames, frames_to_comfy_image
+from restorax.core.registry import ModelRegistry
 
 
 def test_comfy_image_to_frames_converts_batch_to_uint8_frames():
@@ -34,3 +35,18 @@ def test_round_trip_preserves_pixel_values():
     image = frames_to_comfy_image([frame])
     restored = comfy_image_to_frames(image)
     np.testing.assert_array_equal(restored[0], frame)
+
+
+def test_get_registry_returns_singleton():
+    import comfyui_nodes._base as base
+    base._registry = None  # reset module state for test isolation
+    first = base.get_registry()
+    second = base.get_registry()
+    assert first is second
+    assert isinstance(first, ModelRegistry)
+
+
+def test_get_device_returns_cpu_when_cuda_unavailable(monkeypatch):
+    import comfyui_nodes._base as base
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    assert base.get_device() == torch.device("cpu")
