@@ -187,3 +187,34 @@ def test_node_restore_round_trips_bgr_restorer_without_color_shift(monkeypatch):
     (result,) = node.restore(image)
 
     assert torch.allclose(result, image, atol=1 / 255)
+
+
+# Audio conversion helpers
+from comfyui_nodes._base import comfy_audio_to_array, array_to_comfy_audio
+
+
+def test_comfy_audio_to_array_converts_waveform_to_numpy():
+    # (1, 2, 4) waveform = 1 batch, 2 channels, 4 samples
+    waveform = torch.tensor([[[0.1, 0.2, 0.3, 0.4], [-0.1, -0.2, -0.3, -0.4]]])
+    audio = {"waveform": waveform, "sample_rate": 44100}
+    arr, sr = comfy_audio_to_array(audio)
+    assert sr == 44100
+    assert arr.dtype == np.float32
+    assert arr.shape == (4, 2)  # (samples, channels)
+    np.testing.assert_allclose(arr[:, 0], [0.1, 0.2, 0.3, 0.4], atol=1e-6)
+
+
+def test_array_to_comfy_audio_converts_numpy_to_waveform():
+    arr = np.array([[0.1, -0.1], [0.2, -0.2]], dtype=np.float32)  # (2 samples, 2 channels)
+    result = array_to_comfy_audio(arr, 44100)
+    assert result["sample_rate"] == 44100
+    assert result["waveform"].shape == (1, 2, 2)  # (B=1, C=2, T=2)
+    assert result["waveform"].dtype == torch.float32
+
+
+def test_audio_round_trip_preserves_values():
+    arr = np.array([[0.5, -0.5], [0.3, -0.3]], dtype=np.float32)
+    result = array_to_comfy_audio(arr, 22050)
+    restored_arr, sr = comfy_audio_to_array(result)
+    assert sr == 22050
+    np.testing.assert_allclose(restored_arr, arr, atol=1e-6)

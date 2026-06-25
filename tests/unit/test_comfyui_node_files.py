@@ -51,9 +51,18 @@ def test_stabilization_module_exports_two_nodes():
         assert node_cls.CATEGORY == "RestoraX/Stabilization"
 
 
-def test_package_init_aggregates_all_22_video_restorer_nodes():
+def test_audio_module_exports_three_nodes():
+    from comfyui_nodes import audio
+    assert len(audio.NODE_CLASS_MAPPINGS) == 3
+    assert set(audio.NODE_CLASS_MAPPINGS) == set(audio.NODE_DISPLAY_NAME_MAPPINGS)
+    for node_cls in audio.NODE_CLASS_MAPPINGS.values():
+        assert node_cls.CATEGORY == "RestoraX/Audio"
+        assert node_cls.RETURN_TYPES == ("AUDIO",)
+
+
+def test_package_init_aggregates_all_25_nodes():
     import comfyui_nodes
-    assert len(comfyui_nodes.NODE_CLASS_MAPPINGS) == 22
+    assert len(comfyui_nodes.NODE_CLASS_MAPPINGS) == 25
     assert set(comfyui_nodes.NODE_CLASS_MAPPINGS) == set(comfyui_nodes.NODE_DISPLAY_NAME_MAPPINGS)
     assert all(key.startswith("RestoraX_") for key in comfyui_nodes.NODE_CLASS_MAPPINGS)
 
@@ -61,12 +70,12 @@ def test_package_init_aggregates_all_22_video_restorer_nodes():
 def test_package_init_has_no_duplicate_node_keys_across_categories():
     import comfyui_nodes
     from comfyui_nodes import (
-        artifact_removal, colorization, deinterlacing, face_restoration,
+        artifact_removal, audio, colorization, deinterlacing, face_restoration,
         frame_interpolation, hdr, stabilization, super_resolution,
     )
     modules = [
-        artifact_removal, colorization, deinterlacing, face_restoration,
+        artifact_removal, audio, colorization, deinterlacing, face_restoration,
         frame_interpolation, hdr, stabilization, super_resolution,
     ]
     total_individual = sum(len(m.NODE_CLASS_MAPPINGS) for m in modules)
-    assert total_individual == len(comfyui_nodes.NODE_CLASS_MAPPINGS) == 22
+    assert total_individual == len(comfyui_nodes.NODE_CLASS_MAPPINGS) == 25

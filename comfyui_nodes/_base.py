@@ -10,11 +10,14 @@ from __future__ import annotations
 import numpy as np
 import torch
 
+from restorax.audio.pipeline import AudioModelRegistry
+from restorax.audio.restorer import AudioRestorer, AudioRestorerParams
 from restorax.core.registry import ModelRegistry
 from restorax.core.restorer import BaseRestorer, ParamSpec, RestorerParams
 from restorax.video.utils import from_rgb, to_rgb
 
 _registry: ModelRegistry | None = None
+_audio_registry: AudioModelRegistry | None = None
 
 
 def comfy_image_to_frames(image: torch.Tensor) -> list[np.ndarray]:
@@ -78,6 +81,74 @@ def _instance_attr(restorer_cls: type[BaseRestorer], attr_name: str):
     restorax.core.registry.ModelRegistry does, without calling __init__."""
     instance = object.__new__(restorer_cls)
     return getattr(restorer_cls, attr_name).fget(instance)
+
+
+def comfy_audio_to_array(audio: dict) -> tuple[np.ndarray, int]:
+    """ComfyUI AUDIO {"waveform": (B,C,T) float32, "sample_rate": int}
+    -> (num_samples, num_channels) float32 [-1,1], sample_rate."""
+    waveform = audio["waveform"]  # (B, C, T)
+    sample_rate = int(audio["sample_rate"])
+    # take first batch item, transpose (C,T) -> (T,C) = (samples, channels)
+    arr = waveform[0].cpu().numpy().T  # (samples, channels)
+    return arr.astype(np.float32), sample_rate
+
+
+def array_to_comfy_audio(arr: np.ndarray, sample_rate: int) -> dict:
+    """(num_samples, num_channels) float32 [-1,1], sample_rate
+    -> ComfyUI AUDIO {"waveform": (1,C,T) float32, "sample_rate": int}."""
+    # transpose (samples, channels) -> (channels, samples) = (C, T)
+    waveform = torch.from_numpy(arr.T).unsqueeze(0).float()  # (1, C, T)
+    return {"waveform": waveform, "sample_rate": sample_rate}
+
+
+def get_audio_registry() -> AudioModelRegistry:
+    """Module-level AudioModelRegistry singleton."""
+    global _audio_registry
+    if _audio_registry is None:
+        _audio_registry = AudioModelRegistry()
+    return _audio_registry
+
+
+def make_audio_restorer_node(restorer_cls: type, category_label: str) -> type:
+    """Build a ComfyUI node class for a single RestoraX audio restorer."""
+    name = _instance_attr(restorer_cls, "name")
+    param_specs = restorer_cls.PARAM_SCHEMA  # list[ParamSpec]
+
+    @classmethod
+    def INPUT_TYPES(cls):  # noqa: N802
+        required: dict = {"audio": ("AUDIO",)}
+        for spec in param_specs:
+            required[spec.name] = param_spec_to_input(spec)
+        return {"required": required}
+
+    def restore(self, audio, **kwargs):
+        restorer = get_audio_registry().get(name, get_device())
+        params = AudioRestorerParams()
+        for spec in param_specs:
+            value = kwargs.get(spec.name, spec.default)
+            if spec.kind == "multiselect" and isinstance(value, str):
+                value = [v for v in value.split(",") if v]
+            if spec.target == "param":
+                setattr(params, spec.name, value)
+            else:
+                params.extra[spec.name] = value
+
+        arr, sample_rate = comfy_audio_to_array(audio)
+        params.sample_rate = sample_rate
+        out_arr = restorer.process_audio(arr, params)
+        return (array_to_comfy_audio(out_arr, sample_rate),)
+
+    return type(
+        f"{restorer_cls.__name__}Node",
+        (object,),
+        {
+            "INPUT_TYPES": INPUT_TYPES,
+            "RETURN_TYPES": ("AUDIO",),
+            "FUNCTION": "restore",
+            "CATEGORY": f"RestoraX/{category_label}",
+            "restore": restore,
+        },
+    )
 
 
 def make_restorer_node(restorer_cls: type[BaseRestorer], category_label: str) -> type:

@@ -2,11 +2,11 @@
 RestoraX ComfyUI custom-node pack.
 
 ComfyUI's custom-node loader imports NODE_CLASS_MAPPINGS / NODE_DISPLAY_NAME_MAPPINGS
-from this file. Audio restorers (Demucs/VoiceFixer/RNNoise) are intentionally excluded —
-they use AudioRestorerParams/process(), not RestorerParams/process_frame().
+from this file.
 """
 from . import (
     artifact_removal,
+    audio,
     colorization,
     deinterlacing,
     face_restoration,
@@ -17,7 +17,7 @@ from . import (
 )
 
 _MODULES = [
-    artifact_removal, colorization, deinterlacing, face_restoration,
+    artifact_removal, audio, colorization, deinterlacing, face_restoration,
     frame_interpolation, hdr, stabilization, super_resolution,
 ]
 
