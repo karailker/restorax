@@ -1,8 +1,9 @@
 import numpy as np
 import torch
 
-from comfyui_nodes._base import comfy_image_to_frames, frames_to_comfy_image
+from comfyui_nodes._base import comfy_image_to_frames, frames_to_comfy_image, param_spec_to_input
 from restorax.core.registry import ModelRegistry
+from restorax.core.restorer import ParamSpec
 
 
 def test_comfy_image_to_frames_converts_batch_to_uint8_frames():
@@ -50,3 +51,36 @@ def test_get_device_returns_cpu_when_cuda_unavailable(monkeypatch):
     import comfyui_nodes._base as base
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     assert base.get_device() == torch.device("cpu")
+
+
+def test_int_spec_maps_to_int_widget():
+    spec = ParamSpec("tile_size", "int", 0, "Tile size", target="param", minimum=0, maximum=2048, step=32)
+    result = param_spec_to_input(spec)
+    assert result == ("INT", {"default": 0, "min": 0, "max": 2048, "step": 32})
+
+
+def test_float_spec_maps_to_float_widget():
+    spec = ParamSpec("strength", "float", 0.5, "Strength", minimum=0.0, maximum=1.0, step=0.05)
+    result = param_spec_to_input(spec)
+    assert result == ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.05})
+
+
+def test_bool_spec_maps_to_boolean_widget():
+    spec = ParamSpec("half_precision", "bool", True, "Half precision (fp16)", target="param")
+    assert param_spec_to_input(spec) == ("BOOLEAN", {"default": True})
+
+
+def test_enum_spec_maps_to_choice_list():
+    spec = ParamSpec("mode", "enum", "fast", "Mode", choices=("fast", "quality"))
+    result = param_spec_to_input(spec)
+    assert result == (["fast", "quality"], {"default": "fast"})
+
+
+def test_multiselect_spec_maps_to_comma_separated_string():
+    spec = ParamSpec("tags", "multiselect", ["a", "b"], "Tags")
+    assert param_spec_to_input(spec) == ("STRING", {"default": "a,b", "multiline": False})
+
+
+def test_multiselect_spec_handles_empty_default():
+    spec = ParamSpec("tags", "multiselect", None, "Tags")
+    assert param_spec_to_input(spec) == ("STRING", {"default": "", "multiline": False})
