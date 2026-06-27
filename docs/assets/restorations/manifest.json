@@ -2,7 +2,7 @@
   "sr_real_esrgan": {
     "status": "real",
     "model": "RealESRGAN_x4plus",
-    "elapsed_s": 6.92
+    "elapsed_s": 6.78
   },
   "face_codeformer": {
     "status": "failed",
@@ -10,7 +10,7 @@
   },
   "colorization_ddcolor": {
     "status": "failed",
-    "error": "404 Client Error. (Request ID: Root=1-6a4025ba-5625ea50748f1a6c612f7b53;2951c2d1-0a41-43d2-bd5c-0c2df9fb0318)\n\nRepository Not Found for url: https://huggingface.co/piddnad/ddcolor_models/resolve/main/ddcolor_artistic.pth.\nPlease make sure you specified the correct `repo_id` and `repo_type`.\nIf you are trying to access a private or gated repo, make sure you are authenticated and your token has the required permissions.\nFor more details, see https://huggingface.co/docs/huggingface_hub/authentication"
+    "error": "404 Client Error. (Request ID: Root=1-6a402824-5c7bc46a3d81e9a0132e2759;fb358e57-7712-434c-8bed-dd15c5baf7ce)\n\nRepository Not Found for url: https://huggingface.co/piddnad/ddcolor_models/resolve/main/ddcolor_artistic.pth.\nPlease make sure you specified the correct `repo_id` and `repo_type`.\nIf you are trying to access a private or gated repo, make sure you are authenticated and your token has the required permissions.\nFor more details, see https://huggingface.co/docs/huggingface_hub/authentication"
   },
   "deinterlace_yadif": {
     "status": "real",
@@ -20,11 +20,11 @@
   "audio_demucs": {
     "status": "real",
     "model": "Demucs htdemucs",
-    "elapsed_s": 1.14
+    "elapsed_s": 1.18
   },
   "audio_voicefixer": {
     "status": "real",
     "model": "VoiceFixer",
-    "elapsed_s": 3.27
+    "elapsed_s": 3.44
   }
 }

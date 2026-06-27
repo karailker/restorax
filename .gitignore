@@ -34,6 +34,9 @@ data/
 *.mov
 *.wav
 *.flac
+# Allow real restoration samples committed as demo assets
+!docs/assets/restorations/*.wav
+!docs/assets/restorations/*.mp4
 
 # ── Database files ────────────────────────────────────────────────────────────
 *.db

@@ -81,6 +81,31 @@ def _extract_frame(path: Path, n: int = 30) -> np.ndarray:
     return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
 
+def _save_video_clip(name: str, src: Path, process_fn, start: int = 30,
+                     n_frames: int = 75) -> None:
+    cap = cv2.VideoCapture(str(src))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start)
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out_before = cv2.VideoWriter(str(OUT / f"{name}_before.mp4"), fourcc, fps, (w, h))
+    out_after = cv2.VideoWriter(str(OUT / f"{name}_after.mp4"), fourcc, fps, (w, h))
+    for _ in range(n_frames):
+        ok, frame = cap.read()
+        if not ok:
+            break
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        processed = process_fn(rgb)
+        ph, pw = processed.shape[:2]
+        out_before.write(cv2.resize(frame, (pw, ph)))
+        out_after.write(cv2.cvtColor(processed, cv2.COLOR_RGB2BGR))
+    cap.release()
+    out_before.release()
+    out_after.release()
+    print(f"  saved {name}_before/after.mp4 ({n_frames} frames @ {fps:.0f} fps)")
+
+
 def _spectrogram(name: str, before: np.ndarray, after: np.ndarray, sr: int) -> None:
     try:
         import matplotlib
@@ -185,7 +210,8 @@ def run_deinterlacing() -> None:
     try:
         from restorax.restorers.deinterlacing.yadif_deinterlace import YadifDeinterlaceRestorer
         from restorax.core.restorer import RestorerParams
-        frame = _extract_frame(SAMPLES / "video/film_sintel.mp4", n=30)
+        video_path = SAMPLES / "video/film_sintel.mp4"
+        frame = _extract_frame(video_path, n=30)
         restorer = YadifDeinterlaceRestorer()
         t0 = time.time()
         restorer.load(DEVICE)
@@ -193,6 +219,11 @@ def run_deinterlacing() -> None:
         elapsed = time.time() - t0
         print(f"  output: {out.shape}, {elapsed:.1f}s")
         _save_comparison("deinterlace_yadif", frame, out)
+        # Also save a real video clip (3 seconds / 75 frames)
+        _save_video_clip("deinterlace_yadif",
+                         video_path,
+                         lambda f: restorer.process_frame(f, RestorerParams()),
+                         start=30, n_frames=75)
         manifest["deinterlace_yadif"] = {"status": "real", "model": "YADIF (classical)",
                                           "elapsed_s": round(elapsed, 2)}
     except Exception as e:
