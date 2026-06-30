@@ -148,7 +148,9 @@ M4 canvas-run flow (§4.1) was *not* re-verified this session (no job was actual
 
 ```text
 SP3 — Modern UI polish          ⏳ remaining items below
-SP4 — ComfyUI Node Pack         ⏳ not started (independent of SP3)
+SP4 — ComfyUI Node Pack         ✅ SHIPPED (PR #23, all 25 restorers as custom nodes)
+Arch Vendoring — 15 remaining   ⏳ in progress (see §4.5)
+Benchmark + Promo Assets        ⏳ in progress (see §4.6)
 Backend hardening follow-ups    ⏳ not started
 Track E — Documentation Refactor ⏳ deliberately LAST (after everything above ships)
 ```
@@ -173,7 +175,62 @@ All 25 restorers as ComfyUI custom nodes (`comfyui_nodes/`), distributed via Com
 - Lazy weight download on first node execution.
 - Phases: base conversion layer → SR nodes → face/color/interpolation nodes → stabilization/deinterlace/HDR/artifact nodes → audio nodes → manifest + ComfyUI-Manager PR.
 
-### 4.3 Backend hardening follow-ups
+### 4.3a Arch Vendoring — 15 remaining models (in progress)
+
+10 of 25 models have real benchmarked samples; 15 fail in the manifest. Branch `feat/arch-vendoring-benchmarks` already vendored VRT (BSD) + CodeFormer (MIT) arch. Remaining 15, grouped by failure mode:
+
+- **Vendor arch module (10):** upscale_a_video (`upscale_a_video_arch`, needs `diffusers`), mamba_ir (`mamba_ir_arch`, `[sr]` extra / `mamba-ssm`), tdm + seedvr (`tdm_arch`/`seedvr_arch`, `diffusers`), waifu2x (`waifu2x_arch`), flashvsr (`flashvsr_arch`), evtexture (`evtexture_arch`), codeformer_pp (`codeformer_pp_arch`, sibling of vendored CodeFormer MIT), dicface (`[dicface]` extra), propainter scratch (`propinter_arch.py`), hdr_tvdm (`hdr_tvdm_arch`), ai_deinterlace (`deinterlace_arch`).
+- **Dead/missing weights (3):** basicvsr_pp (no public mirror; arch class fix already done on branch), vrt (arch vendored; needs weight source), ddcolor (HF repo `piddnad/ddcolor_models` gone — re-mirror).
+
+Convention per repo: sub-agents on **disjoint arch files + one restorer each**; parent owns `restorers/__init__` registration + commits. No worktree isolation (editable install breaks pytest imports). License header + source attribution required (match `vrt_arch.py`/`codeformer_arch.py` precedent).
+
+### 4.3b Benchmark + Promo Assets (in progress)
+
+Research (2026-06-30, verified-live via `/browse`; WebSearch/firecrawl/exa unavailable):
+
+- **Xiph derf collection** (`media.xiph.org/video/derf/`) — freely-redistributable Y4M; **public-domain 4K subset** (FourPeople, Johnny, KristenAndSara) for promo before/after (no license friction); **Netflix Chimera 4K VMAF clips** (Netflix_Aerial/DinnerScene/BarScene/DrivingPOV/ToddlerFountain/RollerCoaster, 4096×2160 10-bit) — pair with existing `metrics/` VMAF impl (compute VMAF on the clips it was trained on). Covers SR/deblur/denoise/interpolation/deinterlace/HDR.
+- **DAVIS** (`davischallenge.org`) — live, maintenance mode, for deblur/denoise/inpainting/qualitative SR.
+- **Gaps needing sourcing:** audio metrics (PESQ/STOI/SDR — not in `metrics/` today) + audio bench corpus (MUSDB18 / DNS Challenge / VoiceBank+DEMAND); no public film scratch/dust ground truth (synthesize scratches onto Xiph/DAVIS); canonical dataset hosts drifting dead (Vimeo-90K MIT host gone, DDColor HF repo gone) — confirm current mirrors before citing.
+
+Plan: download verified Xiph PD + Netflix clips into `docs/assets/`; extend `benchmarks/` CLI to report PSNR/SSIM/LPIPS/VMAF/NIQE/MUSIQ on them; add audio-metric column; publish before/after slider docs.
+
+### 4.3b1 Additional models — research findings (2026-06-30, live-verified via `/browse` over GitHub topic pages)
+
+RestoraX cannot train models, so additions are inference-only (vendor arch + use pretrained weights). Two categories adopted, two noted-only.
+
+**Adopt (Category 1 — fill real gaps):**
+- **DeOldify** (`jantic/DeOldify`) — video colorization. Closes the colorization gap (only DDColor today; DDColor's HF weight repo is gone). Recognized name, ONNX variants exist.
+- **NAFNet / Restormer** (`Megvii-Research/NAFNet`, `swin-rec/Restormer`) — image+video restoration (deblur, denoise, derain). Closes the **deblur gap** (no deblur model exists today). Sliding-window → video.
+- **RVRT** (`JingyunLiang/RVRT`) — recurrent video restoration transformer (NeurIPS22). Natural upgrade to VRT, same lab.
+- **DeMFI** — blur + frame-interpolation hybrid (ECCV22). Solves blur-then-stutter on old 24fps footage.
+- **DeepFilterNet** (`Rikorose/DeepFilterNet`) — speech denoise. Stronger than RNNoise, CPU-runnable, expected MIT. Critical for talking-footage demos.
+- **Real-CUGAN** (`nihui/realcugan`) + **Anime4K** (`bloc97/Anime4K`) — anime/illustration SR beyond Waifu2x.
+
+**Adopt (Category 2 — modernize existing categories):**
+- **EvTexture++** — same repo as EvTexture (DachunKai, Apache), TPAMI 2026 variant. Drop-in upgrade of `evtexture.py`.
+- **StableVSR** (ECCV24) + **DiffVSR** — diffusion VSR, perceptual-detail synthesis ("wow" for promo reel). Expect S-Lab NC — verify.
+- **VEnhancer** — generative space-time video enhancement. High demo/promo value.
+- **Frame-interpolation alternatives** (break RIFE monoculture): **AMT, IFRNet, FILM, XVFI, CAIN, VFIMamba**. Ship 2-3, not all 40 (`Video-Frame-Interpolation-Rankings` leaderboard exists).
+- **Video-inpainting alternatives** (beyond ProPainter): **DiffuEraser** (diffusion), **E2FGVI** (lightweight), **CoCoCo** (text-guided).
+- **Face-restoration alternatives**: **RestoreFormer, VQFR, GPEN** — dictionary/transformer options beyond GFPGAN/CodeFormer/DicFace.
+
+**Note-only (Category 3 — reference leaderboards/catalogs in benchmark tables + docs, no vendoring):**
+- `Video-Frame-Interpolation-Rankings` (maintained VFI leaderboard, ~40 methods)
+- `Awesome-Deblurring`, `Awesome-Face-Restoration`, `Awesome-Video-Restoration` (curated paper+repo lists for model-card docs)
+- `Awesome-CVPR2026/2025/2024-Low-Level-Vision` (fresh LLV roundup, updated June 2026)
+
+**Note-only (Category 4 — open question):**
+- `codeformer_pp_arch` has no upstream in sczhou/CodeFormer. arxiv 2510.04410 ("CodeFormer++") may have a release repo — to confirm. Fallback: ship RestoreFormer/VQFR as the "++" face option and remove dead `codeformer_pp` scaffolding.
+
+**Addition order (ponytail — lowest dev cost first):**
+1. DeepFilterNet (MIT, external-package optional extra, no vendoring) → biggest audio win
+2. NAFNet or Restormer (1 vendored arch file, vrt_arch precedent) → closes deblur gap
+3. DeOldify → closes colorization gap, most demo-able
+4. EvTexture++ upgrade → near-zero work, same repo
+5. AMT or IFRNet → breaks RIFE monoculture
+6. ..then StableVSR/VEnhancer/DiffuEraser/RestoreFormer as diffusion/variety tier
+
+### 4.3c Backend hardening follow-ups
 
 - **Alembic migrations:** `alembic/versions/` is empty; schema is created via `Base.metadata.create_all` at startup. Fine for SQLite/dev; unversioned for Postgres prod (`create_all` won't `ALTER` existing tables). Generate an initial revision and wire it into deploy.
 - **Test isolation:** full `pytest` run shows cross-file failures (each file passes alone). Root cause: async SQLAlchemy `AsyncAdaptedQueuePool` "Exception during reset" leaking across integration/system tests, plus env-var leakage into `test_config` override tests. Fix: per-test engine disposal + event-loop scoping in `conftest.py`, explicit env cleanup.

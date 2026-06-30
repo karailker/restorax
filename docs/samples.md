@@ -59,23 +59,23 @@ document.addEventListener('DOMContentLoaded', () => {
 | # | Model | Status | Notes |
 |---|-------|--------|-------|
 | 1 | RealESRGAN x4plus | ✅ real | Weights: `models/real_esrgan/` |
-| 2 | BasicVSR++ | ❌ weights | `HuggingFace StableSR repo not found` |
-| 3 | Upscale-A-Video | ❌ extra | `pip install 'restorax[diffusion]'` |
-| 4 | VRT | ❌ extra | `pip install basicsr` (vrt_arch) |
-| 5 | MambaIR | ❌ extra | `pip install mamba-ssm` |
-| 6 | TDM | ❌ extra | `pip install 'restorax[diffusion]'` |
-| 7 | SeedVR | ❌ extra | `pip install 'restorax[diffusion]'` |
-| 8 | Waifu2x | ❌ extra | `pip install restorax[waifu2x]` |
-| 9 | FlashVSR | ❌ extra | vendored `flashvsr_arch` required |
-| 10 | EvTexture | ❌ extra | `evtexture_arch` module required |
-| 11 | CodeFormer | ❌ extra | `pip install codeformer-pytorch facexlib` |
-| 12 | CodeFormer++ | ❌ extra | `codeformer_pp_arch` required |
-| 13 | GFPGAN | ❌ weights | `HuggingFace TencentARC/GFPGANv1.4 not found` |
+| 2 | BasicVSR++ | ❌ weights | Arch fixed (BasicVSRPlusPlus); no public weight mirror |
+| 3 | Upscale-A-Video | ❌ arch | `upscale_a_video_arch` not vendored yet |
+| 4 | VRT | ❌ weights | Arch vendored; `JingyunLiang/VRT` weights have no public mirror |
+| 5 | MambaIR | ❌ arch | `mamba_ir_arch` not vendored; `pip install mamba-ssm` needed |
+| 6 | TDM | ❌ weights | Diffusion model; no public weights released |
+| 7 | SeedVR | ❌ weights | Diffusion model; no public weights released |
+| 8 | Waifu2x | ❌ arch+weights | `waifu2x_arch` not vendored; `deepghs/waifu2x` dead |
+| 9 | FlashVSR | ❌ arch | `flashvsr_arch` not vendored yet |
+| 10 | EvTexture | ❌ arch+weights | `evtexture_arch` not vendored; `DachunKai/EvTexture` dead |
+| 11 | CodeFormer | ✅ real | Arch vendored from sczhou/CodeFormer; weights auto-downloaded |
+| 12 | CodeFormer++ | ❌ arch | `codeformer_pp_arch` not vendored yet |
+| 13 | GFPGAN | ✅ real | Fixed dead HF repo → `nlightcho/gfpgan_v14` |
 | 14 | DicFace | ❌ extra | `pip install restorax[dicface]` |
-| 15 | DDColor | ❌ weights | `HuggingFace piddnad/ddcolor_models not found` |
+| 15 | DDColor | ❌ arch+weights | `ddcolor_arch` not vendored; `piddnad/DDColor` HF dead |
 | 16 | RIFE | ✅ running | Classical fallback (temporal arch pending) |
-| 17 | Scratch Removal | ❌ extra | `propainter_arch.py` required |
-| 18 | HDRTVDM | ❌ extra | `hdrtvdm_arch` module required |
+| 17 | Scratch Removal | ❌ arch+weights | `propainter_arch` not vendored; `sczhou/ProPainter` HF dead |
+| 18 | HDRTVDM | ❌ arch+weights | `hdrtvdm_arch` not vendored; `AndreGuo/HDRTVDM` HF dead |
 | 19 | Video Stabilization | ✅ running | OpenCV optical-flow fallback |
 | 20 | GaVS | ✅ running | OpenCV fallback (arch not yet public) |
 | 21 | AI Deinterlace | ❌ extra | `deinterlace_arch` (DeinterlaceNet) required |
@@ -84,8 +84,10 @@ document.addEventListener('DOMContentLoaded', () => {
 | 24 | VoiceFixer | ✅ real | Weights auto-downloaded |
 | 25 | RNNoise | ✅ running | Lightweight classical noise gate |
 
-Models marked ❌ weights need the HuggingFace repo to be public or a local `models/` download.
-Models marked ❌ extra need optional dependency groups — see `pyproject.toml [project.optional-dependencies]`.
+❌ weights — no public weight mirror found; supply manually via `models/`.
+❌ arch — architecture module not yet vendored into this repo.
+❌ arch+weights — both missing.
+10/25 models produce real output as of this sprint.
 
 ---
 

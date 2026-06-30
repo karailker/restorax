@@ -2,11 +2,11 @@
   "sr_real_esrgan": {
     "status": "real",
     "model": "RealESRGANx4Restorer",
-    "elapsed_s": 6.41
+    "elapsed_s": 5.83
   },
   "sr_basicvsr_pp": {
     "status": "failed",
-    "error": "404 Client Error. (Request ID: Root=1-6a40295b-0a0d52f967d58a381d4abc0f;f3c5b192-38d7-4c43-8a61-6f04516f5f45)\n\nEntry Not Found for url: https://huggingface.co/Iceclear/StableSR/resolve/main/BasicVSR_P"
+    "error": "BasicVSR++ weights (BasicVSR_PlusPlus_REDS4.pth) have no public mirror. Download manually from https://github.com/ckkelvinchan/BasicVSR_PlusPlus and place at models/basicvsr_pp/BasicVSR_PlusPlus_REDS4"
   },
   "sr_upscale_a_video": {
     "status": "failed",
@@ -14,7 +14,7 @@
   },
   "sr_vrt": {
     "status": "failed",
-    "error": "VRT arch unavailable: No module named 'basicsr.archs.vrt_arch'. Install basicsr: pip install basicsr"
+    "error": "VRT arch unavailable: VRT weights (VRT_videosr_bi_Vimeo_7frames.pth) have no public mirror. Download from https://github.com/JingyunLiang/VRT/releases and place at models/vrt/VRT_videosr_bi_Vimeo_7fra"
   },
   "sr_mamba_ir": {
     "status": "failed",
@@ -41,16 +41,18 @@
     "error": "EvTexture arch unavailable: No module named 'restorax.restorers.super_resolution.evtexture_arch'"
   },
   "face_codeformer": {
-    "status": "failed",
-    "error": "codeformer-pytorch and facexlib are required. Install with: pip install codeformer-pytorch facexlib"
+    "status": "real",
+    "model": "CodeFormerRestorer",
+    "elapsed_s": 2.63
   },
   "face_codeformer_pp": {
     "status": "failed",
     "error": "CodeFormer++ arch module unavailable: No module named 'restorax.restorers.face_restoration.codeformer_pp_arch'. Install the codeformer_pp_arch package to use this restorer."
   },
   "face_gfpgan": {
-    "status": "failed",
-    "error": "404 Client Error. (Request ID: Root=1-6a40295d-0fae20802d29c3fb3d355de3;483cf7a7-c6c4-4fc7-baaf-79843f4b74f2)\n\nRepository Not Found for url: https://huggingface.co/TencentARC/GFPGANv1.4/resolve/main/G"
+    "status": "real",
+    "model": "GFPGANRestorer",
+    "elapsed_s": 2.75
   },
   "face_dicface": {
     "status": "failed",
@@ -58,12 +60,12 @@
   },
   "colorization_ddcolor": {
     "status": "failed",
-    "error": "404 Client Error. (Request ID: Root=1-6a40295d-2a5707c625fa864c2468b434;c7aeacb6-b7b3-42ca-88e2-e06afd1f760a)\n\nRepository Not Found for url: https://huggingface.co/piddnad/ddcolor_models/resolve/main/"
+    "error": "404 Client Error. (Request ID: Root=1-6a41029a-41a4b98f55a84c0835c8be4e;ad557abd-9cbc-45b4-85a6-eb910cecef12)\n\nRepository Not Found for url: https://huggingface.co/piddnad/ddcolor_models/resolve/main/"
   },
   "interp_rife": {
     "status": "real",
     "model": "RIFERestorer",
-    "elapsed_s": 0.15
+    "elapsed_s": 0.17
   },
   "artifact_scratch": {
     "status": "failed",
@@ -95,12 +97,12 @@
   "audio_demucs": {
     "status": "real",
     "model": "DemucsRestorer",
-    "elapsed_s": 0.97
+    "elapsed_s": 0.84
   },
   "audio_voicefixer": {
     "status": "real",
     "model": "VoiceFixerRestorer",
-    "elapsed_s": 3.6
+    "elapsed_s": 3.37
   },
   "audio_rnnoise": {
     "status": "real",

@@ -1,12 +1,8 @@
 """Unit tests for VRTRestorer."""
 from __future__ import annotations
 
-import builtins
-from unittest.mock import patch
-
 import pytest
 
-from restorax.core.exceptions import RestorerLoadError
 from restorax.restorers.super_resolution.vrt import VRTRestorer
 from restorax.core.restorer import RestorerCategory
 
@@ -31,16 +27,6 @@ class TestVRTRestorerMeta:
         assert caps.requires_temporal is True
 
 
-class TestVRTBuildModelRaisesWhenBasicsrAbsent:
-    def test_raises_restorer_load_error(self):
-        real_import = builtins.__import__
-
-        def mock_import(name, *args, **kwargs):
-            if name == "basicsr" or name.startswith("basicsr."):
-                raise ImportError("No module named 'basicsr'")
-            return real_import(name, *args, **kwargs)
-
-        device = torch.device("cpu")
-        with patch("builtins.__import__", side_effect=mock_import):
-            with pytest.raises(RestorerLoadError, match="VRT arch unavailable"):
-                VRTRestorer._build_model(device)
+# ponytail: VRT arch is vendored (vrt_arch.py, no basicsr dep), so "basicsr
+# absent" can no longer trigger an arch-load failure — that test class was
+# deleted. The real guard now is the no-weights RestorerLoadError in _build_model.

@@ -107,3 +107,4 @@ graphify-out/
 # ── Local dev cruft ───────────────────────────────────────────────────────
 .serena/
 samples/
+.claude/settings.local.json

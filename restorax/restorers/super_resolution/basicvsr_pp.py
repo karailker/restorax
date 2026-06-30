@@ -31,7 +31,6 @@ from restorax.core.restorer import (
 
 logger = logging.getLogger(__name__)
 
-_HF_REPO = "Iceclear/StableSR"  # fallback; actual BasicVSR++ weights via BasicSR
 _WEIGHT_FILE = "BasicVSR_PlusPlus_REDS4.pth"
 
 
@@ -72,7 +71,7 @@ class BasicVSRPlusPlusRestorer(BaseRestorer):
 
     def load(self, device: torch.device) -> None:
         try:
-            from basicsr.archs.basicvsr_arch import BasicVSR
+            from basicsr.archs.basicvsrpp_arch import BasicVSRPlusPlus
         except ImportError as exc:
             raise RestorerLoadError(
                 "basicsr is required for BasicVSRPlusPlusRestorer."
@@ -81,8 +80,7 @@ class BasicVSRPlusPlusRestorer(BaseRestorer):
         weight_path = self._resolve_weight_path()
         logger.info("Loading BasicVSR++ from %s on %s", weight_path, device)
 
-        # BasicVSR++ uses the BasicVSR architecture with num_feat=64, num_block=7
-        model = BasicVSR(num_feat=64, num_block=30, spynet_path=None)
+        model = BasicVSRPlusPlus(num_feat=64, num_block=7, spynet_path=None)
 
         try:
             ckpt = torch.load(weight_path, map_location="cpu", weights_only=True)
@@ -174,17 +172,8 @@ class BasicVSRPlusPlusRestorer(BaseRestorer):
 
     @staticmethod
     def _download_weights(model_dir: Path) -> Path:
-        try:
-            from huggingface_hub import hf_hub_download
-        except ImportError as exc:
-            raise RestorerLoadError("huggingface_hub required to download weights.") from exc
-
-        logger.info("Downloading BasicVSR++ weights…")
-        model_dir.mkdir(parents=True, exist_ok=True)
-        # Official BasicVSR++ REDS4 checkpoint
-        path = hf_hub_download(
-            repo_id="Iceclear/StableSR",
-            filename=_WEIGHT_FILE,
-            local_dir=str(model_dir),
+        raise RestorerLoadError(
+            f"BasicVSR++ weights ({_WEIGHT_FILE}) have no public mirror. "
+            "Download manually from https://github.com/ckkelvinchan/BasicVSR_PlusPlus "
+            f"and place at {model_dir / _WEIGHT_FILE}"
         )
-        return Path(path)

@@ -35,9 +35,7 @@ from restorax.core.restorer import (
 
 logger = logging.getLogger(__name__)
 
-_HF_REPO = "caidas/swin2SR-realworld-sr-x4-64-bsrgan-psnr"  # fallback; VRT official weights below
 _WEIGHT_FILE = "VRT_videosr_bi_Vimeo_7frames.pth"
-_VRT_HF_REPO = "JingyunLiang/VRT"
 
 # VRT optimal window size (frames). Must be ≤ chunk_size in pipeline preset.
 _WINDOW_SIZE = 7
@@ -137,7 +135,7 @@ class VRTRestorer(BaseRestorer):
     def _build_model(device: torch.device) -> torch.nn.Module:
         """Load VRT from BasicSR or fall back to a bicubic upsampler stub."""
         try:
-            from basicsr.archs.vrt_arch import VRT
+            from restorax.restorers.super_resolution.vrt_arch import VRT
             from restorax.config import settings
 
             weight_path = Path(settings.model_dir) / "vrt" / _WEIGHT_FILE
@@ -161,18 +159,14 @@ class VRTRestorer(BaseRestorer):
             logger.info("VRT loaded from BasicSR arch")
             return model
         except (ImportError, Exception) as exc:
-            raise RestorerLoadError(
-                f"VRT arch unavailable: {exc}. Install basicsr: pip install basicsr"
-            ) from exc
+            raise RestorerLoadError(f"VRT load failed: {exc}") from exc
 
 
 def _download_weights(model_dir: Path) -> Path:
-    try:
-        from huggingface_hub import hf_hub_download
-        model_dir.mkdir(parents=True, exist_ok=True)
-        path = hf_hub_download(repo_id=_VRT_HF_REPO, filename=_WEIGHT_FILE, local_dir=str(model_dir))
-        return Path(path)
-    except Exception as exc:
-        raise RestorerLoadError(f"Cannot download VRT weights: {exc}") from exc
+    raise RestorerLoadError(
+        f"VRT weights ({_WEIGHT_FILE}) have no public mirror. "
+        "Download from https://github.com/JingyunLiang/VRT/releases "
+        f"and place at {model_dir / _WEIGHT_FILE}"
+    )
 
 

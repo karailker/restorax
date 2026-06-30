@@ -136,12 +136,30 @@ class RIFERestorer(BaseRestorer):
         if hasattr(self._model, "inference"):
             t0 = self._frame_to_tensor(frame0)
             t1 = self._frame_to_tensor(frame1)
+            t0, t1, (ph, pw) = self._pad_to_multiple(t0, t1, multiple=32)
             with torch.inference_mode():
                 mid_t = self._model.inference(t0, t1, timestep=0.5)  # type: ignore[union-attr]
+            if ph or pw:
+                mid_t = mid_t[:, :, :mid_t.shape[2] - ph, :mid_t.shape[3] - pw]
             return self._tensor_to_frame(mid_t)
 
         # Fallback: linear blend (correct contract, lower quality)
         return (frame0.astype(np.float32) * 0.5 + frame1.astype(np.float32) * 0.5).astype(np.uint8)
+
+    @staticmethod
+    def _pad_to_multiple(
+        t0: torch.Tensor,
+        t1: torch.Tensor,
+        multiple: int = 32,
+    ) -> tuple[torch.Tensor, torch.Tensor, tuple[int, int]]:
+        import torch.nn.functional as F
+        _, _, h, w = t0.shape
+        ph = (multiple - h % multiple) % multiple
+        pw = (multiple - w % multiple) % multiple
+        if ph or pw:
+            t0 = F.pad(t0, (0, pw, 0, ph), mode="reflect")
+            t1 = F.pad(t1, (0, pw, 0, ph), mode="reflect")
+        return t0, t1, (ph, pw)
 
     def _frame_to_tensor(self, frame: np.ndarray) -> torch.Tensor:
         assert self._device is not None

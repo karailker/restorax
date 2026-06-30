@@ -30,7 +30,7 @@ from restorax.core.restorer import (
 
 logger = logging.getLogger(__name__)
 
-_HF_REPO = "TencentARC/GFPGANv1.4"
+_HF_REPO = "nlightcho/gfpgan_v14"
 _WEIGHT_FILE = "GFPGANv1.4.pth"
 
 
