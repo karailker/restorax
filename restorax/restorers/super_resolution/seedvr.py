@@ -9,9 +9,9 @@ REDS, YouHQ, and the NTIRE 2025 Video Restoration Challenge.
 Architecture: DiT (Diffusion Transformer) backbone with temporal attention
 and flow-guided consistency — similar to Sora but specialised for restoration.
 
-Model source: https://github.com/IceClear/SeedVR
-Paper: "SeedVR: Seeding the Future of Video Restoration with Latent Diffusion"
-       (CVPR 2025)
+Model source: https://github.com/ByteDance-Seed/SeedVR
+Paper: "SeedVR: Seeding Infinity in Diffusion Transformer Towards Generic
+        Video Restoration" (CVPR 2025 Highlight)
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ from restorax.core.restorer import (
 
 logger = logging.getLogger(__name__)
 
-_HF_REPO = "IceClear/SeedVR"
+_HF_REPO = "ByteDance-Seed/SeedVR-7B"
 _DEFAULT_STEPS = 25
 
 

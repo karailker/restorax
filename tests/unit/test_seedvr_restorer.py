@@ -41,3 +41,15 @@ class TestSeedVRLoadRaisesWhenDiffusersAbsent:
         ):
             with pytest.raises(RestorerLoadError):
                 SeedVRRestorer().load(torch.device("cpu"))
+
+
+class TestSeedVRArchShim:
+    """SeedVR's real weights (causal VAE + Swin-MMDiT) aren't vendored — only
+    an adapter shim is. from_pretrained must fail loudly, not fake a pipeline."""
+
+    def test_from_pretrained_raises_import_error(self):
+        pytest.importorskip("diffusers")
+        from restorax.restorers.super_resolution.seedvr_arch import SeedVRPipeline
+
+        with pytest.raises(ImportError):
+            SeedVRPipeline.from_pretrained("unused")
