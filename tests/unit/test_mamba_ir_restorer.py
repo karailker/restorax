@@ -43,6 +43,20 @@ class TestMambaIRBuildModelRaisesWhenMambaSsmAbsent:
             with pytest.raises(RestorerLoadError, match="MambaIR unavailable"):
                 MambaIRRestorer._build_model(device)
 
+    def test_vendored_arch_module_imports_or_missing_deps_raise_load_error(self):
+        """Real (unmocked) smoke test: the vendored mamba_ir_arch module exists
+        and imports cleanly on its own; if the optional runtime deps (timm,
+        mamba-ssm) aren't installed in this environment, _build_model must
+        surface that as a RestorerLoadError rather than a raw ImportError."""
+        try:
+            from restorax.restorers.super_resolution.mamba_ir_arch import MambaIR
+
+            assert MambaIR.__name__ == "MambaIR"
+        except ImportError:
+            device = torch.device("cpu")
+            with pytest.raises(RestorerLoadError, match="MambaIR unavailable"):
+                MambaIRRestorer._build_model(device)
+
     def test_raises_restorer_load_error_on_basicsr_absent(self):
         real_import = builtins.__import__
 

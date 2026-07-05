@@ -5,13 +5,15 @@ MambaIR replaces the self-attention in SwinIR with a Mamba (SSM) block,
 giving linear complexity instead of quadratic. Achieves comparable PSNR
 to SwinIR at significantly lower VRAM and ~50% faster inference.
 
-Model source: https://github.com/csguoh/MambaIR
+Model source: https://github.com/csguoh/MambaIR (Apache License 2.0)
 Paper: "MambaIR: A Simple Baseline for Image Restoration with
         State-Space Model" (ECCV 2024)
 
-Vendoring: copy arch from csguoh/MambaIR into
-    restorers/super_resolution/mamba_ir_arch.py
-Weights:   HuggingFace Hub "csguoh/MambaIR" → MambaIR_SR_x4.pth
+Vendored arch: restorers/super_resolution/mamba_ir_arch.py
+Weights:       HuggingFace Hub "cguoh/MambaIR" → MambaIRv1_ckpt/MambaIR_classicSRx4.pth
+
+Requires the optional `sr` extras (timm, mamba-ssm) plus `basicsr` at runtime;
+raises RestorerLoadError if any are missing.
 """
 from __future__ import annotations
 
@@ -34,8 +36,8 @@ from restorax.core.restorer import (
 
 logger = logging.getLogger(__name__)
 
-_HF_REPO = "csguoh/MambaIR"
-_WEIGHT_FILE = "MambaIR_SR_x4.pth"
+_HF_REPO = "cguoh/MambaIR"
+_WEIGHT_SUBPATH = "MambaIRv1_ckpt/MambaIR_classicSRx4.pth"
 
 
 class MambaIRRestorer(BaseRestorer):
@@ -116,12 +118,13 @@ class MambaIRRestorer(BaseRestorer):
             from restorax.restorers.super_resolution.mamba_ir_arch import MambaIR  # type: ignore[import]
             from restorax.config import settings
 
-            weight_path = Path(settings.model_dir) / "mamba_ir" / _WEIGHT_FILE
+            weight_root = Path(settings.model_dir) / "mamba_ir"
+            weight_path = weight_root / _WEIGHT_SUBPATH
             if not weight_path.exists():
                 from huggingface_hub import hf_hub_download
-                weight_path.parent.mkdir(parents=True, exist_ok=True)
-                hf_hub_download(repo_id=_HF_REPO, filename=_WEIGHT_FILE,
-                                local_dir=str(weight_path.parent))
+                weight_root.mkdir(parents=True, exist_ok=True)
+                hf_hub_download(repo_id=_HF_REPO, filename=_WEIGHT_SUBPATH,
+                                local_dir=str(weight_root))
 
             model = MambaIR(upscale=4, img_size=64, embed_dim=180)
             ckpt = torch.load(weight_path, map_location="cpu", weights_only=True)
