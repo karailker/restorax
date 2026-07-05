@@ -38,8 +38,8 @@ from restorax.core.restorer import (
 
 logger = logging.getLogger(__name__)
 
-_HF_REPO = "AndreGuo/HDRTVDM"
-_WEIGHT_FILE = "HDRTVNet.pth"
+_WEIGHT_URL = "https://raw.githubusercontent.com/AndreGuo/HDRTVDM/main/method/params.pth"
+_WEIGHT_FILE = "params.pth"
 
 # PQ (Perceptual Quantizer) EOTF constants for HDR10
 _PQ_M1 = 0.1593017578125
@@ -121,14 +121,26 @@ class HDRTVDMRestorer(BaseRestorer):
     @staticmethod
     def _build_model(device: torch.device) -> object:
         try:
-            from restorax.restorers.hdr.hdrtvdm_arch import HDRTVNet  # type: ignore[import]
+            from restorax.restorers.hdr.hdrtvdm_arch import TriSegNet  # type: ignore[import]
             from restorax.config import settings
 
             weight_path = Path(settings.model_dir) / "hdrtvdm" / _WEIGHT_FILE
             if not weight_path.exists():
-                weight_path = _download_weights(weight_path.parent)
+                import shutil
+                import urllib.error
+                import urllib.request
 
-            model = HDRTVNet()
+                weight_path.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    with (
+                        urllib.request.urlopen(_WEIGHT_URL, timeout=30) as response,  # noqa: S310
+                        open(weight_path, "wb") as out_file,
+                    ):
+                        shutil.copyfileobj(response, out_file)
+                except (urllib.error.URLError, OSError) as exc:
+                    raise RestorerLoadError(f"Cannot download HDRTVDM weights: {exc}") from exc
+
+            model = TriSegNet()
             ckpt = torch.load(weight_path, map_location="cpu", weights_only=True)
             model.load_state_dict(ckpt.get("params", ckpt), strict=False)
             model.eval().to(device)
@@ -138,15 +150,5 @@ class HDRTVDMRestorer(BaseRestorer):
             raise RestorerLoadError(
                 "HDRTVDM architecture module not vendored; cannot load model"
             ) from exc
-
-
-def _download_weights(model_dir: Path) -> Path:
-    try:
-        from huggingface_hub import hf_hub_download
-        model_dir.mkdir(parents=True, exist_ok=True)
-        path = hf_hub_download(repo_id=_HF_REPO, filename=_WEIGHT_FILE, local_dir=str(model_dir))
-        return Path(path)
-    except Exception as exc:
-        raise RestorerLoadError(f"Cannot download HDRTVDM weights: {exc}") from exc
 
 
