@@ -1,4 +1,5 @@
 """Unit tests for RIFERestorer — no GPU, no real weights."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -83,3 +84,17 @@ def test_process_frame_is_passthrough(loaded_restorer: RIFERestorer) -> None:
 def test_unload(loaded_restorer: RIFERestorer) -> None:
     loaded_restorer.unload()
     assert not loaded_restorer.is_loaded
+
+
+@pytest.mark.parametrize("h,w", [(16, 16), (1, 5), (31, 33), (64, 64)])
+def test_pad_to_multiple_handles_tiny_and_aligned_frames(h, w):
+    import torch
+
+    from restorax.restorers.frame_interpolation.rife import RIFERestorer
+
+    t = torch.rand(1, 3, h, w)
+    p0, p1, (ph, pw) = RIFERestorer._pad_to_multiple(t, t.clone(), multiple=32)
+    assert p0.shape[2] % 32 == 0 and p0.shape[3] % 32 == 0
+    assert p0.shape == p1.shape
+    assert (p0.shape[2] - ph, p0.shape[3] - pw) == (h, w)
+    assert torch.equal(p0[:, :, :h, :w], t)

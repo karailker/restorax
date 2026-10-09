@@ -21,6 +21,7 @@ Run:
     python scripts/generate_fixtures.py
     python scripts/generate_fixtures.py --size 256 --assets-dir docs/assets/restorations
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,16 +35,15 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from restorax.benchmarks.datasets import (
+    BenchmarkDataset,
     _baboon_like,
-    _cameraman_like,
     _lena_like,
     _urban_like,
-    BenchmarkDataset,
 )
 from restorax.metrics.full_reference import psnr, ssim
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _bgr_write(path: Path, rgb: np.ndarray) -> None:
     cv2.imwrite(str(path), cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
@@ -79,18 +79,19 @@ def _make_composite(
     All three frames are padded to the same size before concatenating.
     """
     h = max(original.shape[0], before.shape[0], after.shape[0])
+
     # Resize each to same height, keeping aspect ratio
     def _fit_height(img: np.ndarray, target_h: int) -> np.ndarray:
         ratio = target_h / img.shape[0]
         new_w = max(1, int(img.shape[1] * ratio))
         return cv2.resize(img, (new_w, target_h), interpolation=cv2.INTER_CUBIC)
 
-    orig_r  = _fit_height(original, h)
+    orig_r = _fit_height(original, h)
     before_r = _fit_height(before, h)
-    after_r  = _fit_height(after, h)
+    after_r = _fit_height(after, h)
 
     cap_h = 20
-    font  = cv2.FONT_HERSHEY_SIMPLEX
+    font = cv2.FONT_HERSHEY_SIMPLEX
     scale = 0.45
     thick = 1
 
@@ -104,9 +105,9 @@ def _make_composite(
         cv2.putText(canvas, text, (x, h + 14), font, scale, (220, 220, 220), thick, cv2.LINE_AA)
         return canvas
 
-    orig_c  = _add_caption(orig_r,  "Original")
+    orig_c = _add_caption(orig_r, "Original")
     before_c = _add_caption(before_r, "Before (degraded)")
-    after_c  = _add_caption(after_r,  "After (restored)")
+    after_c = _add_caption(after_r, "After (restored)")
 
     divider = np.full((h + cap_h, 3, 3), [80, 80, 80], dtype=np.uint8)
     composite = np.concatenate([orig_c, divider, before_c, divider, after_c], axis=1)
@@ -124,6 +125,7 @@ def _make_composite(
 
 # ── Reference frames ───────────────────────────────────────────────────────────
 
+
 def _make_reference_frame(width: int = 256, height: int = 256, seed: int = 42) -> np.ndarray:
     """Deterministic synthetic reference frame with color gradients and blobs."""
     rng = np.random.default_rng(seed)
@@ -134,7 +136,7 @@ def _make_reference_frame(width: int = 256, height: int = 256, seed: int = 42) -
     for _ in range(12):
         cx = int(rng.integers(10, width - 10))
         cy = int(rng.integers(10, height - 10))
-        r  = int(rng.integers(8, 28))
+        r = int(rng.integers(8, 28))
         color = tuple(int(v) for v in rng.integers(60, 220, 3).tolist())
         cv2.circle(frame, (cx, cy), r, color, -1)
     return frame
@@ -142,9 +144,10 @@ def _make_reference_frame(width: int = 256, height: int = 256, seed: int = 42) -
 
 # ── Benchmark fixtures ─────────────────────────────────────────────────────────
 
+
 def generate_benchmark_fixtures(output_dir: Path) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
-    ds  = BenchmarkDataset(width=128, height=128, num_pairs=1, seed=42)
+    ds = BenchmarkDataset(width=128, height=128, num_pairs=1, seed=42)
     ref = _make_reference_frame(128, 128)
 
     _bgr_write(output_dir / "benchmark_frame_clean.png", ref)
@@ -169,6 +172,7 @@ def generate_benchmark_fixtures(output_dir: Path) -> dict:
 
 
 # ── Restoration triplet generators ────────────────────────────────────────────
+
 
 def _sr_triplet(size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -218,18 +222,17 @@ def _colorization_triplet(size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray
     l_chan = lab[:, :, 0]
 
     # Segment luminance into regions and assign learned-colour-like palettes
-    rng = np.random.default_rng(2024)
     ab_pred = np.zeros((size, size, 2), dtype=np.float32)
 
     # Sky region (bright pixels → cool blue)
     sky_mask = l_chan > 130
-    ab_pred[:, :, 0] = np.where(sky_mask, -10, 5)    # A: green-red axis
-    ab_pred[:, :, 1] = np.where(sky_mask, -25, 15)   # B: blue-yellow axis
+    ab_pred[:, :, 0] = np.where(sky_mask, -10, 5)  # A: green-red axis
+    ab_pred[:, :, 1] = np.where(sky_mask, -25, 15)  # B: blue-yellow axis
 
     # Building regions (medium luminance → warm grey)
     wall_mask = (l_chan > 60) & (l_chan <= 130)
-    ab_pred[:, :, 0] = np.where(wall_mask, 3,  ab_pred[:, :, 0])
-    ab_pred[:, :, 1] = np.where(wall_mask, 8,  ab_pred[:, :, 1])
+    ab_pred[:, :, 0] = np.where(wall_mask, 3, ab_pred[:, :, 0])
+    ab_pred[:, :, 1] = np.where(wall_mask, 8, ab_pred[:, :, 1])
 
     # Dark features (windows etc.) → blue-tinted glass
     dark_mask = l_chan <= 60
@@ -237,7 +240,9 @@ def _colorization_triplet(size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray
     ab_pred[:, :, 1] = np.where(dark_mask, -20, ab_pred[:, :, 1])
 
     reconstructed_lab = np.stack([l_chan, ab_pred[:, :, 0], ab_pred[:, :, 1]], axis=2)
-    reconstructed_lab = np.clip(reconstructed_lab, [0, -128, -128], [100, 127, 127]).astype(np.float32)
+    reconstructed_lab = np.clip(reconstructed_lab, [0, -128, -128], [100, 127, 127]).astype(
+        np.float32
+    )
     after = cv2.cvtColor(reconstructed_lab, cv2.COLOR_LAB2RGB).astype(np.uint8)
 
     return original, before, after
@@ -259,8 +264,9 @@ def _face_triplet(size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     deg = cv2.GaussianBlur(original, (21, 21), 5.0)
     noise = rng.normal(0, 22, original.shape).astype(np.float32)
     deg = np.clip(deg.astype(np.float32) + noise, 0, 255).astype(np.uint8)
-    _, buf = cv2.imencode(".jpg", cv2.cvtColor(deg, cv2.COLOR_RGB2BGR),
-                          [cv2.IMWRITE_JPEG_QUALITY, 35])
+    _, buf = cv2.imencode(
+        ".jpg", cv2.cvtColor(deg, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 35]
+    )
     before = cv2.cvtColor(cv2.imdecode(buf, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
 
     # Restoration: iterative Richardson-Lucy-style deblur approximation + CLAHE
@@ -307,9 +313,9 @@ def _scratch_triplet(size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         before[:, x : x + width_px] = brightness
         # Add slight fade at edges for realism
         if x > 0:
-            before[:, x - 1 : x] = np.clip(
-                before[:, x - 1 : x].astype(int) + 60, 0, 255
-            ).astype(np.uint8)
+            before[:, x - 1 : x] = np.clip(before[:, x - 1 : x].astype(int) + 60, 0, 255).astype(
+                np.uint8
+            )
 
     # Add dust specks
     for _ in range(15):
@@ -319,12 +325,10 @@ def _scratch_triplet(size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
     # Detect scratch mask: bright pixels inconsistent with neighbourhood
     gray = cv2.cvtColor(before, cv2.COLOR_RGB2GRAY)
-    orig_gray = cv2.cvtColor(original, cv2.COLOR_RGB2GRAY)
-    diff = np.abs(gray.astype(np.int16) - cv2.GaussianBlur(gray, (1, 1), 0).astype(np.int16))
     bright = gray > 185
     local_bright = gray > cv2.GaussianBlur(gray.astype(np.float32), (15, 15), 0) + 40
 
-    mask = ((bright & local_bright)).astype(np.uint8) * 255
+    mask = (bright & local_bright).astype(np.uint8) * 255
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 11))
     mask = cv2.dilate(mask, kernel, iterations=1)
 
@@ -375,9 +379,11 @@ def _audio_waveform_triplet(assets_dir: Path, size: int) -> None:
     """
     try:
         import matplotlib
+
         matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-        from scipy import signal as sp_signal
+        import matplotlib.pyplot as plt  # noqa: F401
+        from scipy import signal as sp_signal  # noqa: F401
+
         _audio_with_matplotlib(assets_dir, size)
         return
     except ImportError:
@@ -389,9 +395,9 @@ def _audio_waveform_triplet(assets_dir: Path, size: int) -> None:
 
 def _audio_with_matplotlib(assets_dir: Path, size: int) -> None:
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
 
     sr = 22050
     duration = 0.8
@@ -412,6 +418,7 @@ def _audio_with_matplotlib(assets_dir: Path, size: int) -> None:
 
     # After: spectral subtraction noise reduction
     from scipy import signal as sp_signal
+
     f, psd = sp_signal.welch(before_audio, sr, nperseg=256)
     noise_floor = np.median(psd) * 2.5
 
@@ -429,8 +436,8 @@ def _audio_with_matplotlib(assets_dir: Path, size: int) -> None:
 
     for name, audio, color, title in [
         ("original", original_audio, "#2ecc71", "Original (clean speech)"),
-        ("before",   before_audio,   "#e74c3c", "Before (noise + clipping)"),
-        ("after",    after_audio,    "#3498db", "After (spectral subtraction)"),
+        ("before", before_audio, "#e74c3c", "Before (noise + clipping)"),
+        ("after", after_audio, "#3498db", "After (spectral subtraction)"),
     ]:
         fig, ax = plt.subplots(figsize=(size / 72, size / 72 * 0.5), dpi=72)
         fig.patch.set_facecolor("#1a1a2e")
@@ -445,7 +452,7 @@ def _audio_with_matplotlib(assets_dir: Path, size: int) -> None:
 
         # Clip boundaries for before
         if name == "before":
-            ax.axhline(0.6,  color="#f39c12", linewidth=0.8, linestyle="--", alpha=0.7)
+            ax.axhline(0.6, color="#f39c12", linewidth=0.8, linestyle="--", alpha=0.7)
             ax.axhline(-0.6, color="#f39c12", linewidth=0.8, linestyle="--", alpha=0.7)
             ax.text(0.01, 0.63, "clipping limit", fontsize=6, color="#f39c12", alpha=0.8)
 
@@ -490,8 +497,8 @@ def _audio_opencv_fallback(assets_dir: Path, size: int) -> None:
     W, H = size, size // 2
     for name, wave, colour in [
         ("original", original, (46, 204, 113)),
-        ("before",   before,   (231, 76,  60)),
-        ("after",    after,    (52, 152, 219)),
+        ("before", before, (231, 76, 60)),
+        ("after", after, (52, 152, 219)),
     ]:
         canvas = np.full((H, W, 3), [26, 26, 46], dtype=np.uint8)
         mid = H // 2
@@ -505,6 +512,7 @@ def _audio_opencv_fallback(assets_dir: Path, size: int) -> None:
 
 
 # ── Main generation ────────────────────────────────────────────────────────────
+
 
 def generate_sample_restorations(assets_dir: Path, size: int = 256) -> None:
     assets_dir.mkdir(parents=True, exist_ok=True)
@@ -537,16 +545,20 @@ def generate_sample_restorations(assets_dir: Path, size: int = 256) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate RestoraX test fixtures and sample assets")
-    parser.add_argument("--output-dir",  default="tests/fixtures",          help="Fixtures output directory")
-    parser.add_argument("--assets-dir",  default="docs/assets/restorations", help="Sample assets directory")
-    parser.add_argument("--size",        type=int, default=256,              help="Output image size (pixels)")
-    parser.add_argument("--no-samples",  action="store_true",                help="Skip sample restorations")
+    parser = argparse.ArgumentParser(
+        description="Generate RestoraX test fixtures and sample assets"
+    )
+    parser.add_argument("--output-dir", default="tests/fixtures", help="Fixtures output directory")
+    parser.add_argument(
+        "--assets-dir", default="docs/assets/restorations", help="Sample assets directory"
+    )
+    parser.add_argument("--size", type=int, default=256, help="Output image size (pixels)")
+    parser.add_argument("--no-samples", action="store_true", help="Skip sample restorations")
     args = parser.parse_args()
 
     root = Path(__file__).parent.parent
     fixtures_dir = root / args.output_dir
-    assets_dir   = root / args.assets_dir
+    assets_dir = root / args.assets_dir
 
     print("Generating benchmark fixtures…")
     generate_benchmark_fixtures(fixtures_dir)

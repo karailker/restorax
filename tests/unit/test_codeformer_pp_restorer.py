@@ -1,4 +1,5 @@
 """Unit tests for CodeFormerPlusPlusRestorer — no GPU, no real weights."""
+
 from __future__ import annotations
 
 import builtins
@@ -18,7 +19,9 @@ class TestCodeFormerPlusPlusMeta:
         assert CodeFormerPlusPlusRestorer().name == "codeformer_pp"
 
     def test_capabilities_category(self):
-        assert CodeFormerPlusPlusRestorer().capabilities.category == RestorerCategory.FACE_RESTORATION
+        assert (
+            CodeFormerPlusPlusRestorer().capabilities.category == RestorerCategory.FACE_RESTORATION
+        )
 
     def test_capabilities_scale_factor(self):
         assert CodeFormerPlusPlusRestorer().capabilities.scale_factor == 1

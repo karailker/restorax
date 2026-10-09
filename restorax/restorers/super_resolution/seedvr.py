@@ -13,6 +13,7 @@ Model source: https://github.com/IceClear/SeedVR
 Paper: "SeedVR: Seeding the Future of Video Restoration with Latent Diffusion"
        (CVPR 2025)
 """
+
 from __future__ import annotations
 
 import logging
@@ -24,10 +25,10 @@ import torch
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
     BaseRestorer,
+    ParamSpec,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,10 +52,18 @@ class SeedVRRestorer(BaseRestorer):
     """
 
     PARAM_SCHEMA = [
-        ParamSpec("num_inference_steps", "int", _DEFAULT_STEPS, "Inference steps",
-                  minimum=1, maximum=100, step=1),
-        ParamSpec("guidance_scale", "float", 7.5, "Guidance scale",
-                  minimum=1.0, maximum=20.0, step=0.5),
+        ParamSpec(
+            "num_inference_steps",
+            "int",
+            _DEFAULT_STEPS,
+            "Inference steps",
+            minimum=1,
+            maximum=100,
+            step=1,
+        ),
+        ParamSpec(
+            "guidance_scale", "float", 7.5, "Guidance scale", minimum=1.0, maximum=20.0, step=0.5
+        ),
     ]
 
     def __init__(self) -> None:
@@ -76,7 +85,15 @@ class SeedVRRestorer(BaseRestorer):
             min_vram_gb=16.0,
             supports_compile=False,
             scale_factor=4,
-            tags=["super_resolution", "diffusion", "seedvr", "dit", "all_in_one", "cvpr2025", "sota"],
+            tags=[
+                "super_resolution",
+                "diffusion",
+                "seedvr",
+                "dit",
+                "all_in_one",
+                "cvpr2025",
+                "sota",
+            ],
         )
 
     def load(self, device: torch.device) -> None:
@@ -95,30 +112,40 @@ class SeedVRRestorer(BaseRestorer):
     def process_frame(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
         return self.process_sequence([frame], params)[0]
 
-    def process_sequence(self, frames: list[np.ndarray], params: RestorerParams) -> list[np.ndarray]:
+    def process_sequence(
+        self, frames: list[np.ndarray], params: RestorerParams
+    ) -> list[np.ndarray]:
         assert self._device is not None
         steps = int(params.extra.get("num_inference_steps", _DEFAULT_STEPS))
         guidance = float(params.extra.get("guidance_scale", 7.5))
 
         from PIL import Image
+
         pil_frames = [Image.fromarray(f) for f in frames]
-        result = self._pipe(image=pil_frames, num_inference_steps=steps,  # type: ignore[operator]
-                            guidance_scale=guidance)
+        result = self._pipe(
+            image=pil_frames,
+            num_inference_steps=steps,  # type: ignore[operator]
+            guidance_scale=guidance,
+        )
         return [np.array(img) for img in result.frames]
 
     @staticmethod
     def _build_pipeline(device: torch.device) -> object:
         try:
-            from restorax.restorers.super_resolution.seedvr_arch import SeedVRPipeline  # type: ignore[import]
+            from restorax.restorers.super_resolution.seedvr_arch import (
+                SeedVRPipeline,  # type: ignore[import]
+            )
         except ImportError as exc:
             raise RestorerLoadError(
-                f"SeedVR requires diffusers: pip install 'restorax[diffusion]'"
+                "SeedVR requires diffusers: pip install 'restorax[diffusion]'"
             ) from exc
         try:
             from restorax.config import settings
+
             weight_dir = Path(settings.model_dir) / "seedvr"
             if not weight_dir.exists():
                 from huggingface_hub import snapshot_download
+
                 snapshot_download(repo_id=_HF_REPO, local_dir=str(weight_dir))
             pipe = SeedVRPipeline.from_pretrained(str(weight_dir)).to(device)
             logger.info("SeedVR pipeline loaded")

@@ -1,4 +1,5 @@
 """Tests that RestoraXError subclasses map to correct HTTP status + body."""
+
 from __future__ import annotations
 
 import pytest
@@ -17,6 +18,7 @@ from restorax.core.exceptions import (
 def _app_with_probe_routes() -> FastAPI:
     """Create a fresh app instance with one probe route per exception type."""
     from restorax.api.app import create_app
+
     app = create_app()
 
     @app.get("/probe/restorer-load-error")

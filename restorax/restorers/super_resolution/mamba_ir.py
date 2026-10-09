@@ -13,8 +13,10 @@ Vendoring: copy arch from csguoh/MambaIR into
     restorers/super_resolution/mamba_ir_arch.py
 Weights:   HuggingFace Hub "csguoh/MambaIR" → MambaIR_SR_x4.pth
 """
+
 from __future__ import annotations
 
+import contextlib
 import logging
 from pathlib import Path
 
@@ -23,13 +25,13 @@ import torch
 
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
+    HALF_PRECISION_SPEC,
+    TILE_OVERLAP_SPEC,
+    TILE_SIZE_SPEC,
     BaseRestorer,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    TILE_SIZE_SPEC,
-    TILE_OVERLAP_SPEC,
-    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,10 +75,8 @@ class MambaIRRestorer(BaseRestorer):
     def load(self, device: torch.device) -> None:
         model = self._build_model(device)
         if self.capabilities.supports_compile and device.type == "cuda":
-            try:
+            with contextlib.suppress(Exception):
                 model = torch.compile(model, mode="reduce-overhead")  # type: ignore[assignment]
-            except Exception:
-                pass
         self._model = model
         self._device = device
         self._loaded = True
@@ -96,7 +96,14 @@ class MambaIRRestorer(BaseRestorer):
         return self._process_full(frame, params)
 
     def _process_full(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
-        t = torch.from_numpy(frame).float().div(255.0).permute(2, 0, 1).unsqueeze(0).to(self._device)
+        t = (
+            torch.from_numpy(frame)
+            .float()
+            .div(255.0)
+            .permute(2, 0, 1)
+            .unsqueeze(0)
+            .to(self._device)
+        )
         if params.half_precision and self._device.type == "cuda":
             t = t.half()
         with torch.inference_mode():
@@ -105,6 +112,7 @@ class MambaIRRestorer(BaseRestorer):
 
     def _process_tiled(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
         from restorax.video.utils import merge_tiles, tile_frame
+
         tiles, _, _ = tile_frame(frame, params.tile_size, params.tile_overlap)
         processed = [(self._process_full(t, params), coords) for t, coords in tiles]
         h, w = frame.shape[:2]
@@ -113,15 +121,19 @@ class MambaIRRestorer(BaseRestorer):
     @staticmethod
     def _build_model(device: torch.device) -> torch.nn.Module:
         try:
-            from restorax.restorers.super_resolution.mamba_ir_arch import MambaIR  # type: ignore[import]
             from restorax.config import settings
+            from restorax.restorers.super_resolution.mamba_ir_arch import (
+                MambaIR,  # type: ignore[import]
+            )
 
             weight_path = Path(settings.model_dir) / "mamba_ir" / _WEIGHT_FILE
             if not weight_path.exists():
                 from huggingface_hub import hf_hub_download
+
                 weight_path.parent.mkdir(parents=True, exist_ok=True)
-                hf_hub_download(repo_id=_HF_REPO, filename=_WEIGHT_FILE,
-                                local_dir=str(weight_path.parent))
+                hf_hub_download(
+                    repo_id=_HF_REPO, filename=_WEIGHT_FILE, local_dir=str(weight_path.parent)
+                )
 
             model = MambaIR(upscale=4, img_size=64, embed_dim=180)
             ckpt = torch.load(weight_path, map_location="cpu", weights_only=True)

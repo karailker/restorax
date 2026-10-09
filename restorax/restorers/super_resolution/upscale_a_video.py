@@ -25,6 +25,7 @@ Inference strategy:
   The PipelineRunner must call process_sequence for this restorer —
   declared via requires_temporal=True.
 """
+
 from __future__ import annotations
 
 import logging
@@ -36,10 +37,10 @@ import torch
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
     BaseRestorer,
+    ParamSpec,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,10 +61,24 @@ class UpscaleAVideoRestorer(BaseRestorer):
     """
 
     PARAM_SCHEMA = [
-        ParamSpec("num_inference_steps", "int", _DEFAULT_NUM_INFERENCE_STEPS, "Inference steps",
-                  minimum=1, maximum=100, step=1),
-        ParamSpec("guidance_scale", "float", _DEFAULT_GUIDANCE_SCALE, "Guidance scale",
-                  minimum=1.0, maximum=20.0, step=0.5),
+        ParamSpec(
+            "num_inference_steps",
+            "int",
+            _DEFAULT_NUM_INFERENCE_STEPS,
+            "Inference steps",
+            minimum=1,
+            maximum=100,
+            step=1,
+        ),
+        ParamSpec(
+            "guidance_scale",
+            "float",
+            _DEFAULT_GUIDANCE_SCALE,
+            "Guidance scale",
+            minimum=1.0,
+            maximum=20.0,
+            step=0.5,
+        ),
     ]
 
     def __init__(self) -> None:
@@ -123,7 +138,7 @@ class UpscaleAVideoRestorer(BaseRestorer):
         num_steps = int(params.extra.get("num_inference_steps", _DEFAULT_NUM_INFERENCE_STEPS))
         guidance = float(params.extra.get("guidance_scale", _DEFAULT_GUIDANCE_SCALE))
 
-        if hasattr(self._pipe, "__call__"):
+        if callable(self._pipe):
             return self._diffusion_inference(frames, num_steps, guidance)
 
         # Fallback stub: nearest-neighbour 4× upscale
@@ -139,7 +154,6 @@ class UpscaleAVideoRestorer(BaseRestorer):
     ) -> list[np.ndarray]:
         """Run the Upscale-A-Video diffusion pipeline on a frame sequence."""
         try:
-            import torch
             from PIL import Image
 
             pil_frames = [Image.fromarray(f) for f in frames]
@@ -157,6 +171,7 @@ class UpscaleAVideoRestorer(BaseRestorer):
     def _stub_upscale(frames: list[np.ndarray]) -> list[np.ndarray]:
         """Nearest-neighbour 4× upscale stub."""
         import cv2
+
         return [
             cv2.resize(f, (f.shape[1] * 4, f.shape[0] * 4), interpolation=cv2.INTER_NEAREST)
             for f in frames
@@ -166,12 +181,15 @@ class UpscaleAVideoRestorer(BaseRestorer):
     def _build_pipeline(device: torch.device) -> object:
         """Load the Upscale-A-Video diffusion pipeline."""
         try:
-            from restorax.restorers.super_resolution.upscale_a_video_arch import UpscaleAVideoPipeline  # type: ignore[import]
             from restorax.config import settings
+            from restorax.restorers.super_resolution.upscale_a_video_arch import (
+                UpscaleAVideoPipeline,  # type: ignore[import]
+            )
 
             weight_dir = Path(settings.model_dir) / "upscale_a_video"
             if not weight_dir.exists():
                 from huggingface_hub import snapshot_download
+
                 snapshot_download(repo_id=_HF_REPO, local_dir=str(weight_dir))
 
             pipe = UpscaleAVideoPipeline.from_pretrained(str(weight_dir))

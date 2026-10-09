@@ -4,10 +4,10 @@ Full-reference video quality metrics.
 All functions accept numpy uint8 arrays (HxWxC RGB) or lists thereof.
 Returns float scalars (higher is better for PSNR/SSIM, lower for LPIPS).
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Sequence
 
 import numpy as np
 import torch
@@ -20,7 +20,7 @@ def psnr(img1: np.ndarray, img2: np.ndarray) -> float:
     mse = float(np.mean((img1.astype(np.float64) - img2.astype(np.float64)) ** 2))
     if mse == 0.0:
         return float("inf")
-    return float(10.0 * np.log10(255.0 ** 2 / mse))
+    return float(10.0 * np.log10(255.0**2 / mse))
 
 
 def ssim(img1: np.ndarray, img2: np.ndarray, device: torch.device | None = None) -> float:
@@ -35,7 +35,9 @@ def ssim(img1: np.ndarray, img2: np.ndarray, device: torch.device | None = None)
         return _ssim_numpy(img1, img2)
 
 
-def lpips(img1: np.ndarray, img2: np.ndarray, net: str = "alex", device: torch.device | None = None) -> float:
+def lpips(
+    img1: np.ndarray, img2: np.ndarray, net: str = "alex", device: torch.device | None = None
+) -> float:
     """
     Learned Perceptual Image Patch Similarity (lower is better, 0=identical).
     Requires piqa. Falls back to 0.0 with a warning if unavailable.
@@ -74,7 +76,7 @@ def compute_all(
         raise ValueError("output_frames and reference_frames must have the same length")
 
     psnr_vals, ssim_vals, lpips_vals = [], [], []
-    for out, ref in zip(output_frames, reference_frames):
+    for out, ref in zip(output_frames, reference_frames, strict=True):
         psnr_vals.append(psnr(out, ref))
         ssim_vals.append(ssim(out, ref))
         lpips_vals.append(lpips(out, ref))
@@ -87,6 +89,7 @@ def compute_all(
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
+
 
 def _ssim_piqa(img1: np.ndarray, img2: np.ndarray, device: torch.device | None = None) -> float:
     import piqa
@@ -113,7 +116,7 @@ def _ssim_numpy(img1: np.ndarray, img2: np.ndarray) -> float:
     sigma2_sq = img2f.var()
     sigma12 = float(np.mean((img1f - mu1) * (img2f - mu2)))
     numerator = (2 * mu1 * mu2 + c1) * (2 * sigma12 + c2)
-    denominator = (mu1 ** 2 + mu2 ** 2 + c1) * (sigma1_sq + sigma2_sq + c2)
+    denominator = (mu1**2 + mu2**2 + c1) * (sigma1_sq + sigma2_sq + c2)
     return float(numerator / denominator)
 
 

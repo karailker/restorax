@@ -4,11 +4,13 @@ RestoraX ComfyUI custom-node pack.
 ComfyUI's custom-node loader imports NODE_CLASS_MAPPINGS / NODE_DISPLAY_NAME_MAPPINGS
 from this file.
 """
+
 from . import (
     artifact_removal,
     audio,
     colorization,
     deinterlacing,
+    enhancement,
     face_restoration,
     frame_interpolation,
     hdr,
@@ -17,8 +19,16 @@ from . import (
 )
 
 _MODULES = [
-    artifact_removal, audio, colorization, deinterlacing, face_restoration,
-    frame_interpolation, hdr, stabilization, super_resolution,
+    artifact_removal,
+    audio,
+    colorization,
+    deinterlacing,
+    enhancement,
+    face_restoration,
+    frame_interpolation,
+    hdr,
+    stabilization,
+    super_resolution,
 ]
 
 NODE_CLASS_MAPPINGS: dict = {}

@@ -10,7 +10,7 @@ from restorax.dag.serializer import dag_node_type
 
 @dataclass
 class ChoiceRule:
-    field: str                    # key to read from input "meta" dict
+    field: str  # key to read from input "meta" dict
     operator: Literal["eq", "gt", "lt", "gte", "lte", "ne"]
     value: Any
     branch_index: int
@@ -24,7 +24,14 @@ class ChoiceNode(Node):
     Analogous to AWS Step Functions Choice state.
     """
 
-    def __init__(self, id: str, name: str, rules: list[ChoiceRule] | None = None, default_branch: int = 0, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        rules: list[ChoiceRule] | None = None,
+        default_branch: int = 0,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(id, name)
         self.rules: list[ChoiceRule] = rules or []
         self.default_branch = default_branch
@@ -39,7 +46,9 @@ class ChoiceNode(Node):
 
     async def execute(self, ctx: ExecutionContext, inputs: dict[str, Any]) -> NodeResult:
         meta = inputs.get("meta") or {}
-        meta_dict = meta if isinstance(meta, dict) else vars(meta) if hasattr(meta, "__dict__") else {}
+        meta_dict = (
+            meta if isinstance(meta, dict) else vars(meta) if hasattr(meta, "__dict__") else {}
+        )
 
         ops = {
             "eq": lambda a, b: a == b,
@@ -59,14 +68,27 @@ class ChoiceNode(Node):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "rules": [{"field": r.field, "operator": r.operator, "value": r.value, "branch_index": r.branch_index} for r in self.rules],
+            "rules": [
+                {
+                    "field": r.field,
+                    "operator": r.operator,
+                    "value": r.value,
+                    "branch_index": r.branch_index,
+                }
+                for r in self.rules
+            ],
             "default_branch": self.default_branch,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ChoiceNode:
         rules = [ChoiceRule(**r) for r in data.get("rules", [])]
-        return cls(id=data["id"], name=data["name"], rules=rules, default_branch=data.get("default_branch", 0))
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            rules=rules,
+            default_branch=data.get("default_branch", 0),
+        )
 
 
 @dag_node_type("pass")

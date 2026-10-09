@@ -1,10 +1,11 @@
 """Unit tests for VRTRestorer."""
+
 from __future__ import annotations
 
 import pytest
 
-from restorax.restorers.super_resolution.vrt import VRTRestorer
 from restorax.core.restorer import RestorerCategory
+from restorax.restorers.super_resolution.vrt import VRTRestorer
 
 torch = pytest.importorskip("torch")
 

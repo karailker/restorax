@@ -13,6 +13,7 @@ If ``ffmpeg`` is unavailable the restorer degrades gracefully to a pure-numpy
 Like the AI deinterlacer, frames detected as already-progressive are returned
 unchanged so progressive footage is never softened.
 """
+
 from __future__ import annotations
 
 import logging
@@ -130,9 +131,14 @@ class YadifDeinterlaceRestorer(BaseRestorer):
                 cv2.imwrite(str(tmp / f"in_{i:04d}.png"), cv2.cvtColor(f, cv2.COLOR_RGB2BGR))
             result = subprocess.run(
                 [
-                    "ffmpeg", "-y", "-framerate", "25",
-                    "-i", str(tmp / "in_%04d.png"),
-                    "-vf", "yadif=mode=0:parity=-1:deint=0",
+                    "ffmpeg",
+                    "-y",
+                    "-framerate",
+                    "25",
+                    "-i",
+                    str(tmp / "in_%04d.png"),
+                    "-vf",
+                    "yadif=mode=0:parity=-1:deint=0",
                     str(tmp / "out_%04d.png"),
                 ],
                 capture_output=True,

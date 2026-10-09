@@ -4,12 +4,9 @@ import asyncio
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
-
-from restorax.core.exceptions import NodeExecutionError
 from restorax.dag.context import ExecutionContext, ProgressEmitter
 from restorax.dag.edge import Edge
-from restorax.dag.executor import DAGExecutor, DAGRun
+from restorax.dag.executor import DAGExecutor
 from restorax.dag.graph import DAG
 from restorax.dag.node import Node, NodeResult, NodeState, Port, RetryPolicy
 
@@ -105,12 +102,14 @@ def test_failed_node_marks_downstream_skipped():
 def test_retry_policy_retries_and_succeeds():
     # Fails on attempt 0, succeeds on attempt 1
     fail_node = _FailNode(
-        id="n0", name="Flaky",
+        id="n0",
+        name="Flaky",
         fail_on_attempt=0,
         retry_policy=RetryPolicy(max_retries=1, delay_seconds=0),
     )
     dag = DAG(
-        id="test", name="Test",
+        id="test",
+        name="Test",
         nodes={"n0": fail_node},
         edges=[],
     )
@@ -138,7 +137,8 @@ def test_dry_run_marks_all_succeeded_without_executing():
             return NodeResult(outputs={})
 
     dag = DAG(
-        id="dry", name="Dry",
+        id="dry",
+        name="Dry",
         nodes={"n0": _TrackNode(id="n0", name="N0")},
         edges=[],
     )

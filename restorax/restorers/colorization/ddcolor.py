@@ -15,6 +15,7 @@ dependency which is optional and pulls in heavy cloud SDK deps.
 
 Weights: DDColor-artistic or DDColor (modelscope) from HuggingFace Hub.
 """
+
 from __future__ import annotations
 
 import logging
@@ -118,7 +119,9 @@ class DDColorRestorer(BaseRestorer):
         l_chan = lab[:, :, 0:1]  # H W 1
 
         # 2. Prepare model input: resize L to MODEL_SIZE, normalize to [-1,1]
-        l_resized = cv2.resize(l_chan[:, :, 0], (_MODEL_SIZE, _MODEL_SIZE), interpolation=cv2.INTER_LINEAR)
+        l_resized = cv2.resize(
+            l_chan[:, :, 0], (_MODEL_SIZE, _MODEL_SIZE), interpolation=cv2.INTER_LINEAR
+        )
         tensor = torch.from_numpy(l_resized / 50.0 - 1.0).float()
         tensor = tensor.unsqueeze(0).unsqueeze(0).to(self._device)  # 1 1 H W
         # DDColor expects 3-channel input (repeat L into RGB channels)
@@ -133,9 +136,11 @@ class DDColorRestorer(BaseRestorer):
         ab_np = ab_np * 110.0  # rescale to LAB AB range
 
         # 4. Merge original L + predicted AB
-        colorized_lab = np.concatenate([l_chan, ab_np], axis=2).clip(
-            [-0.0, -127.0, -127.0], [100.0, 127.0, 127.0]
-        ).astype(np.float32)
+        colorized_lab = (
+            np.concatenate([l_chan, ab_np], axis=2)
+            .clip([-0.0, -127.0, -127.0], [100.0, 127.0, 127.0])
+            .astype(np.float32)
+        )
         rgb = cv2.cvtColor(colorized_lab, cv2.COLOR_LAB2RGB)
         return (rgb * 255.0).clip(0, 255).astype(np.uint8)
 
@@ -150,7 +155,10 @@ class DDColorRestorer(BaseRestorer):
         Requires the vendored arch module (see PLAN.md: vendor from piddnad/DDColor).
         """
         try:
-            from restorax.restorers.colorization.ddcolor_arch import DDColorArch  # type: ignore[import]
+            from restorax.restorers.colorization.ddcolor_arch import (
+                DDColorArch,  # type: ignore[import]
+            )
+
             model = DDColorArch(encoder_name="convnext-l")
         except ImportError as exc:
             raise RestorerLoadError(f"DDColor unavailable: {exc}") from exc

@@ -1,4 +1,5 @@
 """VRAMMonitor — context manager that records peak GPU memory during a block."""
+
 from __future__ import annotations
 
 import torch
@@ -20,7 +21,7 @@ class VRAMMonitor:
         self._peak_bytes: int = 0
         self._base_bytes: int = 0
 
-    def __enter__(self) -> "VRAMMonitor":
+    def __enter__(self) -> VRAMMonitor:
         if torch.cuda.is_available():
             self._base_bytes = torch.cuda.memory_allocated()
             torch.cuda.reset_peak_memory_stats()
@@ -33,4 +34,4 @@ class VRAMMonitor:
 
     @property
     def peak_mb(self) -> float:
-        return self._peak_bytes / (1024 ** 2)
+        return self._peak_bytes / (1024**2)

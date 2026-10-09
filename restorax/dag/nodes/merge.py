@@ -44,6 +44,7 @@ class MergeNode(Node):
         if not branch_outputs:
             return NodeResult(outputs={"chunks": [], "meta": meta})
 
+        merged: list[list[np.ndarray]]
         if self.strategy == "select":
             idx = min(self.select_index, len(branch_outputs) - 1)
             merged = branch_outputs[idx]
@@ -51,7 +52,7 @@ class MergeNode(Node):
             # blend: per-frame pixel average
             n_branches = len(branch_outputs)
             n_chunks = len(branch_outputs[0])
-            merged: list[list[np.ndarray]] = []
+            merged = []
             for chunk_idx in range(n_chunks):
                 blended_chunk: list[np.ndarray] = []
                 n_frames = len(branch_outputs[0][chunk_idx])

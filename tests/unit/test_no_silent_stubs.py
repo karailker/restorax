@@ -5,12 +5,11 @@ Scans restorer source files for _*Stub classes. Only the approved audio
 passthrough stubs (demucs, rnnoise, voicefixer) are allowed. Any new stub
 added outside audio/ will fail this test, forcing an explicit review.
 """
+
 from __future__ import annotations
 
 import re
 from pathlib import Path
-
-import pytest
 
 _RESTORERS_DIR = Path(__file__).parent.parent.parent / "restorax" / "restorers"
 

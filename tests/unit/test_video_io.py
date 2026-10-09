@@ -1,4 +1,5 @@
 """Tests for VideoReader and VideoWriter using the synthetic_video fixture."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -32,6 +33,7 @@ def test_reader_meta_accessible_before_iteration(synthetic_video: Path) -> None:
 
 def test_reader_raises_on_missing_file(tmp_path: Path) -> None:
     from restorax.core.exceptions import VideoReadError
+
     with pytest.raises(VideoReadError):
         VideoReader(tmp_path / "nonexistent.mp4").open()
 

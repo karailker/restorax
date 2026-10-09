@@ -12,6 +12,7 @@ Paper: "GFP-GAN: Towards Real-World Blind Face Restoration with
 Uses the `gfpgan` PyPI package which bundles the architecture and
 facexlib for detection/alignment.
 """
+
 from __future__ import annotations
 
 import logging
@@ -70,9 +71,7 @@ class GFPGANRestorer(BaseRestorer):
         try:
             from gfpgan import GFPGANer
         except ImportError as exc:
-            raise RestorerLoadError(
-                "gfpgan is required. Install with: pip install gfpgan"
-            ) from exc
+            raise RestorerLoadError("gfpgan is required. Install with: pip install gfpgan") from exc
 
         weight_path = self._resolve_weight_path()
         logger.info("Loading GFPGAN v1.4 from %s on %s", weight_path, device)
@@ -111,7 +110,7 @@ class GFPGANRestorer(BaseRestorer):
         only_center_face = False
 
         try:
-            _, restored_faces, restored_img = self._gfpgan.enhance(  # type: ignore[union-attr]
+            _, restored_faces, restored_img = self._gfpgan.enhance(  # type: ignore[union-attr,attr-defined]
                 frame,
                 has_aligned=has_aligned,
                 only_center_face=only_center_face,

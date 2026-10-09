@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 import structlog
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -8,6 +7,7 @@ from fastapi.testclient import TestClient
 
 def _make_app() -> FastAPI:
     from restorax.api.middleware import RequestIDMiddleware
+
     app = FastAPI()
     app.add_middleware(RequestIDMiddleware)
 

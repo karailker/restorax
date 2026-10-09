@@ -5,10 +5,12 @@ These tests spin up a real FastAPI app with an in-memory SQLite database
 and CELERY_TASK_ALWAYS_EAGER=True (tasks execute synchronously, no broker
 needed). No GPU or real model weights are required.
 """
+
 from __future__ import annotations
 
 import io
-from unittest.mock import AsyncMock, MagicMock, patch
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 import pytest_asyncio
@@ -30,6 +32,7 @@ async def client():
 
 # ── Health ─────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_health(client: AsyncClient) -> None:
     resp = await client.get("/health")
@@ -38,6 +41,7 @@ async def test_health(client: AsyncClient) -> None:
 
 
 # ── Models listing ─────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_models(client: AsyncClient) -> None:
@@ -51,6 +55,7 @@ async def test_list_models(client: AsyncClient) -> None:
 
 
 # ── Pipeline CRUD ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_and_get_pipeline(client: AsyncClient) -> None:
@@ -114,6 +119,7 @@ async def test_delete_pipeline(client: AsyncClient) -> None:
 
 # ── Jobs ───────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_jobs_empty(client: AsyncClient) -> None:
     resp = await client.get("/jobs")
@@ -137,8 +143,10 @@ async def test_submit_job(client: AsyncClient, tmp_path: Path) -> None:
     mock_task_result.id = "fake-celery-task-id"
 
     # run_job is imported inside the route function, so patch it at its source module
-    with patch("restorax.tasks.job_tasks.run_job") as mock_run_job, \
-         patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"):
+    with (
+        patch("restorax.tasks.job_tasks.run_job") as mock_run_job,
+        patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"),
+    ):
         mock_run_job.apply_async.return_value = mock_task_result
 
         resp = await client.post(
@@ -167,8 +175,10 @@ async def test_submit_job_with_restore_audio(client: AsyncClient, tmp_path: Path
     mock_task_result = MagicMock()
     mock_task_result.id = "fake-celery-audio-id"
 
-    with patch("restorax.tasks.job_tasks.run_job") as mock_run_job, \
-         patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"):
+    with (
+        patch("restorax.tasks.job_tasks.run_job") as mock_run_job,
+        patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"),
+    ):
         mock_run_job.apply_async.return_value = mock_task_result
 
         resp = await client.post(

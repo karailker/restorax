@@ -13,6 +13,7 @@ def _inject_otel_context(_logger: Any, _method: str, event_dict: dict) -> dict:
     """Reads the active OTEL span and injects trace_id + span_id as log fields."""
     try:
         from opentelemetry import trace
+
         ctx = trace.get_current_span().get_span_context()
         if ctx and ctx.is_valid:
             event_dict["trace_id"] = format(ctx.trace_id, "032x")
@@ -36,7 +37,7 @@ def configure_logging(app_env: str = "development", log_level: str = "INFO") -> 
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.contextvars.merge_contextvars,
-        _inject_otel_context,
+        _inject_otel_context,  # type: ignore[list-item]
         structlog.processors.StackInfoRenderer(),
         structlog.processors.ExceptionRenderer(),
     ]

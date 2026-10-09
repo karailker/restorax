@@ -8,6 +8,7 @@ Usage:
   restorax download-models --all
   restorax download-models --all --force
 """
+
 from __future__ import annotations
 
 import sys
@@ -20,7 +21,9 @@ console = Console()
 
 
 @click.command(name="download-models")
-@click.option("--model", "models", multiple=True, metavar="TEXT", help="Model name to download (repeatable).")
+@click.option(
+    "--model", "models", multiple=True, metavar="TEXT", help="Model name to download (repeatable)."
+)
 @click.option(
     "--group",
     "groups",
@@ -28,8 +31,16 @@ console = Console()
     type=click.Choice(["sr", "face", "diffusion", "extras", "audio"]),
     help="Download all models in a group.",
 )
-@click.option("--all", "download_all", is_flag=True, default=False, help="Download every model in the catalog.")
-@click.option("--force", is_flag=True, default=False, help="Re-download even if weights already present.")
+@click.option(
+    "--all",
+    "download_all",
+    is_flag=True,
+    default=False,
+    help="Download every model in the catalog.",
+)
+@click.option(
+    "--force", is_flag=True, default=False, help="Re-download even if weights already present."
+)
 def download_models_group(
     models: tuple[str, ...],
     groups: tuple[str, ...],
@@ -75,8 +86,7 @@ def download_models_group(
         import huggingface_hub  # noqa: F401
     except ImportError:
         console.print(
-            "[red]Error: 'huggingface_hub' is not installed. "
-            "Run: pip install huggingface_hub[/red]"
+            "[red]Error: 'huggingface_hub' is not installed. Run: pip install huggingface_hub[/red]"
         )
         sys.exit(1)
 
@@ -84,7 +94,9 @@ def download_models_group(
 
     for entry in unique_targets:
         if entry.is_ready() and not force:
-            console.print(f"[dim]  skipped {entry.name} (already present; use --force to re-download)[/dim]")
+            console.print(
+                f"[dim]  skipped {entry.name} (already present; use --force to re-download)[/dim]"
+            )
             continue
 
         weight_dir = entry.weight_dir()
@@ -106,6 +118,7 @@ def download_models_group(
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _print_status_table(catalog: list) -> None:
     table = Table(title="Model Weights Status", show_header=True)

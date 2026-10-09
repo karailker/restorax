@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import time
 import uuid
 
@@ -25,6 +24,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 
         try:
             from opentelemetry import trace
+
             trace.get_current_span().set_attribute("http.request_id", request_id)
         except Exception:
             pass

@@ -15,21 +15,22 @@ Note: Public weights and official code are not yet released.
       fails, ``load()`` raises ``RestorerLoadError`` rather than silently
       degrading to a stub.
 """
+
 from __future__ import annotations
 
+import contextlib
 import logging
-from pathlib import Path
 
 import numpy as np
 import torch
 
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
+    HALF_PRECISION_SPEC,
     BaseRestorer,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,10 +71,8 @@ class FlashVSRRestorer(BaseRestorer):
     def load(self, device: torch.device) -> None:
         self._model = self._build_model(device)
         if self.capabilities.supports_compile and device.type == "cuda":
-            try:
+            with contextlib.suppress(Exception):
                 self._model = torch.compile(self._model, mode="reduce-overhead")  # type: ignore[assignment]
-            except Exception:
-                pass
         self._device = device
         self._loaded = True
         logger.info("FlashVSR loaded on %s", device)
@@ -88,7 +87,9 @@ class FlashVSRRestorer(BaseRestorer):
     def process_frame(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
         return self.process_sequence([frame], params)[0]
 
-    def process_sequence(self, frames: list[np.ndarray], params: RestorerParams) -> list[np.ndarray]:
+    def process_sequence(
+        self, frames: list[np.ndarray], params: RestorerParams
+    ) -> list[np.ndarray]:
         assert self._model is not None and self._device is not None
         tensors = [torch.from_numpy(f).float().div(255.0).permute(2, 0, 1) for f in frames]
         video = torch.stack(tensors).unsqueeze(0).to(self._device)  # 1 T C H W
@@ -102,7 +103,9 @@ class FlashVSRRestorer(BaseRestorer):
     @staticmethod
     def _build_model(device: torch.device) -> torch.nn.Module:
         try:
-            from restorax.restorers.super_resolution.flashvsr_arch import FlashVSR  # type: ignore[import]
+            from restorax.restorers.super_resolution.flashvsr_arch import (
+                FlashVSR,  # type: ignore[import]
+            )
         except ImportError as exc:
             raise RestorerLoadError(
                 "FlashVSR arch module is not available. "

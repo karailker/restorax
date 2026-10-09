@@ -15,6 +15,7 @@ Follows the same interface as CodeFormerRestorer. The extra.fidelity weight
 
 Raises RestorerLoadError when the arch module or weights are unavailable.
 """
+
 from __future__ import annotations
 
 import logging
@@ -27,10 +28,10 @@ import torch
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
     BaseRestorer,
+    ParamSpec,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,9 +50,16 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
     """
 
     PARAM_SCHEMA = [
-        ParamSpec("fidelity", "float", _DEFAULT_FIDELITY, "Fidelity",
-                  minimum=0.0, maximum=1.0, step=0.05,
-                  help="0 = best quality, 1 = best identity preservation"),
+        ParamSpec(
+            "fidelity",
+            "float",
+            _DEFAULT_FIDELITY,
+            "Fidelity",
+            minimum=0.0,
+            maximum=1.0,
+            step=0.05,
+            help="0 = best quality, 1 = best identity preservation",
+        ),
     ]
 
     def __init__(self) -> None:
@@ -98,32 +106,43 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
     def _restore(self, frame: np.ndarray, fidelity: float) -> np.ndarray:
         """Full CodeFormer++ inference with face detection."""
         helper = self._face_helper
-        helper.clean_all()  # type: ignore[union-attr]
-        helper.read_image(frame)  # type: ignore[union-attr]
-        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr]
-        helper.align_warp_face()  # type: ignore[union-attr]
+        helper.clean_all()  # type: ignore[union-attr,attr-defined]
+        helper.read_image(frame)  # type: ignore[union-attr,attr-defined]
+        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr,attr-defined]
+        helper.align_warp_face()  # type: ignore[union-attr,attr-defined]
 
-        if not helper.cropped_faces:  # type: ignore[union-attr]
+        if not helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             return frame
 
         restored_faces = []
-        for cropped_face in helper.cropped_faces:  # type: ignore[union-attr]
+        for cropped_face in helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             face_rgb = cv2.cvtColor(cropped_face, cv2.COLOR_BGR2RGB)
-            t = torch.from_numpy(face_rgb).float().div(255.0).permute(2, 0, 1).unsqueeze(0).to(self._device)
+            t = (
+                torch.from_numpy(face_rgb)
+                .float()
+                .div(255.0)
+                .permute(2, 0, 1)
+                .unsqueeze(0)
+                .to(self._device)
+            )
             with torch.inference_mode():
                 out = self._net(t, w=fidelity, adain=True)[0]  # type: ignore[operator]
-            restored_rgb = out.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).mul(255.0).byte().cpu().numpy()
+            restored_rgb = (
+                out.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).mul(255.0).byte().cpu().numpy()
+            )
             restored_faces.append(cv2.cvtColor(restored_rgb, cv2.COLOR_RGB2BGR))
 
-        helper.add_restored_face(restored_faces)  # type: ignore[union-attr]
-        helper.paste_faces_to_input_image()  # type: ignore[union-attr]
-        result = helper.output  # type: ignore[union-attr]
+        helper.add_restored_face(restored_faces)  # type: ignore[union-attr,attr-defined]
+        helper.paste_faces_to_input_image()  # type: ignore[union-attr,attr-defined]
+        result = helper.output  # type: ignore[union-attr,attr-defined]
         return result if result is not None else frame
 
     @staticmethod
     def _build_model(device: torch.device) -> tuple[object, object]:
         try:
-            from restorax.restorers.face_restoration.codeformer_pp_arch import CodeFormerPP  # type: ignore[import]
+            from restorax.restorers.face_restoration.codeformer_pp_arch import (
+                CodeFormerPP,  # type: ignore[import]
+            )
         except ImportError as exc:
             raise RestorerLoadError(
                 f"CodeFormer++ arch module unavailable: {exc}. "
@@ -132,14 +151,17 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
 
         try:
             from facexlib.utils.face_restoration_helper import FaceRestoreHelper
+
             from restorax.config import settings
 
             weight_path = Path(settings.model_dir) / "codeformer_pp" / _WEIGHT_FILE
             if not weight_path.exists():
                 from huggingface_hub import hf_hub_download
+
                 weight_path.parent.mkdir(parents=True, exist_ok=True)
-                hf_hub_download(repo_id=_HF_REPO, filename=_WEIGHT_FILE,
-                                local_dir=str(weight_path.parent))
+                hf_hub_download(
+                    repo_id=_HF_REPO, filename=_WEIGHT_FILE, local_dir=str(weight_path.parent)
+                )
 
             net = CodeFormerPP().to(device)
             ckpt = torch.load(weight_path, map_location="cpu", weights_only=True)
@@ -147,13 +169,15 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
             net.eval()
 
             face_helper = FaceRestoreHelper(
-                upscale_factor=1, face_size=512, crop_ratio=(1, 1),
-                det_model="retinaface_resnet50", save_ext="png",
-                use_parse=True, device=device,
+                upscale_factor=1,
+                face_size=512,
+                crop_ratio=(1, 1),
+                det_model="retinaface_resnet50",
+                save_ext="png",
+                use_parse=True,
+                device=device,
             )
             logger.info("CodeFormer++ arch loaded from vendored module")
             return net, face_helper
         except Exception as exc:
-            raise RestorerLoadError(
-                f"CodeFormer++ failed to load weights: {exc}"
-            ) from exc
+            raise RestorerLoadError(f"CodeFormer++ failed to load weights: {exc}") from exc

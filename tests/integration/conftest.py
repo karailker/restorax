@@ -1,4 +1,5 @@
 """Shared setup for integration tests — sets env vars before any imports."""
+
 from __future__ import annotations
 
 import os
@@ -23,8 +24,10 @@ def _cleanup_integration_db():
 
 @pytest_asyncio.fixture
 async def async_client():
-    from httpx import AsyncClient, ASGITransport
+    from httpx import ASGITransport, AsyncClient
+
     from restorax.api.app import create_app
+
     app = create_app()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client

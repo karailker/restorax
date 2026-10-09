@@ -1,4 +1,5 @@
 """Integration tests for `restorax download-models` CLI command."""
+
 from __future__ import annotations
 
 import os
@@ -33,12 +34,11 @@ import huggingface_hub as _hfh  # noqa: E402  (now guaranteed to be the stub)
 # We need a real class for BaseSettings (subclassed by Settings), and a dummy
 # SettingsConfigDict.  Use MagicMock for the module so all attribute accesses succeed.
 if "pydantic_settings" not in sys.modules:
-    import types
-
     _ps = MagicMock()
 
     class _BaseSettings:
         """Minimal stand-in that lets Settings() be instantiated."""
+
         model_config: dict = {}
 
         def __init_subclass__(cls, **kwargs):
@@ -47,7 +47,8 @@ if "pydantic_settings" not in sys.modules:
         def __init__(self, **kwargs):
             # Apply defaults from class-level field annotations, then kwargs.
             import inspect
-            for name, annotation in inspect.get_annotations(type(self), eval_str=False).items():
+
+            for name, _annotation in inspect.get_annotations(type(self), eval_str=False).items():
                 if hasattr(type(self), name):
                     setattr(self, name, getattr(type(self), name))
             for k, v in kwargs.items():
@@ -57,10 +58,10 @@ if "pydantic_settings" not in sys.modules:
     _ps.SettingsConfigDict = dict  # close enough — it's just called to build a dict
     sys.modules["pydantic_settings"] = _ps
 
+import click  # noqa: E402
+
 from restorax.cli_download import download_models_group  # noqa: E402
 from restorax.models_catalog import ModelEntry  # noqa: E402
-
-import click  # noqa: E402
 
 
 # Thin wrapper group so we can invoke `download-models` via CliRunner the same
@@ -101,6 +102,7 @@ def _patch_catalog(monkeypatch: pytest.MonkeyPatch) -> None:
 # --help
 # ---------------------------------------------------------------------------
 
+
 class TestHelp:
     def test_help_exits_zero(self, runner: CliRunner) -> None:
         result = runner.invoke(_test_cli, ["download-models", "--help"])
@@ -117,6 +119,7 @@ class TestHelp:
 # ---------------------------------------------------------------------------
 # No-args → status table
 # ---------------------------------------------------------------------------
+
 
 class TestStatusTable:
     def test_no_args_prints_table(self, runner: CliRunner) -> None:
@@ -136,6 +139,7 @@ class TestStatusTable:
 # --model unknown → warning, exit 0
 # ---------------------------------------------------------------------------
 
+
 class TestUnknownModel:
     def test_unknown_model_prints_warning(self, runner: CliRunner) -> None:
         result = runner.invoke(_test_cli, ["download-models", "--model", "does_not_exist"])
@@ -150,6 +154,7 @@ class TestUnknownModel:
 # ---------------------------------------------------------------------------
 # --model <known> → calls hf_hub_download
 # ---------------------------------------------------------------------------
+
 
 class TestDownloadSingleModel:
     def test_calls_hf_hub_download(self, runner: CliRunner, tmp_path) -> None:
@@ -190,10 +195,11 @@ class TestDownloadSingleModel:
 # --group → downloads all models in that group
 # ---------------------------------------------------------------------------
 
+
 class TestDownloadGroup:
     def test_group_sr_downloads_sr_models(self, runner: CliRunner, tmp_path) -> None:
         with (
-            patch.object(_hfh, "hf_hub_download") as mock_dl,
+            patch.object(_hfh, "hf_hub_download"),
             patch.object(_hfh, "snapshot_download"),
             patch.object(ModelEntry, "is_ready", return_value=False),
             patch.object(ModelEntry, "weight_dir", return_value=tmp_path),
@@ -208,6 +214,7 @@ class TestDownloadGroup:
 # ---------------------------------------------------------------------------
 # --all → downloads everything
 # ---------------------------------------------------------------------------
+
 
 class TestDownloadAll:
     def test_all_flag_downloads_all_models(self, runner: CliRunner, tmp_path) -> None:
@@ -227,6 +234,7 @@ class TestDownloadAll:
 # ---------------------------------------------------------------------------
 # Already-ready model is skipped without --force
 # ---------------------------------------------------------------------------
+
 
 class TestSkipReady:
     def test_skips_ready_model_without_force(self, runner: CliRunner, tmp_path) -> None:
@@ -258,9 +266,11 @@ class TestSkipReady:
 # huggingface_hub missing → error + exit 1
 # ---------------------------------------------------------------------------
 
+
 class TestMissingHuggingfaceHub:
     def test_missing_hf_hub_exits_nonzero(self, runner: CliRunner) -> None:
         import builtins
+
         real_import = builtins.__import__
 
         def fake_import(name: str, *args, **kwargs):
@@ -275,6 +285,7 @@ class TestMissingHuggingfaceHub:
 
     def test_missing_hf_hub_prints_install_hint(self, runner: CliRunner) -> None:
         import builtins
+
         real_import = builtins.__import__
 
         def fake_import(name: str, *args, **kwargs):
@@ -290,6 +301,7 @@ class TestMissingHuggingfaceHub:
 # ---------------------------------------------------------------------------
 # Download failure → warning, continues, exit 0
 # ---------------------------------------------------------------------------
+
 
 class TestDownloadFailure:
     def test_failure_prints_warning_and_continues(self, runner: CliRunner, tmp_path) -> None:

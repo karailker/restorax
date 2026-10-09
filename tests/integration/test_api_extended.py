@@ -1,4 +1,5 @@
 """Extended integration tests: pagination, batch jobs, delete, cancel, WebSocket."""
+
 from __future__ import annotations
 
 import io
@@ -28,6 +29,7 @@ def _fake_task():
 
 # ── Health & OpenAPI ───────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_health_endpoint(client):
     resp = await client.get("/health")
@@ -54,6 +56,7 @@ async def test_docs_accessible(client):
 
 # ── Jobs — list and pagination ─────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_jobs_returns_list(client):
     resp = await client.get("/jobs")
@@ -76,6 +79,7 @@ async def test_list_jobs_offset_param(client):
 
 # ── Jobs — CRUD ────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_job_404(client):
     resp = await client.get("/jobs/00000000-0000-0000-0000-000000000001")
@@ -84,8 +88,10 @@ async def test_get_job_404(client):
 
 @pytest.mark.asyncio
 async def test_submit_job_returns_201(client):
-    with patch("restorax.tasks.job_tasks.run_job") as mock_run, \
-         patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"):
+    with (
+        patch("restorax.tasks.job_tasks.run_job") as mock_run,
+        patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"),
+    ):
         mock_run.apply_async.return_value = _fake_task()
         resp = await client.post(
             "/jobs",
@@ -115,8 +121,10 @@ async def test_submit_job_missing_pipeline_returns_422(client):
 
 @pytest.mark.asyncio
 async def test_delete_job_204(client):
-    with patch("restorax.tasks.job_tasks.run_job") as mock_run, \
-         patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"):
+    with (
+        patch("restorax.tasks.job_tasks.run_job") as mock_run,
+        patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"),
+    ):
         mock_run.apply_async.return_value = _fake_task()
         create_resp = await client.post(
             "/jobs",
@@ -136,10 +144,13 @@ async def test_delete_nonexistent_job_404(client):
 
 # ── Jobs — batch ───────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_batch_submit_returns_list(client):
-    with patch("restorax.tasks.job_tasks.run_job") as mock_run, \
-         patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"):
+    with (
+        patch("restorax.tasks.job_tasks.run_job") as mock_run,
+        patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"),
+    ):
         mock_run.apply_async.return_value = _fake_task()
         resp = await client.post(
             "/jobs/batch",
@@ -162,6 +173,7 @@ async def test_batch_submit_empty_files_returns_422(client):
 
 
 # ── Models endpoint ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_models_lists_all_restorers(client):
@@ -186,6 +198,7 @@ async def test_models_response_has_required_fields(client):
 
 
 # ── Pipelines CRUD ─────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_pipeline_not_found_returns_404(client):

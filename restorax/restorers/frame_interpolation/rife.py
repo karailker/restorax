@@ -23,6 +23,7 @@ Output note: RIFE doubles the frame count. The calling pipeline / VideoWriter
   PipelineRunner when it detects scale_factor == 1 AND requires_temporal == True
   on a FRAME_INTERPOLATION restorer — it passes fps_multiplier to VideoWriter.
 """
+
 from __future__ import annotations
 
 import logging
@@ -70,9 +71,9 @@ class RIFERestorer(BaseRestorer):
             input_color_space="rgb",
             output_color_space="rgb",
             requires_temporal=True,  # needs frame pairs for optical flow
-            temporal_scale=2,         # inserts one mid-frame per pair → 2× output fps
+            temporal_scale=2,  # inserts one mid-frame per pair → 2× output fps
             min_vram_gb=2.0,
-            scale_factor=1,          # spatial scale is 1×; temporal scale is 2×
+            scale_factor=1,  # spatial scale is 1×; temporal scale is 2×
             tags=["frame_interpolation", "rife", "fps_boost", "slow_motion"],
         )
 
@@ -138,9 +139,9 @@ class RIFERestorer(BaseRestorer):
             t1 = self._frame_to_tensor(frame1)
             t0, t1, (ph, pw) = self._pad_to_multiple(t0, t1, multiple=32)
             with torch.inference_mode():
-                mid_t = self._model.inference(t0, t1, timestep=0.5)  # type: ignore[union-attr]
+                mid_t = self._model.inference(t0, t1, timestep=0.5)  # type: ignore[union-attr,attr-defined]
             if ph or pw:
-                mid_t = mid_t[:, :, :mid_t.shape[2] - ph, :mid_t.shape[3] - pw]
+                mid_t = mid_t[:, :, : mid_t.shape[2] - ph, : mid_t.shape[3] - pw]
             return self._tensor_to_frame(mid_t)
 
         # Fallback: linear blend (correct contract, lower quality)
@@ -153,12 +154,21 @@ class RIFERestorer(BaseRestorer):
         multiple: int = 32,
     ) -> tuple[torch.Tensor, torch.Tensor, tuple[int, int]]:
         import torch.nn.functional as F
+
         _, _, h, w = t0.shape
         ph = (multiple - h % multiple) % multiple
         pw = (multiple - w % multiple) % multiple
+
+        def _pad(t: torch.Tensor) -> torch.Tensor:
+            # Reflect padding requires pad < dim; fall back to replicate for tiny frames.
+            if pw:
+                t = F.pad(t, (0, pw, 0, 0), mode="reflect" if pw < w else "replicate")
+            if ph:
+                t = F.pad(t, (0, 0, 0, ph), mode="reflect" if ph < h else "replicate")
+            return t
+
         if ph or pw:
-            t0 = F.pad(t0, (0, pw, 0, ph), mode="reflect")
-            t1 = F.pad(t1, (0, pw, 0, ph), mode="reflect")
+            t0, t1 = _pad(t0), _pad(t1)
         return t0, t1, (ph, pw)
 
     def _frame_to_tensor(self, frame: np.ndarray) -> torch.Tensor:
@@ -177,6 +187,7 @@ class RIFERestorer(BaseRestorer):
         """Load IFNet from vendored rife_arch/ or fall back to a linear-blend stub."""
         try:
             from restorax.restorers.frame_interpolation.rife_arch import IFNet
+
             model = IFNet().to(device)
             if weight_path.exists():
                 ckpt = torch.load(str(weight_path), map_location="cpu", weights_only=True)
@@ -228,9 +239,9 @@ class _RIFEIFNetWrapper:
         self._net = model
         self._device = device
 
-    def inference(self, img0: torch.Tensor, img1: torch.Tensor, timestep: float = 0.5) -> torch.Tensor:
+    def inference(
+        self, img0: torch.Tensor, img1: torch.Tensor, timestep: float = 0.5
+    ) -> torch.Tensor:
         x = torch.cat((img0, img1), dim=1)  # (1, 6, H, W)
         merged, _, _ = self._net(x, timestep=timestep)
         return merged
-
-

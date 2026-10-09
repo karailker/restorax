@@ -7,9 +7,9 @@ Usage:
   restorax models
   restorax presets
 """
+
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import click
@@ -28,12 +28,29 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option("--input", "-i", "input_path", required=True, type=click.Path(exists=True), help="Input video file")
+@click.option(
+    "--input",
+    "-i",
+    "input_path",
+    required=True,
+    type=click.Path(exists=True),
+    help="Input video file",
+)
 @click.option("--pipeline", "-p", required=True, help="Pipeline preset ID (e.g. sr_x4)")
-@click.option("--output", "-o", "output_path", default=None, help="Output path (default: <input>_restored.<ext>)")
+@click.option(
+    "--output",
+    "-o",
+    "output_path",
+    default=None,
+    help="Output path (default: <input>_restored.<ext>)",
+)
 @click.option("--device", default=None, help="Device override: cpu | cuda | cuda:0")
-@click.option("--tile-size", default=0, show_default=True, help="Tile size for large inputs (0=no tiling)")
-def run(input_path: str, pipeline: str, output_path: str | None, device: str | None, tile_size: int) -> None:
+@click.option(
+    "--tile-size", default=0, show_default=True, help="Tile size for large inputs (0=no tiling)"
+)
+def run(
+    input_path: str, pipeline: str, output_path: str | None, device: str | None, tile_size: int
+) -> None:
     """Run a restoration pipeline on a video file."""
     import torch
 
@@ -67,16 +84,21 @@ def run(input_path: str, pipeline: str, output_path: str | None, device: str | N
 
     registry = ModelRegistry(max_loaded=settings.registry_max_loaded)
     from restorax.api.routers.models import _RESTORER_CLASSES
+
     registry.register_all(_RESTORER_CLASSES)
 
     with VideoReader(input_path) as reader:
         meta = reader.meta
-        console.print(f"  source:   {meta.width}×{meta.height} @ {meta.fps:.2f} fps  ({meta.frame_count} frames)")
+        console.print(
+            f"  source:   {meta.width}×{meta.height} @ {meta.fps:.2f} fps  ({meta.frame_count} frames)"
+        )
 
         from restorax.core.pipeline import compute_output_fps
+
         pipeline_obj = load_pipeline_from_yaml(preset_path, registry)
 
         import math
+
         total_scale = math.prod(s.params.scale for s in pipeline_obj.stages if s.enabled) or 1
         out_w = meta.width * total_scale
         out_h = meta.height * total_scale
@@ -123,6 +145,7 @@ def list_models() -> None:
     table.add_column("Tags")
 
     from restorax.audio.restorer import AudioRestorerCapabilities
+
     for cls in _RESTORER_CLASSES:
         inst = object.__new__(cls)
         caps = cls.capabilities.fget(inst)  # type: ignore[attr-defined]
@@ -145,6 +168,7 @@ def list_presets_cmd() -> None:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _find_preset(pipeline_id: str) -> str | None:
     candidates = [
@@ -185,13 +209,11 @@ def benchmark_run(restorer: str | None, device: str, output_dir: str, num_frames
     """Benchmark restorers on synthetic degraded data. Results saved as JSON + Markdown."""
     import sys
     from pathlib import Path
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
 
-    from restorax.benchmarks.datasets import BenchmarkDataset
-    from restorax.benchmarks.runner import BenchmarkRunner, BenchmarkSuite
-    from restorax.core.registry import ModelRegistry
+    from scripts.run_benchmarks import run_benchmarks
 
-    from scripts.run_benchmarks import _get_all_restorer_classes, run_benchmarks
     run_benchmarks(
         restorer_name=restorer,
         device_str=device,
@@ -217,6 +239,7 @@ def benchmark_compare(results_dir: str) -> None:
             console.print(f"[red]No benchmark files found in {results_dir}[/red]")
             return
         from restorax.benchmarks.runner import BenchmarkResult, BenchmarkSuite
+
         all_results = []
         for f in json_files:
             for item in json.loads(f.read_text()):

@@ -17,6 +17,7 @@ Integration: ProPainter wraps its own flow estimator (RAFT) and
 recurrent inpainting network. The class below loads the full ProPainter
 pipeline; raises RestorerLoadError if the arch or weights are unavailable.
 """
+
 from __future__ import annotations
 
 import logging
@@ -176,7 +177,7 @@ class ScratchRemovalRestorer(BaseRestorer):
         masks: list[np.ndarray],
     ) -> list[np.ndarray]:
         """Delegate to ProPainter recurrent network."""
-        results = self._model.inpaint(frames, masks)  # type: ignore[union-attr]
+        results = self._model.inpaint(frames, masks)  # type: ignore[union-attr,attr-defined]
         return results
 
     # ── Build model ───────────────────────────────────────────────────────────
@@ -185,7 +186,9 @@ class ScratchRemovalRestorer(BaseRestorer):
     def _build_model(device: torch.device) -> object:
         try:
             # ProPainter ships as a standalone project — try vendored import
-            from restorax.restorers.artifact_removal.propainter_arch import ProPainterPipeline  # type: ignore[import]
+            from restorax.restorers.artifact_removal.propainter_arch import (
+                ProPainterPipeline,  # type: ignore[import]
+            )
         except ImportError as exc:
             raise RestorerLoadError(
                 "ProPainter arch not vendored — cannot load ScratchRemoval restorer. "
@@ -228,5 +231,7 @@ def _download_propainter_weights(weight_dir: Path) -> None:
             ):
                 shutil.copyfileobj(response, out_file)
         except (urllib.error.URLError, OSError) as exc:
-            raise RestorerLoadError(f"Cannot download ProPainter weight '{filename}': {exc}") from exc
+            raise RestorerLoadError(
+                f"Cannot download ProPainter weight '{filename}': {exc}"
+            ) from exc
     logger.info("ProPainter weights downloaded to %s", weight_dir)

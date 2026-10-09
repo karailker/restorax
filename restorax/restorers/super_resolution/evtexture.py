@@ -14,6 +14,7 @@ Model source: https://github.com/DachunKai/EvTexture
 Paper: "EvTexture: Event-driven Texture Enhancement for Video Super-Resolution"
        (ICML 2024)
 """
+
 from __future__ import annotations
 
 import logging
@@ -24,16 +25,18 @@ import torch
 
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
+    HALF_PRECISION_SPEC,
     BaseRestorer,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
 
-_WEIGHT_URL = "https://github.com/DachunKai/EvTexture/releases/download/v0.0/EvTexture_REDS_BIx4.pth"
+_WEIGHT_URL = (
+    "https://github.com/DachunKai/EvTexture/releases/download/v0.0/EvTexture_REDS_BIx4.pth"
+)
 _WEIGHT_FILE = "evtexture_x4.pth"
 
 
@@ -85,7 +88,9 @@ class EvTextureRestorer(BaseRestorer):
     def process_frame(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
         return self.process_sequence([frame], params)[0]
 
-    def process_sequence(self, frames: list[np.ndarray], params: RestorerParams) -> list[np.ndarray]:
+    def process_sequence(
+        self, frames: list[np.ndarray], params: RestorerParams
+    ) -> list[np.ndarray]:
         assert self._model is not None and self._device is not None
         tensors = [torch.from_numpy(f).float().div(255.0).permute(2, 0, 1) for f in frames]
         video = torch.stack(tensors).unsqueeze(0).to(self._device)  # 1 T C H W
@@ -119,8 +124,11 @@ class EvTextureRestorer(BaseRestorer):
     @staticmethod
     def _build_model(device: torch.device) -> torch.nn.Module:
         try:
-            from restorax.restorers.super_resolution.evtexture_arch import EvTexture  # type: ignore[import]
             from restorax.config import settings
+            from restorax.restorers.super_resolution.evtexture_arch import (
+                EvTexture,  # type: ignore[import]
+            )
+
             weight_path = Path(settings.model_dir) / "evtexture" / _WEIGHT_FILE
             if not weight_path.exists():
                 import shutil
