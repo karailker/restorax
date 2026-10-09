@@ -229,9 +229,11 @@ jobs:
           curl -sSfL https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz | tar -xz actionlint
           ./actionlint -color
 
+  # Needs "Dependency graph" enabled (Settings > Advanced Security). Once it is on,
+  # set the repository variable ENABLE_DEPENDENCY_REVIEW=true to turn this job on.
   dependency-review:
     name: Dependency review
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && vars.ENABLE_DEPENDENCY_REVIEW == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read

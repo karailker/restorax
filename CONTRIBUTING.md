@@ -43,6 +43,8 @@ pip-audit --skip-editable                             # Python dependency CVEs
 cd frontend && npm audit --omit=dev --audit-level=high
 ```
 
+Dependency review runs on pull requests once the repository's *Dependency graph* is enabled and the repository variable `ENABLE_DEPENDENCY_REVIEW` is set to `true`.
+
 mypy runs with `disallow_untyped_defs`, `disallow_any_generics` and `disallow_untyped_calls`: new code must be fully annotated. Vendored upstream architectures (`*_arch.py`, `propainter/`) are excluded from lint and type checks so they stay identical to upstream.
 
 ---
