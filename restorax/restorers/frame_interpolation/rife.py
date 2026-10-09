@@ -156,9 +156,17 @@ class RIFERestorer(BaseRestorer):
         _, _, h, w = t0.shape
         ph = (multiple - h % multiple) % multiple
         pw = (multiple - w % multiple) % multiple
+
+        def _pad(t: torch.Tensor) -> torch.Tensor:
+            # Reflect padding requires pad < dim; fall back to replicate for tiny frames.
+            if pw:
+                t = F.pad(t, (0, pw, 0, 0), mode="reflect" if pw < w else "replicate")
+            if ph:
+                t = F.pad(t, (0, 0, 0, ph), mode="reflect" if ph < h else "replicate")
+            return t
+
         if ph or pw:
-            t0 = F.pad(t0, (0, pw, 0, ph), mode="reflect")
-            t1 = F.pad(t1, (0, pw, 0, ph), mode="reflect")
+            t0, t1 = _pad(t0), _pad(t1)
         return t0, t1, (ph, pw)
 
     def _frame_to_tensor(self, frame: np.ndarray) -> torch.Tensor:
