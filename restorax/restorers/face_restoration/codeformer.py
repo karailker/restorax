@@ -14,6 +14,7 @@ Paper: "Towards Robust Blind Face Restoration with Codebook Lookup
 
 Weight: downloaded from HuggingFace Hub on first use.
 """
+
 from __future__ import annotations
 
 import logging
@@ -26,10 +27,10 @@ import torch
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
     BaseRestorer,
+    ParamSpec,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,9 +57,16 @@ class CodeFormerRestorer(BaseRestorer):
     """
 
     PARAM_SCHEMA = [
-        ParamSpec("fidelity", "float", _DEFAULT_FIDELITY, "Fidelity",
-                  minimum=0.0, maximum=1.0, step=0.05,
-                  help="0 = best quality, 1 = best identity preservation"),
+        ParamSpec(
+            "fidelity",
+            "float",
+            _DEFAULT_FIDELITY,
+            "Fidelity",
+            minimum=0.0,
+            maximum=1.0,
+            step=0.05,
+            help="0 = best quality, 1 = best identity preservation",
+        ),
     ]
 
     def __init__(self) -> None:
@@ -75,7 +83,7 @@ class CodeFormerRestorer(BaseRestorer):
     def capabilities(self) -> RestorerCapabilities:
         return RestorerCapabilities(
             category=RestorerCategory.FACE_RESTORATION,
-            input_color_space="bgr",   # facexlib expects BGR
+            input_color_space="bgr",  # facexlib expects BGR
             output_color_space="bgr",
             requires_temporal=False,
             min_vram_gb=4.0,
@@ -87,12 +95,11 @@ class CodeFormerRestorer(BaseRestorer):
 
     def load(self, device: torch.device) -> None:
         try:
-            from restorax.restorers.face_restoration.codeformer_arch import CodeFormer
             from facexlib.utils.face_restoration_helper import FaceRestoreHelper
+
+            from restorax.restorers.face_restoration.codeformer_arch import CodeFormer
         except ImportError as exc:
-            raise RestorerLoadError(
-                "facexlib is required: pip install facexlib"
-            ) from exc
+            raise RestorerLoadError("facexlib is required: pip install facexlib") from exc
 
         weight_path = self._resolve_weight_path()
         logger.info("Loading CodeFormer from %s on %s", weight_path, device)

@@ -8,6 +8,7 @@ GET    /jobs/{id}    — get job status
 GET    /jobs/{id}/download — download output video
 DELETE /jobs/{id}    — cancel / delete a job
 """
+
 from __future__ import annotations
 
 import uuid
@@ -21,7 +22,6 @@ from restorax.api.deps import get_db
 from restorax.api.schemas.job import (
     BranchInfo,
     BranchListResponse,
-    JobCreateRequest,
     JobListResponse,
     JobResponse,
     MergeRequest,
@@ -85,6 +85,7 @@ async def create_job(
     # Dispatch appropriate Celery task
     if dag_id is not None:
         from restorax.tasks.job_tasks import run_dag_job
+
         task = run_dag_job.apply_async(
             kwargs={
                 "job_id": job_id,
@@ -95,6 +96,7 @@ async def create_job(
         )
     else:
         from restorax.tasks.job_tasks import run_job
+
         task = run_job.apply_async(
             kwargs={
                 "job_id": job_id,
@@ -127,7 +129,7 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)) -> JobRespons
     try:
         job = await repo.get(job_id)
     except JobNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found") from None
     return _to_response(job)
 
 
@@ -138,7 +140,7 @@ async def download_output(job_id: str, db: AsyncSession = Depends(get_db)) -> Fi
     try:
         job = await repo.get(job_id)
     except JobNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found") from None
     if job.status != "completed" or not job.output_path:
         raise HTTPException(status_code=409, detail="Job output not ready")
     output_path = Path(job.output_path)
@@ -157,7 +159,7 @@ async def delete_job(job_id: str, db: AsyncSession = Depends(get_db)) -> Respons
     try:
         await repo.delete(job_id)
     except JobNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found") from None
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -207,6 +209,7 @@ async def create_batch_jobs(
         await repo.create(job_model)
 
         from restorax.tasks.job_tasks import run_job
+
         gpu_queue = next_gpu_queue()
         task = run_job.apply_async(
             kwargs={
@@ -230,7 +233,7 @@ async def get_job_branches(job_id: str, db: AsyncSession = Depends(get_db)) -> B
     try:
         job = await repo.get(job_id)
     except JobNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found") from None
 
     dag_run: dict = job.dag_run or {}
     node_states: dict = dag_run.get("node_states", {})
@@ -239,12 +242,14 @@ async def get_job_branches(job_id: str, db: AsyncSession = Depends(get_db)) -> B
     branches: list[BranchInfo] = []
     for node_id, state in node_states.items():
         if "parallel" in node_id.lower() or "branch" in node_id.lower():
-            branches.append(BranchInfo(
-                branch_index=len(branches),
-                name=node_id,
-                status=state,
-                progress=1.0 if state == "succeeded" else 0.0,
-            ))
+            branches.append(
+                BranchInfo(
+                    branch_index=len(branches),
+                    name=node_id,
+                    status=state,
+                    progress=1.0 if state == "succeeded" else 0.0,
+                )
+            )
 
     if not branches:
         # No DAG run data yet — return empty
@@ -268,11 +273,13 @@ async def merge_job_branches(
     try:
         job = await repo.get(job_id)
     except JobNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found") from None
 
     dag_run: dict = job.dag_run or {}
     if not dag_run:
-        raise HTTPException(status_code=409, detail="Job has no DAG run data (not a DAG job or not yet executed)")
+        raise HTTPException(
+            status_code=409, detail="Job has no DAG run data (not a DAG job or not yet executed)"
+        )
 
     # Store merge decision in job metrics for the worker to pick up
     metrics = dict(job.metrics or {})
@@ -285,6 +292,7 @@ async def merge_job_branches(
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _resolve_preset(pipeline_id: str) -> str:
     """Return the absolute path to a YAML preset file."""
@@ -299,7 +307,7 @@ def _resolve_preset(pipeline_id: str) -> str:
     raise HTTPException(
         status_code=400,
         detail=f"Pipeline preset '{pipeline_id}' not found. "
-               f"Available presets: {[p.stem for p in Path('configs/presets').glob('*.yaml')]}",
+        f"Available presets: {[p.stem for p in Path('configs/presets').glob('*.yaml')]}",
     )
 
 

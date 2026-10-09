@@ -24,10 +24,10 @@ Baseline comparison methods (classical, no GPU required):
   - lanczos      : Lanczos (Sinc-based) interpolation
   - edsr_style   : Simulated EDSR-class result via sharpened bicubic
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Callable
+from dataclasses import dataclass
 
 import cv2
 import numpy as np
@@ -35,9 +35,9 @@ import numpy as np
 
 @dataclass
 class FramePair:
-    degraded: np.ndarray   # HxWx3 uint8 — restorer input
+    degraded: np.ndarray  # HxWx3 uint8 — restorer input
     reference: np.ndarray  # HxWx3 uint8 — clean ground truth
-    name: str              # "gaussian_blur_0", "bicubic_x4_lena", etc.
+    name: str  # "gaussian_blur_0", "bicubic_x4_lena", etc.
     scale_factor: int = 1  # spatial scale expected from restorer (1 or 4)
     dataset: str = "synthetic"  # "synthetic" | "standard_patterns" | "custom"
 
@@ -45,6 +45,7 @@ class FramePair:
 @dataclass
 class BaselineResult:
     """Quality metrics for a classical upscaling baseline."""
+
     method: str
     psnr: float
     ssim: float
@@ -52,6 +53,7 @@ class BaselineResult:
 
 
 # ── Standard test image generators ────────────────────────────────────────────
+
 
 def _lena_like(size: int = 128) -> np.ndarray:
     """
@@ -72,28 +74,34 @@ def _lena_like(size: int = 128) -> np.ndarray:
     # Feathers: high-frequency texture (tests high-frequency SR recovery)
     for _ in range(120):
         x, y = int(rng.integers(size * 0.3, size)), int(rng.integers(0, size * 0.6))
-        cv2.line(frame, (x, y), (x + int(rng.integers(-8, 8)), y + int(rng.integers(3, 10))),
-                 tuple(int(v) for v in rng.integers(80, 200, 3).tolist()), 1)
+        cv2.line(
+            frame,
+            (x, y),
+            (x + int(rng.integers(-8, 8)), y + int(rng.integers(3, 10))),
+            tuple(int(v) for v in rng.integers(80, 200, 3).tolist()),
+            1,
+        )
     return frame
 
 
 def _cameraman_like(size: int = 128) -> np.ndarray:
     """Grayscale-converted scene with sharp silhouette edges (classic Cameraman substitute)."""
-    rng = np.random.default_rng(1976)
     frame = np.zeros((size, size, 3), dtype=np.uint8)
     # Sky gradient
     for y in range(size // 2):
         v = int(190 + y * 0.6)
         frame[y, :] = [v, v, v + 10]
     # Ground
-    frame[size // 2:] = [80, 90, 70]
+    frame[size // 2 :] = [80, 90, 70]
     # Tripod legs
     cx, base_y = size // 2, size - 1
     for angle_offset in [-20, 0, 20]:
         top_x = cx + int(np.tan(np.radians(angle_offset)) * (size // 3))
         cv2.line(frame, (cx, base_y - size // 3), (top_x, base_y), [30, 30, 30], 2)
     # Camera body silhouette
-    cv2.rectangle(frame, (cx - 15, base_y - size // 3 - 20), (cx + 15, base_y - size // 3), [20, 20, 20], -1)
+    cv2.rectangle(
+        frame, (cx - 15, base_y - size // 3 - 20), (cx + 15, base_y - size // 3), [20, 20, 20], -1
+    )
     return frame
 
 
@@ -107,15 +115,21 @@ def _baboon_like(size: int = 128) -> np.ndarray:
     # Divide into colourful blocks (simulates baboon's multi-coloured face)
     block_sz = size // 8
     colours = [
-        [180, 40, 40], [40, 160, 40], [40, 40, 180], [160, 160, 40],
-        [160, 40, 160], [40, 160, 160], [200, 100, 40], [100, 200, 40],
+        [180, 40, 40],
+        [40, 160, 40],
+        [40, 40, 180],
+        [160, 160, 40],
+        [160, 40, 160],
+        [40, 160, 160],
+        [200, 100, 40],
+        [100, 200, 40],
     ]
     for i in range(8):
         for j in range(8):
             c = colours[(i * 3 + j * 2) % len(colours)]
             noise = rng.integers(-20, 20, 3)
             colour = np.clip(np.array(c) + noise, 0, 255).tolist()
-            frame[i * block_sz:(i + 1) * block_sz, j * block_sz:(j + 1) * block_sz] = colour
+            frame[i * block_sz : (i + 1) * block_sz, j * block_sz : (j + 1) * block_sz] = colour
     # Add edge lines (high-frequency content)
     for i in range(1, 8):
         cv2.line(frame, (0, i * block_sz), (size, i * block_sz), [0, 0, 0], 1)
@@ -145,6 +159,7 @@ def _urban_like(size: int = 128) -> np.ndarray:
 
 
 # ── Main dataset class ────────────────────────────────────────────────────────
+
 
 class BenchmarkDataset:
     """
@@ -180,8 +195,9 @@ class BenchmarkDataset:
         pairs = []
         for i, ref in enumerate(self._references()):
             degraded = cv2.GaussianBlur(ref, (ksize | 1, ksize | 1), sigma)
-            pairs.append(FramePair(degraded=degraded, reference=ref,
-                                   name=f"gaussian_blur_s{sigma:.0f}_{i}"))
+            pairs.append(
+                FramePair(degraded=degraded, reference=ref, name=f"gaussian_blur_s{sigma:.0f}_{i}")
+            )
         return pairs
 
     def add_noise(self, std: float = 30.0) -> list[FramePair]:
@@ -191,8 +207,7 @@ class BenchmarkDataset:
         for i, ref in enumerate(self._references()):
             noise = rng.normal(0, std, ref.shape).astype(np.float32)
             degraded = np.clip(ref.astype(np.float32) + noise, 0, 255).astype(np.uint8)
-            pairs.append(FramePair(degraded=degraded, reference=ref,
-                                   name=f"awgn_std{std:.0f}_{i}"))
+            pairs.append(FramePair(degraded=degraded, reference=ref, name=f"awgn_std{std:.0f}_{i}"))
         return pairs
 
     def jpeg_compress(self, quality: int = 20) -> list[FramePair]:
@@ -203,8 +218,7 @@ class BenchmarkDataset:
             _, buf = cv2.imencode(".jpg", cv2.cvtColor(ref, cv2.COLOR_RGB2BGR), encode_param)
             degraded_bgr = cv2.imdecode(buf, cv2.IMREAD_COLOR)
             degraded = cv2.cvtColor(degraded_bgr, cv2.COLOR_BGR2RGB)
-            pairs.append(FramePair(degraded=degraded, reference=ref,
-                                   name=f"jpeg_q{quality}_{i}"))
+            pairs.append(FramePair(degraded=degraded, reference=ref, name=f"jpeg_q{quality}_{i}"))
         return pairs
 
     def downscale_bicubic(self, factor: int = 4) -> list[FramePair]:
@@ -221,12 +235,16 @@ class BenchmarkDataset:
         """
         pairs = []
         for i, ref in enumerate(self._references()):
-            lr = cv2.resize(ref, (self.width // factor, self.height // factor),
-                            interpolation=cv2.INTER_CUBIC)
+            lr = cv2.resize(
+                ref, (self.width // factor, self.height // factor), interpolation=cv2.INTER_CUBIC
+            )
             # degraded = bicubic upscale of LR (the "naive baseline" input)
             degraded = cv2.resize(lr, (self.width, self.height), interpolation=cv2.INTER_CUBIC)
-            pairs.append(FramePair(degraded=degraded, reference=ref,
-                                   name=f"bicubic_x{factor}_{i}", scale_factor=1))
+            pairs.append(
+                FramePair(
+                    degraded=degraded, reference=ref, name=f"bicubic_x{factor}_{i}", scale_factor=1
+                )
+            )
         return pairs
 
     def downscale_lr_pairs(self, factor: int = 4) -> list[FramePair]:
@@ -239,10 +257,12 @@ class BenchmarkDataset:
         """
         pairs = []
         for i, ref in enumerate(self._references()):
-            lr = cv2.resize(ref, (self.width // factor, self.height // factor),
-                            interpolation=cv2.INTER_CUBIC)
-            pairs.append(FramePair(degraded=lr, reference=ref,
-                                   name=f"lr_x{factor}_{i}", scale_factor=factor))
+            lr = cv2.resize(
+                ref, (self.width // factor, self.height // factor), interpolation=cv2.INTER_CUBIC
+            )
+            pairs.append(
+                FramePair(degraded=lr, reference=ref, name=f"lr_x{factor}_{i}", scale_factor=factor)
+            )
         return pairs
 
     def simulate_scratch(self, num_scratches: int = 3) -> list[FramePair]:
@@ -276,19 +296,24 @@ class BenchmarkDataset:
         for i, ref in enumerate(self._references()):
             # 1. Downscale
             factor = 4
-            small = cv2.resize(ref, (self.width // factor, self.height // factor),
-                               interpolation=cv2.INTER_CUBIC)
+            small = cv2.resize(
+                ref, (self.width // factor, self.height // factor), interpolation=cv2.INTER_CUBIC
+            )
             # 2. Add noise
             noise = rng.normal(0, 15, small.shape).astype(np.float32)
             small = np.clip(small.astype(np.float32) + noise, 0, 255).astype(np.uint8)
             # 3. JPEG
-            _, buf = cv2.imencode(".jpg", cv2.cvtColor(small, cv2.COLOR_RGB2BGR),
-                                  [cv2.IMWRITE_JPEG_QUALITY, 60])
+            _, buf = cv2.imencode(
+                ".jpg", cv2.cvtColor(small, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 60]
+            )
             small = cv2.cvtColor(cv2.imdecode(buf, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
             # Upscale back for comparison-ready input
             degraded = cv2.resize(small, (self.width, self.height), interpolation=cv2.INTER_CUBIC)
-            pairs.append(FramePair(degraded=degraded, reference=ref,
-                                   name=f"mixed_degrad_{i}", dataset="real_world"))
+            pairs.append(
+                FramePair(
+                    degraded=degraded, reference=ref, name=f"mixed_degrad_{i}", dataset="real_world"
+                )
+            )
         return pairs
 
     def standard_patterns(self, factor: int = 4) -> list[FramePair]:
@@ -306,17 +331,26 @@ class BenchmarkDataset:
             frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
             for c in range(3):
                 base = int(rng.integers(50, 180))
-                frame[:, :, c] = np.tile(np.linspace(base, base + 60, self.width, dtype=np.uint8), (self.height, 1))
+                frame[:, :, c] = np.tile(
+                    np.linspace(base, base + 60, self.width, dtype=np.uint8), (self.height, 1)
+                )
             patterns.append(frame)
 
         pairs = []
         for i, ref in enumerate(patterns[: self.num_pairs]):
-            lr = cv2.resize(ref, (self.width // factor, self.height // factor),
-                            interpolation=cv2.INTER_CUBIC)
+            lr = cv2.resize(
+                ref, (self.width // factor, self.height // factor), interpolation=cv2.INTER_CUBIC
+            )
             degraded = cv2.resize(lr, (self.width, self.height), interpolation=cv2.INTER_CUBIC)
-            pairs.append(FramePair(degraded=degraded, reference=ref,
-                                   name=f"std_pattern_x{factor}_{i}",
-                                   scale_factor=1, dataset="standard_patterns"))
+            pairs.append(
+                FramePair(
+                    degraded=degraded,
+                    reference=ref,
+                    name=f"std_pattern_x{factor}_{i}",
+                    scale_factor=1,
+                    dataset="standard_patterns",
+                )
+            )
         return pairs
 
     def all_degradations(self) -> dict[str, list[FramePair]]:
@@ -349,22 +383,27 @@ class BenchmarkDataset:
         Any RestoraX restorer should comfortably exceed bicubic PSNR/SSIM.
         """
         import time
-        from restorax.metrics.full_reference import psnr as compute_psnr, ssim as compute_ssim
+
+        from restorax.metrics.full_reference import psnr as compute_psnr
+        from restorax.metrics.full_reference import ssim as compute_ssim
 
         refs = self._references()
         results = {}
         methods = {
-            "nearest":   cv2.INTER_NEAREST,
-            "bilinear":  cv2.INTER_LINEAR,
-            "bicubic":   cv2.INTER_CUBIC,
-            "lanczos4":  cv2.INTER_LANCZOS4,
+            "nearest": cv2.INTER_NEAREST,
+            "bilinear": cv2.INTER_LINEAR,
+            "bicubic": cv2.INTER_CUBIC,
+            "lanczos4": cv2.INTER_LANCZOS4,
         }
 
         for method_name, interp in methods.items():
             psnrs, ssims, times = [], [], []
             for ref in refs:
-                lr = cv2.resize(ref, (self.width // factor, self.height // factor),
-                                interpolation=cv2.INTER_CUBIC)
+                lr = cv2.resize(
+                    ref,
+                    (self.width // factor, self.height // factor),
+                    interpolation=cv2.INTER_CUBIC,
+                )
                 t0 = time.perf_counter()
                 sr = cv2.resize(lr, (self.width, self.height), interpolation=interp)
                 times.append(time.perf_counter() - t0)
@@ -383,8 +422,9 @@ class BenchmarkDataset:
         kernel = np.array([[0, -0.2, 0], [-0.2, 1.8, -0.2], [0, -0.2, 0]], np.float32)
         psnrs, ssims, times = [], [], []
         for ref in refs:
-            lr = cv2.resize(ref, (self.width // factor, self.height // factor),
-                            interpolation=cv2.INTER_CUBIC)
+            lr = cv2.resize(
+                ref, (self.width // factor, self.height // factor), interpolation=cv2.INTER_CUBIC
+            )
             t0 = time.perf_counter()
             bc = cv2.resize(lr, (self.width, self.height), interpolation=cv2.INTER_CUBIC)
             sr = np.clip(cv2.filter2D(bc, -1, kernel), 0, 255).astype(np.uint8)

@@ -3,6 +3,7 @@
 The `run` command is exercised in integration tests since it requires video I/O.
 These tests cover the informational commands that need no GPU or real files.
 """
+
 from __future__ import annotations
 
 from click.testing import CliRunner
@@ -15,6 +16,7 @@ def _runner() -> CliRunner:
 
 
 # ── restorax models ───────────────────────────────────────────────────────────
+
 
 class TestModelsCommand:
     def test_exits_zero(self):
@@ -34,6 +36,7 @@ class TestModelsCommand:
 
 # ── restorax presets ──────────────────────────────────────────────────────────
 
+
 class TestPresetsCommand:
     def test_exits_zero(self):
         result = _runner().invoke(cli, ["presets"])
@@ -49,6 +52,7 @@ class TestPresetsCommand:
 
 
 # ── restorax benchmark ────────────────────────────────────────────────────────
+
 
 class TestBenchmarkCommand:
     def test_benchmark_group_help(self):
@@ -68,12 +72,19 @@ class TestBenchmarkCommand:
 
     def test_benchmark_run_cpu_small(self, tmp_path):
         """Run benchmark with 1 frame on CPU — must produce JSON output."""
-        result = _runner().invoke(cli, [
-            "benchmark", "run",
-            "--device", "cpu",
-            "--num-frames", "1",
-            "--output-dir", str(tmp_path),
-        ])
+        result = _runner().invoke(
+            cli,
+            [
+                "benchmark",
+                "run",
+                "--device",
+                "cpu",
+                "--num-frames",
+                "1",
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
         assert result.exit_code == 0, result.output
         json_files = list(tmp_path.glob("*.json"))
         assert len(json_files) >= 1, "No JSON files produced"
@@ -86,6 +97,7 @@ class TestBenchmarkCommand:
 
 
 # ── restorax --help ───────────────────────────────────────────────────────────
+
 
 class TestTopLevelHelp:
     def test_help(self):

@@ -8,6 +8,7 @@ so they pass in CI without the broker.  Run them locally with:
     docker compose -f docker-compose.deps.yml up -d
     pytest tests/system/ -v
 """
+
 from __future__ import annotations
 
 import io
@@ -42,6 +43,7 @@ async def live_client():
 
 # ── Core health & schema ───────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_health(live_client):
     resp = await live_client.get("/health")
@@ -62,6 +64,7 @@ async def test_openapi_json(live_client):
 
 # ── Models listing ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_models_endpoint_complete(live_client):
     resp = await live_client.get("/models")
@@ -79,14 +82,15 @@ async def test_models_endpoint_complete(live_client):
 
 # ── Pipeline CRUD full cycle ───────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_pipeline_full_crud(live_client):
     pid = "smoke_pipeline_full"
 
     # Create
-    r = await live_client.post("/pipelines", json={
-        "id": pid, "name": "Smoke Test", "description": "e2e", "config": {}
-    })
+    r = await live_client.post(
+        "/pipelines", json={"id": pid, "name": "Smoke Test", "description": "e2e", "config": {}}
+    )
     assert r.status_code == 201
 
     # Read
@@ -95,9 +99,10 @@ async def test_pipeline_full_crud(live_client):
     assert r.json()["description"] == "e2e"
 
     # Update
-    r = await live_client.put(f"/pipelines/{pid}", json={
-        "id": pid, "name": "Updated", "description": "updated", "config": {"x": 1}
-    })
+    r = await live_client.put(
+        f"/pipelines/{pid}",
+        json={"id": pid, "name": "Updated", "description": "updated", "config": {"x": 1}},
+    )
     assert r.status_code == 200
     assert r.json()["name"] == "Updated"
 
@@ -112,14 +117,17 @@ async def test_pipeline_full_crud(live_client):
 
 # ── Job submission cycle ───────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_job_submit_fetch_delete(live_client):
     """Submit a job (mocked task dispatch), fetch it, then delete it."""
     mock_result = MagicMock()
     mock_result.id = "smoke-celery-id"
 
-    with patch("restorax.tasks.job_tasks.run_job") as mock_run, \
-         patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"):
+    with (
+        patch("restorax.tasks.job_tasks.run_job") as mock_run,
+        patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"),
+    ):
         mock_run.apply_async.return_value = mock_result
 
         resp = await live_client.post(
@@ -153,6 +161,7 @@ async def test_job_submit_fetch_delete(live_client):
 
 
 # ── Input validation ───────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_submit_job_invalid_inputs(live_client):

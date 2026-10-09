@@ -12,6 +12,7 @@ Usage:
 The exported file is saved to models/<restorer_name>/<restorer_name>.onnx
 and auto-detected by the restorer's load() when available.
 """
+
 from __future__ import annotations
 
 import logging
@@ -93,7 +94,9 @@ def load_onnx_session(onnx_path: Path, device: str = "cpu") -> object:
     try:
         import onnxruntime as ort
     except ImportError as exc:
-        raise ImportError("onnxruntime is required. Install with: pip install onnxruntime-gpu") from exc
+        raise ImportError(
+            "onnxruntime is required. Install with: pip install onnxruntime-gpu"
+        ) from exc
 
     providers: list[str] = []
     if device == "cuda":
@@ -131,6 +134,12 @@ def _register_all(registry: object) -> None:
     from restorax.restorers.super_resolution.real_esrgan import RealESRGANx4Restorer
 
     assert isinstance(registry, ModelRegistry)
-    for cls in [RealESRGANx4Restorer, BasicVSRPlusPlusRestorer,
-                CodeFormerRestorer, GFPGANRestorer, DDColorRestorer, RIFERestorer]:
+    for cls in [
+        RealESRGANx4Restorer,
+        BasicVSRPlusPlusRestorer,
+        CodeFormerRestorer,
+        GFPGANRestorer,
+        DDColorRestorer,
+        RIFERestorer,
+    ]:
         registry.register(cls)

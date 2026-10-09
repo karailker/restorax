@@ -29,21 +29,22 @@ def configure_telemetry(settings: Settings) -> None:
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-    resource = Resource.create({
-        "service.name": settings.otel_service_name,
-        "service.version": "0.1.0",
-        "deployment.environment": settings.app_env,
-    })
+    resource = Resource.create(
+        {
+            "service.name": settings.otel_service_name,
+            "service.version": "0.1.0",
+            "deployment.environment": settings.app_env,
+        }
+    )
 
     # ── Traces ────────────────────────────────────────────────────────────────
     tracer_provider = TracerProvider(resource=resource)
 
     if settings.otel_exporter_otlp_endpoint:
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
         tracer_provider.add_span_processor(
-            BatchSpanProcessor(
-                OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint)
-            )
+            BatchSpanProcessor(OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint))
         )
 
     trace.set_tracer_provider(tracer_provider)
@@ -55,6 +56,7 @@ def configure_telemetry(settings: Settings) -> None:
             from sentry_sdk.integrations.celery import CeleryIntegration
             from sentry_sdk.integrations.fastapi import FastApiIntegration
             from sentry_sdk.integrations.starlette import StarletteIntegration
+
             sentry_sdk.init(
                 dsn=settings.sentry_dsn,
                 traces_sample_rate=1.0,
@@ -67,6 +69,7 @@ def configure_telemetry(settings: Settings) -> None:
 
     # ── Metrics (Prometheus) ──────────────────────────────────────────────────
     from opentelemetry.exporter.prometheus import PrometheusMetricReader
+
     reader = PrometheusMetricReader()
     meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
     metrics.set_meter_provider(meter_provider)
@@ -101,11 +104,13 @@ def configure_telemetry(settings: Settings) -> None:
 
 def get_tracer():
     from opentelemetry import trace
+
     return trace.get_tracer("restorax")
 
 
 def get_meter():
     from opentelemetry import metrics
+
     return metrics.get_meter("restorax")
 
 

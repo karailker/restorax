@@ -12,6 +12,7 @@ Paper: "VoiceFixer: Toward General Speech Restoration With Neural Vocoder"
 
 Requires: pip install voicefixer
 """
+
 from __future__ import annotations
 
 import logging
@@ -46,8 +47,9 @@ class VoiceFixerRestorer(AudioRestorer):
     """
 
     PARAM_SCHEMA = [
-        ParamSpec("mode", "enum", 0, "Mode", choices=(0, 1, 2),
-                  help="VoiceFixer inference mode (0-2)"),
+        ParamSpec(
+            "mode", "enum", 0, "Mode", choices=(0, 1, 2), help="VoiceFixer inference mode (0-2)"
+        ),
     ]
 
     def __init__(self) -> None:
@@ -93,16 +95,16 @@ class VoiceFixerRestorer(AudioRestorer):
 
     def _voicefixer_restore(self, audio: np.ndarray, sr: int, mode: int) -> np.ndarray:
         """Run VoiceFixer restoration. Handles stereo by processing each channel."""
-        import tempfile, os
+        import tempfile
         from pathlib import Path
 
         # VoiceFixer works on files; use tempfiles for in-memory workflow
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
                 inp = Path(tmpdir) / "input.wav"
-                out = Path(tmpdir) / "output.wav"
 
                 from restorax.audio.writer import AudioWriter
+
                 AudioWriter().write_wav(inp, audio, sr)
 
                 self._model.restore(  # type: ignore[union-attr]
@@ -118,6 +120,7 @@ class VoiceFixerRestorer(AudioRestorer):
                     return audio.copy()
 
                 from restorax.audio.reader import AudioReader
+
                 restored, _ = AudioReader(results[0]).read()
                 # Match original channel count
                 if audio.ndim == 2 and audio.shape[1] != restored.shape[1]:
@@ -133,6 +136,7 @@ class VoiceFixerRestorer(AudioRestorer):
     def _build_model(device: torch.device) -> object:
         try:
             from voicefixer import VoiceFixer
+
             model = VoiceFixer()
             logger.info("VoiceFixer loaded from installed package")
             return model
@@ -146,4 +150,5 @@ class VoiceFixerRestorer(AudioRestorer):
 
 class _VoiceFixerStub:
     """Passthrough stub used when voicefixer is not installed."""
+
     pass

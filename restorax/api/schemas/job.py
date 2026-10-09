@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -10,7 +9,9 @@ class JobCreateRequest(BaseModel):
     pipeline_id: str = Field(..., description="Pipeline preset ID or YAML filename (without .yaml)")
     output_format: str = Field("mp4", description="Output container format")
     output_codec: str = Field("libx264", description="Video codec")
-    output_crf: int = Field(18, ge=0, le=51, description="CRF quality factor (0=lossless, 51=worst)")
+    output_crf: int = Field(
+        18, ge=0, le=51, description="CRF quality factor (0=lossless, 51=worst)"
+    )
     preserve_audio: bool = Field(True, description="Copy audio stream from input")
 
 

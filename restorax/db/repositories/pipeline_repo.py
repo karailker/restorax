@@ -34,7 +34,9 @@ class PipelineRepository:
         )
         return list(result.scalars().all())
 
-    async def update(self, pipeline_id: str, name: str, description: str, config: dict) -> PipelineTemplateModel:
+    async def update(
+        self, pipeline_id: str, name: str, description: str, config: dict
+    ) -> PipelineTemplateModel:
         p = await self.get(pipeline_id)
         p.name = name
         p.description = description

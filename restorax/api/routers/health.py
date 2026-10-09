@@ -25,7 +25,9 @@ async def ready() -> JSONResponse:
 async def _check_db() -> str:
     try:
         from sqlalchemy import text
+
         from restorax.db.session import AsyncSessionLocal
+
         async with asyncio.timeout(2.0):
             async with AsyncSessionLocal() as session:
                 await session.execute(text("SELECT 1"))
@@ -37,7 +39,9 @@ async def _check_db() -> str:
 async def _check_redis() -> str:
     try:
         import redis.asyncio as aioredis
+
         from restorax.config import settings
+
         async with asyncio.timeout(2.0):
             r = aioredis.from_url(settings.redis_url)
             await r.ping()
@@ -50,6 +54,7 @@ async def _check_redis() -> str:
 def _celery_inspect():
     """Return a Celery Inspect instance. Extracted for testability."""
     from restorax.tasks.celery_app import celery_app
+
     return celery_app.control.inspect(timeout=2.0)
 
 

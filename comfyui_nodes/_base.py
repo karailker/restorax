@@ -5,13 +5,14 @@ ComfyUI is not a pip-installable library — custom nodes are plain classes
 matching a structural contract (INPUT_TYPES/RETURN_TYPES/FUNCTION/CATEGORY).
 This module never imports anything from the ComfyUI app itself.
 """
+
 from __future__ import annotations
 
 import numpy as np
 import torch
 
 from restorax.audio.pipeline import AudioModelRegistry
-from restorax.audio.restorer import AudioRestorer, AudioRestorerParams
+from restorax.audio.restorer import AudioRestorerParams
 from restorax.core.registry import ModelRegistry
 from restorax.core.restorer import BaseRestorer, ParamSpec, RestorerParams
 from restorax.video.utils import from_rgb, to_rgb
@@ -181,10 +182,16 @@ def make_restorer_node(restorer_cls: type[BaseRestorer], category_label: str) ->
         frames = comfy_image_to_frames(image)
         out_frames = []
         for frame in frames:
-            converted_in = from_rgb(frame, caps.input_color_space) if caps.input_color_space != "rgb" else frame
+            converted_in = (
+                from_rgb(frame, caps.input_color_space)
+                if caps.input_color_space != "rgb"
+                else frame
+            )
             processed = restorer.process_frame(converted_in, params)
             out_frames.append(
-                to_rgb(processed, caps.output_color_space) if caps.output_color_space != "rgb" else processed
+                to_rgb(processed, caps.output_color_space)
+                if caps.output_color_space != "rgb"
+                else processed
             )
         return (frames_to_comfy_image(out_frames),)
 

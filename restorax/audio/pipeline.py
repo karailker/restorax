@@ -4,12 +4,12 @@ Audio pipeline: AudioStage, AudioPipeline, AudioPipelineRunner, AudioModelRegist
 Mirrors the video pipeline pattern but operates on full audio clips
 (no chunking needed — source separation models require global context).
 """
+
 from __future__ import annotations
 
 import logging
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Type
 
 import numpy as np
 import torch
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class AudioStage:
@@ -41,7 +42,7 @@ class AudioPipelineRunner:
     def run(
         self,
         pipeline: AudioPipeline,
-        audio: np.ndarray,      # (num_samples, num_channels) float32
+        audio: np.ndarray,  # (num_samples, num_channels) float32
         sample_rate: int,
     ) -> np.ndarray:
         current = audio
@@ -55,6 +56,7 @@ class AudioPipelineRunner:
 
 # ── Registry ──────────────────────────────────────────────────────────────────
 
+
 class AudioModelRegistry:
     """
     LRU cache for AudioRestorer instances.
@@ -64,11 +66,11 @@ class AudioModelRegistry:
     """
 
     def __init__(self, max_loaded: int = 2) -> None:
-        self._catalog: dict[str, Type[AudioRestorer]] = {}
+        self._catalog: dict[str, type[AudioRestorer]] = {}
         self._loaded: OrderedDict[str, AudioRestorer] = OrderedDict()
         self._max_loaded = max_loaded
 
-    def register(self, cls: Type[AudioRestorer]) -> None:
+    def register(self, cls: type[AudioRestorer]) -> None:
         instance = object.__new__(cls)
         name = cls.name.fget(instance)  # type: ignore[attr-defined]
         self._catalog[name] = cls
@@ -102,6 +104,7 @@ class AudioModelRegistry:
 
 # ── YAML loader ───────────────────────────────────────────────────────────────
 
+
 def load_audio_pipeline_from_config(
     config: dict,
     registry: AudioModelRegistry,
@@ -122,10 +125,12 @@ def load_audio_pipeline_from_config(
             sample_rate=cfg.get("sample_rate", 44100),
             extra=cfg.get("extra", {}),
         )
-        stages.append(AudioStage(
-            restorer=restorer,
-            params=params,
-            enabled=cfg.get("enabled", True),
-        ))
+        stages.append(
+            AudioStage(
+                restorer=restorer,
+                params=params,
+                enabled=cfg.get("enabled", True),
+            )
+        )
 
     return AudioPipeline(name=config.get("name", "audio"), stages=stages)

@@ -29,8 +29,8 @@ class RestorerCapabilities:
     max_batch_size: int = 1
     min_vram_gb: float = 4.0
     supports_compile: bool = False  # eligible for torch.compile()
-    scale_factor: int = 1      # output/input spatial ratio (e.g. 4 for 4× SR)
-    temporal_scale: int = 1    # output/input temporal ratio (2 for RIFE 2×FPS, 1 for all others)
+    scale_factor: int = 1  # output/input spatial ratio (e.g. 4 for 4× SR)
+    temporal_scale: int = 1  # output/input temporal ratio (2 for RIFE 2×FPS, 1 for all others)
     tags: list[str] = field(default_factory=list)
 
 
@@ -53,6 +53,7 @@ class ParamSpec:
       - "param": a top-level RestorerParams field (e.g. tile_size)
       - "extra": a key inside RestorerParams.extra (restorer-specific)
     """
+
     name: str
     kind: Literal["int", "float", "bool", "enum", "multiselect"]
     default: Any
@@ -67,14 +68,32 @@ class ParamSpec:
 
 # Reusable specs for the common RestorerParams fields, shared by tiling/fp16 restorers.
 TILE_SIZE_SPEC = ParamSpec(
-    "tile_size", "int", 0, "Tile size", target="param",
-    minimum=0, maximum=2048, step=32, help="0 = no tiling; raise for high-res inputs to avoid OOM",
+    "tile_size",
+    "int",
+    0,
+    "Tile size",
+    target="param",
+    minimum=0,
+    maximum=2048,
+    step=32,
+    help="0 = no tiling; raise for high-res inputs to avoid OOM",
 )
 TILE_OVERLAP_SPEC = ParamSpec(
-    "tile_overlap", "int", 32, "Tile overlap", target="param", minimum=0, maximum=256, step=8,
+    "tile_overlap",
+    "int",
+    32,
+    "Tile overlap",
+    target="param",
+    minimum=0,
+    maximum=256,
+    step=8,
 )
 HALF_PRECISION_SPEC = ParamSpec(
-    "half_precision", "bool", True, "Half precision (fp16)", target="param",
+    "half_precision",
+    "bool",
+    True,
+    "Half precision (fp16)",
+    target="param",
     help="Faster, lower VRAM; CUDA only",
 )
 
@@ -98,8 +117,7 @@ class BaseRestorer(ABC):
 
     @property
     @abstractmethod
-    def capabilities(self) -> RestorerCapabilities:
-        ...
+    def capabilities(self) -> RestorerCapabilities: ...
 
     @abstractmethod
     def load(self, device: torch.device) -> None:

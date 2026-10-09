@@ -1,50 +1,68 @@
 """GET /models — list available restorers and their capabilities."""
+
 from __future__ import annotations
 
-from fastapi import APIRouter
-
 from dataclasses import asdict
+
+from fastapi import APIRouter
 
 from restorax.api.schemas.model import ModelListResponse, ParamSpecSchema, RestorerInfo
 from restorax.audio.restorer import AudioRestorerCapabilities
 from restorax.core.restorer import RestorerCapabilities
 from restorax.restorers.artifact_removal.scratch_removal import ScratchRemovalRestorer
-from restorax.restorers.face_restoration.dicface import DicFaceRestorer
-from restorax.restorers.super_resolution.evtexture import EvTextureRestorer
-from restorax.restorers.super_resolution.flashvsr import FlashVSRRestorer
-from restorax.restorers.super_resolution.seedvr import SeedVRRestorer
-from restorax.restorers.super_resolution.waifu2x import Waifu2xRestorer
+from restorax.restorers.audio.demucs import DemucsRestorer
+from restorax.restorers.audio.rnnoise import RNNoiseRestorer
+from restorax.restorers.audio.voicefixer import VoiceFixerRestorer
 from restorax.restorers.colorization.ddcolor import DDColorRestorer
 from restorax.restorers.deinterlacing.ai_deinterlace import AIDeinterlaceRestorer
 from restorax.restorers.deinterlacing.yadif_deinterlace import YadifDeinterlaceRestorer
 from restorax.restorers.face_restoration.codeformer import CodeFormerRestorer
 from restorax.restorers.face_restoration.codeformer_pp import CodeFormerPlusPlusRestorer
+from restorax.restorers.face_restoration.dicface import DicFaceRestorer
 from restorax.restorers.face_restoration.gfpgan import GFPGANRestorer
 from restorax.restorers.frame_interpolation.rife import RIFERestorer
 from restorax.restorers.hdr.hdrtvdm import HDRTVDMRestorer
 from restorax.restorers.stabilization.deep_flow_stab import VideoStabilizationRestorer
 from restorax.restorers.stabilization.gavs import GaVSRestorer
 from restorax.restorers.super_resolution.basicvsr_pp import BasicVSRPlusPlusRestorer
+from restorax.restorers.super_resolution.evtexture import EvTextureRestorer
+from restorax.restorers.super_resolution.flashvsr import FlashVSRRestorer
 from restorax.restorers.super_resolution.mamba_ir import MambaIRRestorer
 from restorax.restorers.super_resolution.real_esrgan import RealESRGANx4Restorer
+from restorax.restorers.super_resolution.seedvr import SeedVRRestorer
 from restorax.restorers.super_resolution.tdm import TDMRestorer
 from restorax.restorers.super_resolution.upscale_a_video import UpscaleAVideoRestorer
 from restorax.restorers.super_resolution.vrt import VRTRestorer
-from restorax.restorers.audio.demucs import DemucsRestorer
-from restorax.restorers.audio.voicefixer import VoiceFixerRestorer
-from restorax.restorers.audio.rnnoise import RNNoiseRestorer
+from restorax.restorers.super_resolution.waifu2x import Waifu2xRestorer
 
 router = APIRouter(prefix="/models", tags=["models"])
 
 _RESTORER_CLASSES = [
-    RealESRGANx4Restorer, BasicVSRPlusPlusRestorer, UpscaleAVideoRestorer,
-    VRTRestorer, MambaIRRestorer, TDMRestorer, SeedVRRestorer,
-    Waifu2xRestorer, FlashVSRRestorer, EvTextureRestorer,
-    CodeFormerRestorer, CodeFormerPlusPlusRestorer, GFPGANRestorer, DicFaceRestorer,
-    DDColorRestorer, RIFERestorer,
-    ScratchRemovalRestorer, HDRTVDMRestorer, VideoStabilizationRestorer,
-    GaVSRestorer, AIDeinterlaceRestorer, YadifDeinterlaceRestorer,
-    DemucsRestorer, VoiceFixerRestorer, RNNoiseRestorer,
+    RealESRGANx4Restorer,
+    BasicVSRPlusPlusRestorer,
+    UpscaleAVideoRestorer,
+    VRTRestorer,
+    MambaIRRestorer,
+    TDMRestorer,
+    SeedVRRestorer,
+    Waifu2xRestorer,
+    FlashVSRRestorer,
+    EvTextureRestorer,
+    CodeFormerRestorer,
+    CodeFormerPlusPlusRestorer,
+    GFPGANRestorer,
+    DicFaceRestorer,
+    DDColorRestorer,
+    RIFERestorer,
+    ScratchRemovalRestorer,
+    HDRTVDMRestorer,
+    VideoStabilizationRestorer,
+    GaVSRestorer,
+    AIDeinterlaceRestorer,
+    YadifDeinterlaceRestorer,
+    DemucsRestorer,
+    VoiceFixerRestorer,
+    RNNoiseRestorer,
 ]
 
 
@@ -52,7 +70,9 @@ _RESTORER_CLASSES = [
 async def list_models() -> ModelListResponse:
     restorers = []
     for cls in _RESTORER_CLASSES:
-        instance = object.__new__(cls)  # FRAGILE: assumes capabilities is a pure property with no instance state
+        instance = object.__new__(
+            cls
+        )  # FRAGILE: assumes capabilities is a pure property with no instance state
         caps = cls.capabilities.fget(instance)  # type: ignore[attr-defined]
         param_schema = [ParamSpecSchema(**asdict(spec)) for spec in cls.PARAM_SCHEMA]
 

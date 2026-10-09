@@ -11,9 +11,11 @@ The client connects and receives JSON messages:
 Implementation: subscribes to a Redis pub/sub channel published by ProgressReporter.
 The connection closes automatically when the job reaches a terminal state.
 """
+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 
@@ -52,7 +54,5 @@ async def job_progress(websocket: WebSocket, job_id: str) -> None:
     finally:
         await pubsub.unsubscribe(channel)
         await client.aclose()
-        try:
+        with contextlib.suppress(Exception):
             await websocket.close()
-        except Exception:
-            pass

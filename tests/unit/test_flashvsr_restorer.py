@@ -1,4 +1,5 @@
 """Unit tests for FlashVSRRestorer."""
+
 from __future__ import annotations
 
 import builtins

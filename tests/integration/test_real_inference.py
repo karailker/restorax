@@ -9,6 +9,7 @@ Run manually after downloading weights:
   restorax download-models --model real_esrgan
   python -m pytest tests/integration/test_real_inference.py -m requires_weights -v
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -22,6 +23,7 @@ torch = pytest.importorskip("torch")
 def test_real_esrgan_upscales_set5_butterfly(test_assets):
     """RealESRGAN produces 4× output on a real image."""
     import cv2
+
     from restorax.core.restorer import RestorerParams
     from restorax.restorers.super_resolution.real_esrgan import RealESRGANx4Restorer
 
@@ -43,6 +45,7 @@ def test_real_esrgan_upscales_set5_butterfly(test_assets):
 def test_vrt_upscales_sequence(test_assets):
     """VRT produces 4× output for a 7-frame temporal window."""
     import cv2
+
     from restorax.core.restorer import RestorerParams
     from restorax.restorers.super_resolution.vrt import VRTRestorer
 
@@ -66,6 +69,7 @@ def test_vrt_upscales_sequence(test_assets):
 def test_waifu2x_upscales_set5(test_assets):
     """Waifu2x produces 2× output on a real image."""
     import cv2
+
     from restorax.core.restorer import RestorerParams
     from restorax.restorers.super_resolution.waifu2x import Waifu2xRestorer
 
@@ -86,6 +90,7 @@ def test_waifu2x_upscales_set5(test_assets):
 def test_ddcolor_colorizes_grayscale(test_assets):
     """DDColor produces an RGB colorized output from a grayscale input."""
     import cv2
+
     from restorax.core.restorer import RestorerParams
     from restorax.restorers.colorization.ddcolor import DDColorRestorer
 

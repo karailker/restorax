@@ -1,4 +1,5 @@
 """Unit tests for custom exceptions."""
+
 from __future__ import annotations
 
 import pytest
@@ -37,17 +38,20 @@ class TestExceptionHierarchy:
 
 
 class TestExceptionRaise:
-    @pytest.mark.parametrize("exc_class", [
-        RestorerNotFoundError,
-        RestorerLoadError,
-        VideoReadError,
-        VideoWriteError,
-        JobNotFoundError,
-        PipelineConfigError,
-        StorageError,
-        AudioReadError,
-        AudioWriteError,
-    ])
+    @pytest.mark.parametrize(
+        "exc_class",
+        [
+            RestorerNotFoundError,
+            RestorerLoadError,
+            VideoReadError,
+            VideoWriteError,
+            JobNotFoundError,
+            PipelineConfigError,
+            StorageError,
+            AudioReadError,
+            AudioWriteError,
+        ],
+    )
     def test_can_raise_and_catch_as_base(self, exc_class):
         with pytest.raises(RestoraXError):
             raise exc_class("test message")

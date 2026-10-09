@@ -1,4 +1,5 @@
 """Tests for the benchmark system: dataset, runner, vram_monitor, suite output."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,13 +8,13 @@ import numpy as np
 import pytest
 import torch
 
-from restorax.benchmarks.datasets import BenchmarkDataset, FramePair
+from restorax.benchmarks.datasets import BenchmarkDataset
 from restorax.benchmarks.runner import BenchmarkResult, BenchmarkRunner, BenchmarkSuite
 from restorax.benchmarks.vram_monitor import VRAMMonitor
 from tests.conftest import IdentityRestorer
 
-
 # ── BenchmarkDataset ──────────────────────────────────────────────────────────
+
 
 class TestBenchmarkDataset:
     @pytest.fixture
@@ -23,9 +24,16 @@ class TestBenchmarkDataset:
     def test_all_degradations_returns_eight_types_base(self, ds):
         all_degs = ds.all_degradations()
         assert len(all_degs) == 8
-        expected = {"gaussian_blur", "add_noise", "jpeg_compress",
-                    "downscale_bicubic", "simulate_scratch", "grayscale",
-                    "mixed_degradation", "standard_patterns"}
+        expected = {
+            "gaussian_blur",
+            "add_noise",
+            "jpeg_compress",
+            "downscale_bicubic",
+            "simulate_scratch",
+            "grayscale",
+            "mixed_degradation",
+            "standard_patterns",
+        }
         assert set(all_degs.keys()) == expected
 
     def test_pair_count_matches_num_pairs(self, ds):
@@ -73,12 +81,11 @@ class TestBenchmarkDataset:
         """LR pairs have correct scale_factor metadata."""
         pairs = ds.downscale_lr_pairs(factor=4)
         assert pairs[0].scale_factor == 4
-        assert pairs[0].degraded.shape == (16, 16, 3)   # 64 / 4
+        assert pairs[0].degraded.shape == (16, 16, 3)  # 64 / 4
         assert pairs[0].reference.shape == (64, 64, 3)
 
     def test_standard_patterns_mode(self):
-        ds = BenchmarkDataset(width=64, height=64, num_pairs=3, seed=42,
-                              use_standard_patterns=True)
+        ds = BenchmarkDataset(width=64, height=64, num_pairs=3, seed=42, use_standard_patterns=True)
         pairs = ds.standard_patterns(factor=4)
         assert len(pairs) == 3
         assert pairs[0].dataset == "standard_patterns"
@@ -98,6 +105,7 @@ class TestBenchmarkDataset:
 
 # ── BenchmarkRunner ───────────────────────────────────────────────────────────
 
+
 class TestBenchmarkRunner:
     @pytest.fixture
     def restorer(self):
@@ -110,13 +118,15 @@ class TestBenchmarkRunner:
         return BenchmarkDataset(width=32, height=32, num_pairs=2).gaussian_blur()
 
     def test_run_returns_benchmark_result(self, restorer, pairs):
-        result = BenchmarkRunner().run(restorer, pairs, device_str="cpu",
-                                       degradation_type="gaussian_blur")
+        result = BenchmarkRunner().run(
+            restorer, pairs, device_str="cpu", degradation_type="gaussian_blur"
+        )
         assert isinstance(result, BenchmarkResult)
 
     def test_result_fields_finite(self, restorer, pairs):
-        result = BenchmarkRunner().run(restorer, pairs, device_str="cpu",
-                                       degradation_type="gaussian_blur")
+        result = BenchmarkRunner().run(
+            restorer, pairs, device_str="cpu", degradation_type="gaussian_blur"
+        )
         assert result.num_frames == 2
         assert result.fps > 0
         assert result.vram_peak_mb == 0.0  # CPU device — no CUDA allocations
@@ -136,21 +146,41 @@ class TestBenchmarkRunner:
 
 # ── BenchmarkSuite output ─────────────────────────────────────────────────────
 
+
 class TestBenchmarkSuite:
     @pytest.fixture
     def suite(self):
         results = [
-            BenchmarkResult("real_esrgan_x4plus", "gaussian_blur",
-                            28.4, 0.821, 0.123, 12.3, 4096.0, "cuda", 5,
-                            "2026-04-25T00:00:00+00:00"),
-            BenchmarkResult("mamba_ir_x4", "add_noise",
-                            29.1, 0.835, 0.118, 18.7, 3072.0, "cuda", 5,
-                            "2026-04-25T00:00:00+00:00"),
+            BenchmarkResult(
+                "real_esrgan_x4plus",
+                "gaussian_blur",
+                28.4,
+                0.821,
+                0.123,
+                12.3,
+                4096.0,
+                "cuda",
+                5,
+                "2026-04-25T00:00:00+00:00",
+            ),
+            BenchmarkResult(
+                "mamba_ir_x4",
+                "add_noise",
+                29.1,
+                0.835,
+                0.118,
+                18.7,
+                3072.0,
+                "cuda",
+                5,
+                "2026-04-25T00:00:00+00:00",
+            ),
         ]
         return BenchmarkSuite(results=results)
 
     def test_to_json_is_valid(self, suite):
         import json
+
         data = json.loads(suite.to_json())
         # New structure: {"results": [...], "baselines": {...}}
         assert "results" in data
@@ -176,6 +206,7 @@ class TestBenchmarkSuite:
 
 # ── VRAMMonitor ───────────────────────────────────────────────────────────────
 
+
 class TestVRAMMonitor:
     def test_does_not_crash_on_cpu(self):
         with VRAMMonitor() as mon:
@@ -189,8 +220,7 @@ class TestVRAMMonitor:
         assert isinstance(mon.peak_mb, float)
 
     def test_nested_monitors(self):
-        with VRAMMonitor() as m1:
-            with VRAMMonitor() as m2:
-                pass
+        with VRAMMonitor() as m1, VRAMMonitor() as m2:
+            pass
         assert m2.peak_mb >= 0.0
         assert m1.peak_mb >= 0.0

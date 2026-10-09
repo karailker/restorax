@@ -40,6 +40,7 @@ def test_round_trip_preserves_pixel_values():
 
 def test_get_registry_returns_singleton():
     import comfyui_nodes._base as base
+
     base._registry = None  # reset module state for test isolation
     first = base.get_registry()
     second = base.get_registry()
@@ -49,12 +50,15 @@ def test_get_registry_returns_singleton():
 
 def test_get_device_returns_cpu_when_cuda_unavailable(monkeypatch):
     import comfyui_nodes._base as base
+
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     assert base.get_device() == torch.device("cpu")
 
 
 def test_int_spec_maps_to_int_widget():
-    spec = ParamSpec("tile_size", "int", 0, "Tile size", target="param", minimum=0, maximum=2048, step=32)
+    spec = ParamSpec(
+        "tile_size", "int", 0, "Tile size", target="param", minimum=0, maximum=2048, step=32
+    )
     result = param_spec_to_input(spec)
     assert result == ("INT", {"default": 0, "min": 0, "max": 2048, "step": 32})
 
@@ -86,15 +90,21 @@ def test_multiselect_spec_handles_empty_default():
     assert param_spec_to_input(spec) == ("STRING", {"default": "", "multiline": False})
 
 
-from restorax.core.restorer import (
-    BaseRestorer, RestorerCapabilities, RestorerCategory, RestorerParams, ParamSpec,
-)
 from comfyui_nodes._base import make_restorer_node
+from restorax.core.restorer import (
+    BaseRestorer,
+    RestorerCapabilities,
+    RestorerCategory,
+    RestorerParams,
+)
 
 
 class _FakeUpscaler(BaseRestorer):
     """Doubles every pixel value and reports the resulting params for assertions."""
-    PARAM_SCHEMA = [ParamSpec("boost", "float", 1.0, "Boost", target="extra", minimum=0.0, maximum=4.0)]
+
+    PARAM_SCHEMA = [
+        ParamSpec("boost", "float", 1.0, "Boost", target="extra", minimum=0.0, maximum=4.0)
+    ]
     last_params: RestorerParams | None = None
 
     @property
@@ -105,7 +115,9 @@ class _FakeUpscaler(BaseRestorer):
     def capabilities(self) -> RestorerCapabilities:
         return RestorerCapabilities(
             category=RestorerCategory.SUPER_RESOLUTION,
-            input_color_space="rgb", output_color_space="rgb", scale_factor=2,
+            input_color_space="rgb",
+            output_color_space="rgb",
+            scale_factor=2,
         )
 
     def load(self, device):
@@ -131,7 +143,8 @@ class _FakeBGRFaceRestorer(BaseRestorer):
     def capabilities(self) -> RestorerCapabilities:
         return RestorerCapabilities(
             category=RestorerCategory.FACE_RESTORATION,
-            input_color_space="bgr", output_color_space="bgr",
+            input_color_space="bgr",
+            output_color_space="bgr",
         )
 
     def load(self, device):
@@ -158,6 +171,7 @@ def test_make_restorer_node_builds_input_types_from_param_schema():
 
 def test_node_restore_doubles_pixel_values_via_extra_param(monkeypatch):
     import comfyui_nodes._base as base
+
     fresh_registry = ModelRegistry()
     fresh_registry.register(_FakeUpscaler)
     monkeypatch.setattr(base, "get_registry", lambda: fresh_registry)
@@ -176,6 +190,7 @@ def test_node_restore_doubles_pixel_values_via_extra_param(monkeypatch):
 
 def test_node_restore_round_trips_bgr_restorer_without_color_shift(monkeypatch):
     import comfyui_nodes._base as base
+
     fresh_registry = ModelRegistry()
     fresh_registry.register(_FakeBGRFaceRestorer)
     monkeypatch.setattr(base, "get_registry", lambda: fresh_registry)
@@ -190,7 +205,7 @@ def test_node_restore_round_trips_bgr_restorer_without_color_shift(monkeypatch):
 
 
 # Audio conversion helpers
-from comfyui_nodes._base import comfy_audio_to_array, array_to_comfy_audio
+from comfyui_nodes._base import array_to_comfy_audio, comfy_audio_to_array
 
 
 def test_comfy_audio_to_array_converts_waveform_to_numpy():

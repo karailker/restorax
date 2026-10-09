@@ -24,8 +24,11 @@ if str(REPO) not in sys.path:
 # in newer torchvision; patch before any restorax imports.
 _ft = types.ModuleType("torchvision.transforms.functional_tensor")
 from torchvision.transforms.functional import rgb_to_grayscale  # noqa: E402
+
 _ft.rgb_to_grayscale = rgb_to_grayscale
 sys.modules["torchvision.transforms.functional_tensor"] = _ft
+
+import contextlib
 
 import cv2
 import numpy as np
@@ -39,13 +42,16 @@ OUT.mkdir(parents=True, exist_ok=True)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {DEVICE}")
 if DEVICE.type == "cuda":
-    print(f"GPU: {torch.cuda.get_device_name(0)}, "
-          f"{torch.cuda.get_device_properties(0).total_memory // 1024**3} GB VRAM")
+    print(
+        f"GPU: {torch.cuda.get_device_name(0)}, "
+        f"{torch.cuda.get_device_properties(0).total_memory // 1024**3} GB VRAM"
+    )
 
 manifest: dict = {}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _free_vram() -> None:
     if DEVICE.type == "cuda":
@@ -71,8 +77,9 @@ def _extract_frame(path: Path, n: int = 30) -> np.ndarray:
     return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
 
-def _save_comparison(name: str, before: np.ndarray, after: np.ndarray,
-                     original: np.ndarray | None = None) -> None:
+def _save_comparison(
+    name: str, before: np.ndarray, after: np.ndarray, original: np.ndarray | None = None
+) -> None:
     cv2.imwrite(str(OUT / f"{name}_before.png"), cv2.cvtColor(before, cv2.COLOR_RGB2BGR))
     cv2.imwrite(str(OUT / f"{name}_after.png"), cv2.cvtColor(after, cv2.COLOR_RGB2BGR))
     h = min(before.shape[0], after.shape[0], 540)
@@ -82,12 +89,13 @@ def _save_comparison(name: str, before: np.ndarray, after: np.ndarray,
         panels.append(cv2.resize(original, (int(original.shape[1] * h / original.shape[0]), h)))
     panels.append(cv2.resize(before, (int(before.shape[1] * h / before.shape[0]), h)))
     panels.append(cv2.resize(after, (int(after.shape[1] * h / after.shape[0]), h)))
-    cv2.imwrite(str(OUT / f"{name}_composite.png"),
-                cv2.cvtColor(np.concatenate(panels, axis=1), cv2.COLOR_RGB2BGR))
+    cv2.imwrite(
+        str(OUT / f"{name}_composite.png"),
+        cv2.cvtColor(np.concatenate(panels, axis=1), cv2.COLOR_RGB2BGR),
+    )
 
 
-def _save_video_clip(name: str, src: Path, process_fn, start: int = 30,
-                     n_frames: int = 75) -> None:
+def _save_video_clip(name: str, src: Path, process_fn, start: int = 30, n_frames: int = 75) -> None:
     cap = cv2.VideoCapture(str(src))
     fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
     w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -116,12 +124,16 @@ def _save_video_clip(name: str, src: Path, process_fn, start: int = 30,
 def _spectrogram(name: str, before: np.ndarray, after: np.ndarray, sr: int) -> None:
     try:
         import matplotlib
+
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+
         mono = lambda a: a[:, 0] if a.ndim > 1 else a  # noqa: E731
         n = min(sr * 5, len(mono(before)), len(mono(after)))
         fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-        for ax, sig, title in zip(axes, [mono(before)[:n], mono(after)[:n]], ["Input", "Restored"]):
+        for ax, sig, title in zip(
+            axes, [mono(before)[:n], mono(after)[:n]], ["Input", "Restored"], strict=True
+        ):
             ax.specgram(sig, Fs=sr, cmap="magma")
             ax.set_title(title)
         plt.tight_layout()
@@ -131,12 +143,18 @@ def _spectrogram(name: str, before: np.ndarray, after: np.ndarray, sr: int) -> N
         print(f"  spectrogram skipped: {e}")
 
 
-def _run_video(key: str, cls_path: str, cls_name: str, sample: str,
-               max_px: int = 512, params_kw: dict | None = None,
-               grayscale_input: bool = False,
-               original_max_px: int | None = None,
-               save_video: bool = False,
-               video_src: str | None = None) -> None:
+def _run_video(
+    key: str,
+    cls_path: str,
+    cls_name: str,
+    sample: str,
+    max_px: int = 512,
+    params_kw: dict | None = None,
+    grayscale_input: bool = False,
+    original_max_px: int | None = None,
+    save_video: bool = False,
+    video_src: str | None = None,
+) -> None:
     """Generic runner for any video/image restorer."""
     print(f"\n[{key}] {cls_name}")
     restorer = None
@@ -152,9 +170,8 @@ def _run_video(key: str, cls_path: str, cls_name: str, sample: str,
             frame = _load_frame(sample_path, max_px=max_px)
 
         original = None
-        if original_max_px:
-            if sample_path.suffix not in (".mp4", ".mkv"):
-                original = _load_frame(sample_path, max_px=original_max_px)
+        if original_max_px and sample_path.suffix not in (".mp4", ".mkv"):
+            original = _load_frame(sample_path, max_px=original_max_px)
 
         if grayscale_input:
             frame = cv2.cvtColor(cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY), cv2.COLOR_GRAY2RGB)
@@ -168,9 +185,13 @@ def _run_video(key: str, cls_path: str, cls_name: str, sample: str,
         _save_comparison(key, frame, out, original=original)
 
         if save_video and video_src:
-            _save_video_clip(key, SAMPLES / video_src,
-                             lambda f: restorer.process_frame(f, RestorerParams(**(params_kw or {}))),
-                             start=30, n_frames=75)
+            _save_video_clip(
+                key,
+                SAMPLES / video_src,
+                lambda f: restorer.process_frame(f, RestorerParams(**(params_kw or {}))),
+                start=30,
+                n_frames=75,
+            )
 
         manifest[key] = {"status": "real", "model": cls_name, "elapsed_s": round(elapsed, 2)}
     except Exception as e:
@@ -178,10 +199,8 @@ def _run_video(key: str, cls_path: str, cls_name: str, sample: str,
         manifest[key] = {"status": "failed", "error": str(e)[:200]}
     finally:
         if restorer is not None:
-            try:
+            with contextlib.suppress(Exception):
                 restorer.unload()
-            except Exception:
-                pass
         _free_vram()
 
 
@@ -215,10 +234,8 @@ def _run_audio(key: str, cls_path: str, cls_name: str, sample: str) -> None:
         manifest[key] = {"status": "failed", "error": str(e)[:200]}
     finally:
         if restorer is not None:
-            try:
+            with contextlib.suppress(Exception):
                 restorer.unload()
-            except Exception:
-                pass
         _free_vram()
 
 
@@ -230,85 +247,283 @@ def _run_audio(key: str, cls_path: str, cls_name: str, sample: str) -> None:
 
 VIDEO_JOBS = [
     # ── Super-resolution (10) ──────────────────────────────────────────────────
-    ("sr_real_esrgan",    "super_resolution.real_esrgan",    "RealESRGANx4Restorer",
-     "photo/portrait_tearsofsteel.png", 256,
-     {"scale": 4, "half_precision": False}, False, 1024, False, None),
-
-    ("sr_basicvsr_pp",    "super_resolution.basicvsr_pp",    "BasicVSRPlusPlusRestorer",
-     "video/film_sintel.mp4", 360, {}, False, None, False, None),
-
-    ("sr_upscale_a_video","super_resolution.upscale_a_video","UpscaleAVideoRestorer",
-     "video/film_sintel.mp4", 360, {}, False, None, False, None),
-
-    ("sr_vrt",            "super_resolution.vrt",            "VRTRestorer",
-     "video/film_sintel.mp4", 360, {}, False, None, False, None),
-
-    ("sr_mamba_ir",       "super_resolution.mamba_ir",       "MambaIRRestorer",
-     "photo/portrait_tearsofsteel.png", 360, {}, False, None, False, None),
-
-    ("sr_tdm",            "super_resolution.tdm",            "TDMRestorer",
-     "photo/portrait_tearsofsteel.png", 360, {}, False, None, False, None),
-
-    ("sr_seedvr",         "super_resolution.seedvr",         "SeedVRRestorer",
-     "video/film_sintel.mp4", 360, {}, False, None, False, None),
-
-    ("sr_waifu2x",        "super_resolution.waifu2x",        "Waifu2xRestorer",
-     "photo/scene_sintel.png", 360, {}, False, None, False, None),
-
-    ("sr_flashvsr",       "super_resolution.flashvsr",       "FlashVSRRestorer",
-     "video/film_sintel.mp4", 360, {}, False, None, False, None),
-
-    ("sr_evtexture",      "super_resolution.evtexture",      "EvTextureRestorer",
-     "video/film_sintel.mp4", 360, {}, False, None, False, None),
-
+    (
+        "sr_real_esrgan",
+        "super_resolution.real_esrgan",
+        "RealESRGANx4Restorer",
+        "photo/portrait_tearsofsteel.png",
+        256,
+        {"scale": 4, "half_precision": False},
+        False,
+        1024,
+        False,
+        None,
+    ),
+    (
+        "sr_basicvsr_pp",
+        "super_resolution.basicvsr_pp",
+        "BasicVSRPlusPlusRestorer",
+        "video/film_sintel.mp4",
+        360,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "sr_upscale_a_video",
+        "super_resolution.upscale_a_video",
+        "UpscaleAVideoRestorer",
+        "video/film_sintel.mp4",
+        360,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "sr_vrt",
+        "super_resolution.vrt",
+        "VRTRestorer",
+        "video/film_sintel.mp4",
+        360,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "sr_mamba_ir",
+        "super_resolution.mamba_ir",
+        "MambaIRRestorer",
+        "photo/portrait_tearsofsteel.png",
+        360,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "sr_tdm",
+        "super_resolution.tdm",
+        "TDMRestorer",
+        "photo/portrait_tearsofsteel.png",
+        360,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "sr_seedvr",
+        "super_resolution.seedvr",
+        "SeedVRRestorer",
+        "video/film_sintel.mp4",
+        360,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "sr_waifu2x",
+        "super_resolution.waifu2x",
+        "Waifu2xRestorer",
+        "photo/scene_sintel.png",
+        360,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "sr_flashvsr",
+        "super_resolution.flashvsr",
+        "FlashVSRRestorer",
+        "video/film_sintel.mp4",
+        360,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "sr_evtexture",
+        "super_resolution.evtexture",
+        "EvTextureRestorer",
+        "video/film_sintel.mp4",
+        360,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
     # ── Face restoration (4) ───────────────────────────────────────────────────
-    ("face_codeformer",   "face_restoration.codeformer",     "CodeFormerRestorer",
-     "photo/portrait_tearsofsteel.png", 512, {}, False, None, False, None),
-
-    ("face_codeformer_pp","face_restoration.codeformer_pp",  "CodeFormerPlusPlusRestorer",
-     "photo/portrait_tearsofsteel.png", 512, {}, False, None, False, None),
-
-    ("face_gfpgan",       "face_restoration.gfpgan",         "GFPGANRestorer",
-     "photo/portrait_tearsofsteel.png", 512, {}, False, None, False, None),
-
-    ("face_dicface",      "face_restoration.dicface",        "DicFaceRestorer",
-     "photo/portrait_tearsofsteel.png", 512, {}, False, None, False, None),
-
+    (
+        "face_codeformer",
+        "face_restoration.codeformer",
+        "CodeFormerRestorer",
+        "photo/portrait_tearsofsteel.png",
+        512,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "face_codeformer_pp",
+        "face_restoration.codeformer_pp",
+        "CodeFormerPlusPlusRestorer",
+        "photo/portrait_tearsofsteel.png",
+        512,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "face_gfpgan",
+        "face_restoration.gfpgan",
+        "GFPGANRestorer",
+        "photo/portrait_tearsofsteel.png",
+        512,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "face_dicface",
+        "face_restoration.dicface",
+        "DicFaceRestorer",
+        "photo/portrait_tearsofsteel.png",
+        512,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
     # ── Colorization (1) ──────────────────────────────────────────────────────
-    ("colorization_ddcolor","colorization.ddcolor",          "DDColorRestorer",
-     "photo/scene_sintel.png", 512, {}, True, None, False, None),
-
+    (
+        "colorization_ddcolor",
+        "colorization.ddcolor",
+        "DDColorRestorer",
+        "photo/scene_sintel.png",
+        512,
+        {},
+        True,
+        None,
+        False,
+        None,
+    ),
     # ── Frame interpolation (1) ───────────────────────────────────────────────
-    ("interp_rife",       "frame_interpolation.rife",        "RIFERestorer",
-     "video/film_sintel.mp4", 480, {}, False, None, False, None),
-
+    (
+        "interp_rife",
+        "frame_interpolation.rife",
+        "RIFERestorer",
+        "video/film_sintel.mp4",
+        480,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
     # ── Artifact removal (1) ──────────────────────────────────────────────────
-    ("artifact_scratch",  "artifact_removal.scratch_removal","ScratchRemovalRestorer",
-     "photo/portrait_tearsofsteel.png", 512, {}, False, None, False, None),
-
+    (
+        "artifact_scratch",
+        "artifact_removal.scratch_removal",
+        "ScratchRemovalRestorer",
+        "photo/portrait_tearsofsteel.png",
+        512,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
     # ── HDR (1) ───────────────────────────────────────────────────────────────
-    ("hdr_tvdm",          "hdr.hdrtvdm",                    "HDRTVDMRestorer",
-     "photo/scene_sintel.png", 512, {}, False, None, False, None),
-
+    (
+        "hdr_tvdm",
+        "hdr.hdrtvdm",
+        "HDRTVDMRestorer",
+        "photo/scene_sintel.png",
+        512,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
     # ── Stabilization (2) ─────────────────────────────────────────────────────
-    ("stab_deepflow",     "stabilization.deep_flow_stab",   "VideoStabilizationRestorer",
-     "video/film_sintel.mp4", 480, {}, False, None, False, None),
-
-    ("stab_gavs",         "stabilization.gavs",             "GaVSRestorer",
-     "video/film_sintel.mp4", 480, {}, False, None, False, None),
-
+    (
+        "stab_deepflow",
+        "stabilization.deep_flow_stab",
+        "VideoStabilizationRestorer",
+        "video/film_sintel.mp4",
+        480,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
+    (
+        "stab_gavs",
+        "stabilization.gavs",
+        "GaVSRestorer",
+        "video/film_sintel.mp4",
+        480,
+        {},
+        False,
+        None,
+        False,
+        None,
+    ),
     # ── Deinterlacing (2) ─────────────────────────────────────────────────────
-    ("deint_ai",          "deinterlacing.ai_deinterlace",   "AIDeinterlaceRestorer",
-     "video/film_sintel.mp4", 480, {}, False, None, True, "video/film_sintel.mp4"),
-
-    ("deint_yadif",       "deinterlacing.yadif_deinterlace","YadifDeinterlaceRestorer",
-     "video/film_sintel.mp4", 480, {}, False, None, True, "video/film_sintel.mp4"),
+    (
+        "deint_ai",
+        "deinterlacing.ai_deinterlace",
+        "AIDeinterlaceRestorer",
+        "video/film_sintel.mp4",
+        480,
+        {},
+        False,
+        None,
+        True,
+        "video/film_sintel.mp4",
+    ),
+    (
+        "deint_yadif",
+        "deinterlacing.yadif_deinterlace",
+        "YadifDeinterlaceRestorer",
+        "video/film_sintel.mp4",
+        480,
+        {},
+        False,
+        None,
+        True,
+        "video/film_sintel.mp4",
+    ),
 ]
 
 AUDIO_JOBS = [
-    ("audio_demucs",     "audio.demucs",     "DemucsRestorer",    "audio/music_bigbuckbunny.wav"),
-    ("audio_voicefixer", "audio.voicefixer", "VoiceFixerRestorer","audio/speech_tearsofsteel.wav"),
-    ("audio_rnnoise",    "audio.rnnoise",    "RNNoiseRestorer",   "audio/speech_tearsofsteel.wav"),
+    ("audio_demucs", "audio.demucs", "DemucsRestorer", "audio/music_bigbuckbunny.wav"),
+    ("audio_voicefixer", "audio.voicefixer", "VoiceFixerRestorer", "audio/speech_tearsofsteel.wav"),
+    ("audio_rnnoise", "audio.rnnoise", "RNNoiseRestorer", "audio/speech_tearsofsteel.wav"),
 ]
 
 

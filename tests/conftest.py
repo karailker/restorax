@@ -4,27 +4,28 @@ Shared pytest fixtures.
 All fixtures here are CPU-only and require no real model weights.
 GPU fixtures are marked @pytest.mark.gpu and skipped in CI by default.
 """
+
 from __future__ import annotations
 
 import os
-import tempfile
 from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
 
+from restorax.core.registry import ModelRegistry
 from restorax.core.restorer import (
     BaseRestorer,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
 )
-from restorax.core.registry import ModelRegistry
 
 pytest_plugins = ["tests.conftest_assets"]
 
 # ── Mock restorer ─────────────────────────────────────────────────────────────
+
 
 class IdentityRestorer(BaseRestorer):
     """Pass-through restorer for pipeline/registry tests — no weights needed."""
@@ -86,6 +87,7 @@ def mock_registry(upscale_restorer: IdentityRestorer) -> ModelRegistry:
 
 # ── Synthetic video fixture ───────────────────────────────────────────────────
 
+
 @pytest.fixture
 def synthetic_video(tmp_path: Path) -> Path:
     """
@@ -130,8 +132,10 @@ def default_params() -> RestorerParams:
 
 def pytest_collection_modifyitems(config, items):
     from pathlib import Path
+
     try:
         from restorax.config import settings
+
         model_dir = Path(settings.model_dir)
     except Exception:
         model_dir = Path("models")
@@ -150,8 +154,9 @@ def pytest_collection_modifyitems(config, items):
                         reason=f"weights absent: {weight_dir}. Run: restorax download-models --model {model_name}"
                     )
                 )
-        if item.get_closest_marker("requires_assets"):
-            if not asset_dir.exists() or not any(asset_dir.iterdir()):
-                item.add_marker(pytest.mark.skip(reason="test assets not downloaded"))
+        if item.get_closest_marker("requires_assets") and (
+            not asset_dir.exists() or not any(asset_dir.iterdir())
+        ):
+            item.add_marker(pytest.mark.skip(reason="test assets not downloaded"))
         if "requires_comfyui" in item.keywords and not os.environ.get("COMFYUI_PATH"):
             item.add_marker(skip_comfyui)

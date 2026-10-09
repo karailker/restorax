@@ -1,4 +1,5 @@
 """Unit tests for MambaIR, TDM, CodeFormer++, and GaVS restorers."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -9,16 +10,19 @@ import torch
 
 from restorax.core.restorer import RestorerCategory, RestorerParams
 
-
 # ── MambaIRRestorer ───────────────────────────────────────────────────────────
+
 
 class TestMambaIR:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.super_resolution.mamba_ir import MambaIRRestorer
+
         r = MambaIRRestorer()
         mock_model = MagicMock()
-        mock_model.side_effect = lambda x: torch.nn.functional.interpolate(x, scale_factor=4, mode="nearest")
+        mock_model.side_effect = lambda x: torch.nn.functional.interpolate(
+            x, scale_factor=4, mode="nearest"
+        )
         r._model = mock_model
         r._device = torch.device("cpu")
         r._loaded = True
@@ -26,6 +30,7 @@ class TestMambaIR:
 
     def test_name(self):
         from restorax.restorers.super_resolution.mamba_ir import MambaIRRestorer
+
         assert MambaIRRestorer().name == "mamba_ir_x4"
 
     def test_capabilities(self, restorer):
@@ -57,13 +62,17 @@ class TestMambaIR:
 
 # ── TDMRestorer ───────────────────────────────────────────────────────────────
 
+
 class TestTDM:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.super_resolution.tdm import TDMRestorer
         from PIL import Image
+
+        from restorax.restorers.super_resolution.tdm import TDMRestorer
+
         r = TDMRestorer()
         mock_pipe = MagicMock()
+
         def _fake_pipe(image, tasks, num_inference_steps, guidance_scale):
             result = MagicMock()
             result.frames = [
@@ -71,6 +80,7 @@ class TestTDM:
                 for f in image
             ]
             return result
+
         mock_pipe.side_effect = _fake_pipe
         r._pipe = mock_pipe
         r._device = torch.device("cpu")
@@ -79,6 +89,7 @@ class TestTDM:
 
     def test_name(self):
         from restorax.restorers.super_resolution.tdm import TDMRestorer
+
         assert TDMRestorer().name == "tdm"
 
     def test_capabilities(self, restorer):
@@ -106,10 +117,12 @@ class TestTDM:
 
 # ── CodeFormerPlusPlusRestorer ────────────────────────────────────────────────
 
+
 class TestCodeFormerPlusPlus:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.face_restoration.codeformer_pp import CodeFormerPlusPlusRestorer
+
         r = CodeFormerPlusPlusRestorer()
         r._net = None
         mock_helper = MagicMock()
@@ -121,6 +134,7 @@ class TestCodeFormerPlusPlus:
 
     def test_name(self):
         from restorax.restorers.face_restoration.codeformer_pp import CodeFormerPlusPlusRestorer
+
         assert CodeFormerPlusPlusRestorer().name == "codeformer_pp"
 
     def test_capabilities(self, restorer):
@@ -144,16 +158,19 @@ class TestCodeFormerPlusPlus:
 
 # ── GaVSRestorer ──────────────────────────────────────────────────────────────
 
+
 class TestGaVS:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.stabilization.gavs import GaVSRestorer
+
         r = GaVSRestorer()
         r.load(torch.device("cpu"))
         return r
 
     def test_name(self):
         from restorax.restorers.stabilization.gavs import GaVSRestorer
+
         assert GaVSRestorer().name == "gavs"
 
     def test_capabilities(self, restorer):

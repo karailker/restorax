@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # Observability
     otel_service_name: str = "restorax"
-    otel_exporter_otlp_endpoint: str | None = None   # e.g. "http://localhost:4317"
+    otel_exporter_otlp_endpoint: str | None = None  # e.g. "http://localhost:4317"
     sentry_dsn: str | None = None
 
 

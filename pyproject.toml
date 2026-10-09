@@ -136,10 +136,26 @@ packages = ["restorax"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+# Vendored third-party architectures are kept byte-identical to upstream.
+extend-exclude = [
+    "restorax/restorers/*/*_arch.py",
+    "restorax/restorers/*/rife_arch",
+    "restorax/restorers/artifact_removal/propainter",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501"]
+ignore = [
+    "E501",
+    "B008",  # FastAPI Depends()/Query() defaults are idiomatic
+    "UP042",  # str+Enum is kept for pydantic/JSON compatibility
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests/scripts/ComfyUI shims legitimately import after sys.path or importorskip setup.
+"tests/**" = ["E402", "B905", "SIM117"]
+"scripts/**" = ["E402"]
+"comfyui_nodes/**" = ["E402"]
 
 # ── Mypy ──────────────────────────────────────────────────────────────────────
 [tool.mypy]

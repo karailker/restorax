@@ -56,7 +56,9 @@ class VideoWriter:
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             self._container = av.open(str(self._path), mode="w")
-            self._video_stream = self._container.add_stream(self._codec, rate=Fraction(self._fps).limit_denominator(1001))
+            self._video_stream = self._container.add_stream(
+                self._codec, rate=Fraction(self._fps).limit_denominator(1001)
+            )
             self._video_stream.width = self._out_width
             self._video_stream.height = self._out_height
             self._video_stream.pix_fmt = "yuv420p"

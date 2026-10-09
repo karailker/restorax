@@ -1,6 +1,4 @@
-from pathlib import Path
-import pytest
-from restorax.models_catalog import CATALOG, CATALOG_BY_NAME, ModelEntry
+from restorax.models_catalog import CATALOG, CATALOG_BY_NAME
 
 
 def test_catalog_has_entries():
@@ -22,6 +20,7 @@ def test_diffusion_models_use_snapshot():
 
 def test_is_ready_false_for_nonexistent(tmp_path, monkeypatch):
     from restorax.config import settings
+
     monkeypatch.setattr(settings, "model_dir", str(tmp_path))
     entry = CATALOG_BY_NAME["real_esrgan"]
     assert entry.is_ready() is False

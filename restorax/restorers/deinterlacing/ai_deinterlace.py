@@ -18,6 +18,7 @@ Autodetect interlacing: the restorer checks whether the source material
 is actually interlaced before processing. If not interlaced, frames are
 returned unchanged.
 """
+
 from __future__ import annotations
 
 import logging
@@ -149,9 +150,14 @@ class AIDeinterlaceRestorer(BaseRestorer):
                 # Run FFmpeg YADIF
                 result = subprocess.run(
                     [
-                        "ffmpeg", "-y", "-framerate", "25",
-                        "-i", str(tmpdir_p / "in_%04d.png"),
-                        "-vf", "yadif=mode=0:parity=-1:deint=0",
+                        "ffmpeg",
+                        "-y",
+                        "-framerate",
+                        "25",
+                        "-i",
+                        str(tmpdir_p / "in_%04d.png"),
+                        "-vf",
+                        "yadif=mode=0:parity=-1:deint=0",
                         str(tmpdir_p / "out_%04d.png"),
                     ],
                     capture_output=True,
@@ -172,10 +178,7 @@ class AIDeinterlaceRestorer(BaseRestorer):
         except Exception as exc:
             logger.warning("YADIF subprocess failed (%s) — using bob fallback", exc)
             h, w = frames[0].shape[:2]
-            return [
-                cv2.resize(f[0::2], (w, h), interpolation=cv2.INTER_LINEAR)
-                for f in frames
-            ]
+            return [cv2.resize(f[0::2], (w, h), interpolation=cv2.INTER_LINEAR) for f in frames]
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
@@ -201,7 +204,9 @@ class AIDeinterlaceRestorer(BaseRestorer):
         Raises RestorerLoadError if the arch is not present.
         """
         try:
-            from restorax.restorers.deinterlacing.deinterlace_arch import DeinterlaceNet  # type: ignore[import]
+            from restorax.restorers.deinterlacing.deinterlace_arch import (
+                DeinterlaceNet,  # type: ignore[import]
+            )
         except ImportError as exc:
             raise RestorerLoadError(
                 f"AIDeinterlaceRestorer requires the vendored deinterlace_arch module "

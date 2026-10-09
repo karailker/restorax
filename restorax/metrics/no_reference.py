@@ -5,6 +5,7 @@ These metrics assess quality without needing a ground-truth reference,
 making them suitable for evaluating real degraded footage where the
 original clean version is unavailable.
 """
+
 from __future__ import annotations
 
 import logging
@@ -53,6 +54,7 @@ def brisque_score(img: np.ndarray) -> float:
 
 
 # ── Internal ──────────────────────────────────────────────────────────────────
+
 
 def _niqe_simple(img: np.ndarray) -> float:
     """

@@ -13,6 +13,7 @@ def _inject_otel_context(_logger: Any, _method: str, event_dict: dict) -> dict:
     """Reads the active OTEL span and injects trace_id + span_id as log fields."""
     try:
         from opentelemetry import trace
+
         ctx = trace.get_current_span().get_span_context()
         if ctx and ctx.is_valid:
             event_dict["trace_id"] = format(ctx.trace_id, "032x")

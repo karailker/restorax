@@ -14,6 +14,7 @@ VideoStabilizationRestorer (OpenCV optical flow) which provides solid results
 for moderate shakiness. GaVS will automatically activate once the arch is
 vendored into `stabilization/gavs_arch/`.
 """
+
 from __future__ import annotations
 
 import logging
@@ -109,7 +110,10 @@ class GaVSRestorer(BaseRestorer):
 
     def _try_load_gavs(self, device: torch.device) -> bool:
         try:
-            from restorax.restorers.stabilization.gavs_arch import GaVSPipeline  # type: ignore[import]
+            from restorax.restorers.stabilization.gavs_arch import (
+                GaVSPipeline,  # type: ignore[import]
+            )
+
             self._model = GaVSPipeline(device=device)
             return True
         except ImportError:
@@ -117,5 +121,6 @@ class GaVSRestorer(BaseRestorer):
 
     def _load_fallback(self, device: torch.device) -> None:
         from restorax.restorers.stabilization.deep_flow_stab import VideoStabilizationRestorer
+
         self._fallback = VideoStabilizationRestorer()
         self._fallback.load(device)

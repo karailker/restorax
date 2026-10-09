@@ -1,4 +1,5 @@
 """Unit tests for RIFERestorer — no GPU, no real weights."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

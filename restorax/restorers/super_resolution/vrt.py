@@ -16,6 +16,7 @@ Task: video super-resolution (VSR) — 4× upscaling.
 Checkpoint: VRT_videosr_bi_Vimeo_7frames.pth (bicubic degradation)
          or VRT_videosr_bd_Vimeo_7frames.pth (blur-downscale degradation)
 """
+
 from __future__ import annotations
 
 import logging
@@ -26,11 +27,11 @@ import torch
 
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
+    HALF_PRECISION_SPEC,
     BaseRestorer,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -135,8 +136,8 @@ class VRTRestorer(BaseRestorer):
     def _build_model(device: torch.device) -> torch.nn.Module:
         """Load VRT from BasicSR or fall back to a bicubic upsampler stub."""
         try:
-            from restorax.restorers.super_resolution.vrt_arch import VRT
             from restorax.config import settings
+            from restorax.restorers.super_resolution.vrt_arch import VRT
 
             weight_path = Path(settings.model_dir) / "vrt" / _WEIGHT_FILE
             if not weight_path.exists():
@@ -168,5 +169,3 @@ def _download_weights(model_dir: Path) -> Path:
         "Download from https://github.com/JingyunLiang/VRT/releases "
         f"and place at {model_dir / _WEIGHT_FILE}"
     )
-
-

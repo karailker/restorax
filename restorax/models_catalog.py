@@ -1,7 +1,7 @@
 # restorax/models_catalog.py
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -19,6 +19,7 @@ class ModelEntry:
 
     def weight_dir(self) -> Path:
         from restorax.config import settings
+
         return Path(settings.model_dir) / self.name
 
     def is_ready(self) -> bool:
@@ -29,7 +30,9 @@ class ModelEntry:
 
 CATALOG: list[ModelEntry] = [
     ModelEntry("real_esrgan", "sr", "xinntao/Real-ESRGAN", ["RealESRGANx4plus.pth"], 67),
-    ModelEntry("basicvsr_pp", "sr", "sczhou/BasicVSR-PlusPlus", ["BasicVSR_PlusPlus_REDS4.pth"], 20),
+    ModelEntry(
+        "basicvsr_pp", "sr", "sczhou/BasicVSR-PlusPlus", ["BasicVSR_PlusPlus_REDS4.pth"], 20
+    ),
     ModelEntry("vrt", "sr", "JingyunLiang/VRT", ["VRT_videosr_bi_Vimeo_7frames.pth"], 350),
     ModelEntry("waifu2x", "sr", "deepghs/waifu2x", ["waifu2x_x2.pth"], 5),
     ModelEntry("mamba_ir", "sr", "csguoh/MambaIR", ["MambaIR_SR_x4.pth"], 80),
@@ -43,7 +46,9 @@ CATALOG: list[ModelEntry] = [
     ModelEntry("hdrtvdm", "extras", "AndreGuo/HDRTVDM", ["HDRTVNet.pth"], 50),
     ModelEntry("gavs", "extras", "Annbless/GAVS", ["gavs.pth"], 120),
     ModelEntry("deinterlace", "extras", "tonycaisy/deinterlace-net", ["deinterlace.pth"], 30),
-    ModelEntry("scratch_removal", "extras", "sczhou/ProPainter", ["ProPainter.pth", "raft-things.pth"], 400),
+    ModelEntry(
+        "scratch_removal", "extras", "sczhou/ProPainter", ["ProPainter.pth", "raft-things.pth"], 400
+    ),
     ModelEntry("rife", "sr", "AlexZou/RIFE-v4", ["flownet.pkl"], 12),
     ModelEntry("seedvr", "diffusion", "IceClear/SeedVR", [], 7200, snapshot=True),
     ModelEntry("tdm", "diffusion", "ChenyangSi/TDM", [], 5000, snapshot=True),

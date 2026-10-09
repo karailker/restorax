@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class ParamSpecSchema(BaseModel):
     """One tunable restorer parameter, for rendering a typed control in the UI."""
+
     name: str
     kind: str  # int | float | bool | enum | multiselect
     default: Any
@@ -19,7 +20,9 @@ class ParamSpecSchema(BaseModel):
 
 class RestorerInfo(BaseModel):
     name: str
-    kind: str = "video"  # "video" (process_frame) | "audio" (process_audio) — gates DAG restore node
+    kind: str = (
+        "video"  # "video" (process_frame) | "audio" (process_audio) — gates DAG restore node
+    )
     category: str
     input_color_space: str | None = None
     output_color_space: str | None = None

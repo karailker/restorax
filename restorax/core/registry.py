@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections import OrderedDict
-from typing import Type
 
 import torch
 
@@ -26,13 +25,13 @@ class ModelRegistry:
     """
 
     def __init__(self, max_loaded: int = 2) -> None:
-        self._catalog: dict[str, Type[BaseRestorer]] = {}
+        self._catalog: dict[str, type[BaseRestorer]] = {}
         self._loaded: OrderedDict[str, BaseRestorer] = OrderedDict()
         self._max_loaded = max_loaded
 
     # ── Registration ──────────────────────────────────────────────────────────
 
-    def register(self, cls: Type[BaseRestorer]) -> None:
+    def register(self, cls: type[BaseRestorer]) -> None:
         """Register a restorer class. The class must implement BaseRestorer."""
         # Instantiate temporarily to read the name property
         instance = object.__new__(cls)
@@ -40,7 +39,7 @@ class ModelRegistry:
         self._catalog[name] = cls
         logger.debug("Registered restorer: %s", name)
 
-    def register_all(self, classes: list[Type[BaseRestorer]]) -> None:
+    def register_all(self, classes: list[type[BaseRestorer]]) -> None:
         for cls in classes:
             self.register(cls)
 
@@ -58,8 +57,7 @@ class ModelRegistry:
 
         if name not in self._catalog:
             raise RestorerNotFoundError(
-                f"Restorer '{name}' is not registered. "
-                f"Available: {sorted(self._catalog)}"
+                f"Restorer '{name}' is not registered. Available: {sorted(self._catalog)}"
             )
 
         self._evict_if_needed()

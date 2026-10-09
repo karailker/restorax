@@ -21,10 +21,10 @@ a smooth trajectory. The PipelineRunner chunk_overlap must be large enough
 Reference: GaVS (SIGGRAPH 2025) — not yet publicly released; will upgrade
 when code drops. Current implementation uses OpenCV VideoStab.
 """
+
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -106,7 +106,6 @@ class VideoStabilizationRestorer(BaseRestorer):
         if len(frames) < 2:
             return frames
 
-        n = len(frames)
         grays = [cv2.cvtColor(f, cv2.COLOR_RGB2GRAY) for f in frames]
 
         # Step 1: Estimate pairwise transforms
@@ -125,10 +124,13 @@ class VideoStabilizationRestorer(BaseRestorer):
 
         for i, correction in enumerate(corrections):
             dx, dy, da = correction
-            M = np.array([
-                [np.cos(da), -np.sin(da), dx],
-                [np.sin(da),  np.cos(da), dy],
-            ], dtype=np.float32)
+            M = np.array(
+                [
+                    [np.cos(da), -np.sin(da), dx],
+                    [np.sin(da), np.cos(da), dy],
+                ],
+                dtype=np.float32,
+            )
             warped = cv2.warpAffine(
                 frames[i + 1],
                 M,
@@ -146,8 +148,11 @@ class VideoStabilizationRestorer(BaseRestorer):
     def _estimate_transforms(grays: list[np.ndarray]) -> np.ndarray:
         """Estimate (dx, dy, da) affine motion between each consecutive pair."""
         feature_params = dict(maxCorners=200, qualityLevel=0.01, minDistance=30, blockSize=3)
-        lk_params = dict(winSize=(15, 15), maxLevel=2,
-                         criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+        lk_params = dict(
+            winSize=(15, 15),
+            maxLevel=2,
+            criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
+        )
 
         transforms = np.zeros((len(grays) - 1, 3), dtype=np.float64)
 
@@ -156,7 +161,9 @@ class VideoStabilizationRestorer(BaseRestorer):
             if pts is None or len(pts) < 4:
                 continue  # no features — keep zero transform (no correction)
 
-            pts_next, status, _ = cv2.calcOpticalFlowPyrLK(grays[i], grays[i + 1], pts, None, **lk_params)
+            pts_next, status, _ = cv2.calcOpticalFlowPyrLK(
+                grays[i], grays[i + 1], pts, None, **lk_params
+            )
             if pts_next is None:
                 continue
 

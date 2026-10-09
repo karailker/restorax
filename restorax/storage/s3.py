@@ -6,6 +6,7 @@ with self-hosted MinIO for local/development deployments.
 
 Install: pip install boto3
 """
+
 from __future__ import annotations
 
 import logging
@@ -27,9 +28,12 @@ class S3StorageBackend:
         try:
             import boto3
             from botocore.exceptions import ClientError as _CE
+
             self._ClientError = _CE
         except ImportError as exc:
-            raise ImportError("boto3 is required for S3 storage. Install with: pip install boto3") from exc
+            raise ImportError(
+                "boto3 is required for S3 storage. Install with: pip install boto3"
+            ) from exc
 
         import boto3
 
@@ -105,4 +109,5 @@ def get_storage_backend() -> object:
             secret_key=settings.s3_secret_key,
         )
     from restorax.storage.local import LocalStorageBackend
+
     return LocalStorageBackend(root=settings.storage_local_root)

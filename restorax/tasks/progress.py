@@ -4,6 +4,7 @@ ProgressReporter: publishes job progress events to a Redis pub/sub channel.
 The FastAPI WebSocket router subscribes to the channel and streams events
 to the browser client in real time.
 """
+
 from __future__ import annotations
 
 import json

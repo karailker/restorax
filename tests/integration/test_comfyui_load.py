@@ -8,6 +8,7 @@ Setup (one-time, manual — not run by CI):
     ln -s $(pwd)/comfyui_nodes $COMFYUI_PATH/custom_nodes/restorax
     pytest tests/integration/test_comfyui_load.py -v
 """
+
 import os
 import subprocess
 import sys
@@ -24,9 +25,15 @@ def test_comfyui_nodes_pack_importable_from_custom_nodes_dir():
         f"Expected comfyui_nodes/ symlinked into {custom_nodes_link} — see module docstring for setup."
     )
     result = subprocess.run(
-        [sys.executable, "-c", "import comfyui_nodes; print(len(comfyui_nodes.NODE_CLASS_MAPPINGS))"],
+        [
+            sys.executable,
+            "-c",
+            "import comfyui_nodes; print(len(comfyui_nodes.NODE_CLASS_MAPPINGS))",
+        ],
         cwd=custom_nodes_link,
-        capture_output=True, text=True, timeout=30,
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "22"

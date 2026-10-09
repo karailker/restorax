@@ -7,6 +7,7 @@ Two operations:
                       (video-only output of the video pipeline) with
                       the processed audio.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -25,7 +26,7 @@ class AudioWriter:
     def write_wav(
         self,
         path: str | Path,
-        audio: np.ndarray,    # (num_samples, num_channels) float32 [-1.0, 1.0]
+        audio: np.ndarray,  # (num_samples, num_channels) float32 [-1.0, 1.0]
         sample_rate: int,
     ) -> None:
         """Write audio to a WAV file using PCM 16-bit encoding."""
@@ -58,10 +59,10 @@ class AudioWriter:
 
     def mux_into_video(
         self,
-        video_path: str | Path,       # video-only file (output of video pipeline)
-        audio: np.ndarray,            # (num_samples, num_channels) float32 [-1.0, 1.0]
+        video_path: str | Path,  # video-only file (output of video pipeline)
+        audio: np.ndarray,  # (num_samples, num_channels) float32 [-1.0, 1.0]
         sample_rate: int,
-        output_path: str | Path,      # may equal video_path (in-place replacement)
+        output_path: str | Path,  # may equal video_path (in-place replacement)
     ) -> None:
         """
         Combine a video-only file with processed audio into a single container.

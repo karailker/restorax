@@ -11,6 +11,7 @@ and back to the original sample rate after, using scipy.signal.resample_poly.
 Model source: https://jmvalin.ca/demo/rnnoise/
 Python binding: pip install rnnoise-python (or pip install noisereduce as fallback)
 """
+
 from __future__ import annotations
 
 import logging
@@ -133,6 +134,7 @@ class RNNoiseRestorer(AudioRestorer):
         # Try rnnoise-python binding
         try:
             import rnnoise
+
             dn = rnnoise.RNNoise()
             logger.info("RNNoise loaded via rnnoise-python")
             return dn
@@ -142,6 +144,7 @@ class RNNoiseRestorer(AudioRestorer):
         # Try noisereduce as fallback
         try:
             import noisereduce as nr
+
             logger.info("RNNoise using noisereduce fallback")
             return _NoisereduceAdapter(nr)
         except ImportError:
@@ -153,8 +156,10 @@ class RNNoiseRestorer(AudioRestorer):
 
 def _resample(audio: np.ndarray, from_sr: int, to_sr: int) -> np.ndarray:
     try:
-        from scipy.signal import resample_poly
         from math import gcd
+
+        from scipy.signal import resample_poly
+
         g = gcd(from_sr, to_sr)
         return resample_poly(audio, to_sr // g, from_sr // g).astype(np.float32)
     except ImportError:
@@ -177,4 +182,5 @@ class _NoisereduceAdapter:
 
 class _RNNoiseStub:
     """Passthrough stub."""
+
     pass

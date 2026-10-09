@@ -1,4 +1,5 @@
 """Unit tests for EvTextureRestorer."""
+
 from __future__ import annotations
 
 import builtins

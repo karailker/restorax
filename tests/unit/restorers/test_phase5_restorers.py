@@ -1,4 +1,5 @@
 """Unit tests for Phase 5 restorers: Upscale-A-Video, VRT + tiling enhancement."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -9,13 +10,14 @@ import torch
 
 from restorax.core.restorer import RestorerCategory, RestorerParams
 
-
 # ── UpscaleAVideoRestorer ──────────────────────────────────────────────────────
+
 
 class TestUpscaleAVideo:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.super_resolution.upscale_a_video import UpscaleAVideoRestorer
+
         r = UpscaleAVideoRestorer()
         # _pipe=None has no __call__, so process_sequence falls back to _stub_upscale (4× nearest-neighbour)
         r._pipe = None
@@ -51,10 +53,12 @@ class TestUpscaleAVideo:
 
 # ── VRTRestorer ────────────────────────────────────────────────────────────────
 
+
 class TestVRT:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.super_resolution.vrt import VRTRestorer
+
         r = VRTRestorer()
         mock_model = MagicMock()
         # VRT processes (1, T, C, H, W) and returns (1, T, C, H*4, W*4)
@@ -96,15 +100,18 @@ class TestVRT:
 
 # ── Gaussian tiling ────────────────────────────────────────────────────────────
 
+
 class TestGaussianTiling:
     def test_gaussian_window_shape(self):
         from restorax.video.utils import _gaussian_window
+
         w = _gaussian_window(32, 32)
         assert w.shape == (32, 32, 1)
         assert w.dtype == np.float32
 
     def test_gaussian_window_max_at_center(self):
         from restorax.video.utils import _gaussian_window
+
         w = _gaussian_window(64, 64)[:, :, 0]
         cy, cx = 32, 32
         center_val = float(w[cy, cx])
@@ -113,6 +120,7 @@ class TestGaussianTiling:
 
     def test_merge_tiles_gaussian_no_seam_artifacts(self):
         from restorax.video.utils import merge_tiles, tile_frame
+
         # Create a smooth gradient frame
         frame = np.zeros((128, 128, 3), dtype=np.uint8)
         for i in range(128):
@@ -128,6 +136,7 @@ class TestGaussianTiling:
     def test_merge_tiles_gaussian_vs_simple_similar(self):
         """Gaussian and simple merge should produce similar results on non-edge content."""
         from restorax.video.utils import merge_tiles, tile_frame
+
         frame = np.full((64, 64, 3), 100, dtype=np.uint8)
         tiles, _, _ = tile_frame(frame, tile_size=32, overlap=0)
         processed = [(t, coords) for t, coords in tiles]
@@ -140,16 +149,19 @@ class TestGaussianTiling:
 
 # ── GPU router ─────────────────────────────────────────────────────────────────
 
+
 class TestGPURouter:
     def test_default_queue(self, monkeypatch):
         monkeypatch.delenv("RESTORAX_GPU_QUEUES", raising=False)
         from restorax.tasks import gpu_router
+
         gpu_router.reset_router()
         assert gpu_router.next_gpu_queue() == "gpu_default"
 
     def test_round_robin(self, monkeypatch):
         monkeypatch.setenv("RESTORAX_GPU_QUEUES", "gpu_0,gpu_1")
         from restorax.tasks import gpu_router
+
         gpu_router.reset_router()
         queues = [gpu_router.next_gpu_queue() for _ in range(4)]
         assert queues == ["gpu_0", "gpu_1", "gpu_0", "gpu_1"]
