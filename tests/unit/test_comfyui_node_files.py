@@ -60,9 +60,9 @@ def test_audio_module_exports_three_nodes():
         assert node_cls.RETURN_TYPES == ("AUDIO",)
 
 
-def test_package_init_aggregates_all_25_nodes():
+def test_package_init_aggregates_all_26_nodes():
     import comfyui_nodes
-    assert len(comfyui_nodes.NODE_CLASS_MAPPINGS) == 25
+    assert len(comfyui_nodes.NODE_CLASS_MAPPINGS) == 26
     assert set(comfyui_nodes.NODE_CLASS_MAPPINGS) == set(comfyui_nodes.NODE_DISPLAY_NAME_MAPPINGS)
     assert all(key.startswith("RestoraX_") for key in comfyui_nodes.NODE_CLASS_MAPPINGS)
 
@@ -70,12 +70,18 @@ def test_package_init_aggregates_all_25_nodes():
 def test_package_init_has_no_duplicate_node_keys_across_categories():
     import comfyui_nodes
     from comfyui_nodes import (
-        artifact_removal, audio, colorization, deinterlacing, face_restoration,
+        artifact_removal, audio, colorization, deinterlacing, enhancement, face_restoration,
         frame_interpolation, hdr, stabilization, super_resolution,
     )
     modules = [
-        artifact_removal, audio, colorization, deinterlacing, face_restoration,
+        artifact_removal, audio, colorization, deinterlacing, enhancement, face_restoration,
         frame_interpolation, hdr, stabilization, super_resolution,
     ]
     total_individual = sum(len(m.NODE_CLASS_MAPPINGS) for m in modules)
-    assert total_individual == len(comfyui_nodes.NODE_CLASS_MAPPINGS) == 25
+    assert total_individual == len(comfyui_nodes.NODE_CLASS_MAPPINGS) == 26
+
+
+def test_enhancement_module_exports_dlss5_node():
+    from comfyui_nodes import enhancement
+    assert set(enhancement.NODE_CLASS_MAPPINGS) == {"RestoraX_DLSS5VisualEnhancer"}
+    assert next(iter(enhancement.NODE_CLASS_MAPPINGS.values())).CATEGORY == "RestoraX/Enhancement"

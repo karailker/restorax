@@ -1,4 +1,6 @@
 """Unit tests for the external-CLI DLSS 5 Visual Enhancer adapter (no GPU / Windows needed)."""
+
+# ruff: noqa: E402  (imports follow pytest.importorskip)
 from __future__ import annotations
 
 import json
@@ -15,8 +17,10 @@ from restorax.core.restorer import RestorerCategory, RestorerParams
 
 torch = pytest.importorskip("torch")
 
-from restorax.restorers.enhancement import dlss5_visual_enhancer as mod  # noqa: E402
-from restorax.restorers.enhancement.dlss5_visual_enhancer import DLSS5VisualEnhancerRestorer  # noqa: E402
+from restorax.restorers.enhancement import dlss5_visual_enhancer as mod
+from restorax.restorers.enhancement.dlss5_visual_enhancer import (
+    DLSS5VisualEnhancerRestorer,
+)
 
 
 def _frame(h: int = 8, w: int = 12) -> np.ndarray:
@@ -71,7 +75,9 @@ class TestLoad:
     def test_linux_defaults_to_wine(self, monkeypatch, tmp_path):
         monkeypatch.delenv("RESTORAX_VE_LAUNCHER", raising=False)
         real_which = mod.shutil.which
-        monkeypatch.setattr(mod.shutil, "which", lambda n: "/usr/bin/wine" if n == "wine" else real_which(n))
+        monkeypatch.setattr(
+            mod.shutil, "which", lambda n: "/usr/bin/wine" if n == "wine" else real_which(n)
+        )
         r = _loaded(monkeypatch, tmp_path, platform="linux")
         assert r._launcher == ["wine"]
 
@@ -135,13 +141,17 @@ class TestProcess:
     def test_linux_command_uses_launcher_and_winepath(self, monkeypatch, tmp_path):
         monkeypatch.setenv("RESTORAX_VE_LAUNCHER", "wine")
         r = _loaded(monkeypatch, tmp_path, platform="linux")
-        monkeypatch.setattr(mod.shutil, "which", lambda n: "/usr/bin/winepath" if n == "winepath" else None)
+        monkeypatch.setattr(
+            mod.shutil, "which", lambda n: "/usr/bin/winepath" if n == "winepath" else None
+        )
         calls: list[list[str]] = []
 
         def fake_run(cmd, **kw):
             calls.append(cmd)
             if cmd[0] == "/usr/bin/winepath":
-                return subprocess.CompletedProcess(cmd, 0, "Z:" + cmd[2].replace("/", "\\") + "\n", "")
+                return subprocess.CompletedProcess(
+                    cmd, 0, "Z:" + cmd[2].replace("/", "\\") + "\n", ""
+                )
             real_in = Path(cmd[cmd.index("render") + 1][2:].replace("\\", "/"))
             real_out = Path(cmd[cmd.index("-o") + 1][2:].replace("\\", "/"))
             cv2.imwrite(str(real_out), cv2.imread(str(real_in)))
@@ -155,7 +165,9 @@ class TestProcess:
 
     def test_cli_failure_surfaces_json_error(self, monkeypatch, tmp_path):
         r = _loaded(monkeypatch, tmp_path)
-        _fake_cli(monkeypatch, returncode=1, stdout=json.dumps({"ok": False, "error": "no RTX GPU"}))
+        _fake_cli(
+            monkeypatch, returncode=1, stdout=json.dumps({"ok": False, "error": "no RTX GPU"})
+        )
         with pytest.raises(RuntimeError, match="no RTX GPU"):
             r.process_frame(_frame(), RestorerParams())
 

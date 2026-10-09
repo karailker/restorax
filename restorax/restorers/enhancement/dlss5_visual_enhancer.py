@@ -27,8 +27,10 @@ for stills, keyframes and short clips. For long videos, run ``VE_CLI.exe``
 directly on the file. The output keeps the input resolution; use a separate
 RestoraX super-resolution stage for scaling.
 """
+
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -65,12 +67,21 @@ class DLSS5VisualEnhancerRestorer(BaseRestorer):
 
     PARAM_SCHEMA = [
         ParamSpec(
-            "style", "enum", "0", "NR style", choices=_STYLES,
+            "style",
+            "enum",
+            "0",
+            "NR style",
+            choices=_STYLES,
             help="DLSS 5 Neural Rendering style (Visual Enhancer Style 0/1/2)",
         ),
         ParamSpec(
-            "strength", "float", 1.0, "NR intensity",
-            minimum=0.0, maximum=2.0, step=0.05,
+            "strength",
+            "float",
+            1.0,
+            "NR intensity",
+            minimum=0.0,
+            maximum=2.0,
+            step=0.05,
             help="Neural Rendering intensity; 1.0 is the Visual Enhancer default",
         ),
     ]
@@ -94,7 +105,15 @@ class DLSS5VisualEnhancerRestorer(BaseRestorer):
             requires_temporal=False,
             min_vram_gb=8.0,
             scale_factor=1,
-            tags=["enhancement", "dlss5", "neural_rendering", "nvidia", "rtx", "external", "windows"],
+            tags=[
+                "enhancement",
+                "dlss5",
+                "neural_rendering",
+                "nvidia",
+                "rtx",
+                "external",
+                "windows",
+            ],
         )
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -136,7 +155,11 @@ class DLSS5VisualEnhancerRestorer(BaseRestorer):
             return str(path)
         try:
             out = subprocess.run(  # noqa: S603 - fixed argv, no shell
-                [winepath, "-w", str(path)], capture_output=True, text=True, timeout=30, check=True,
+                [winepath, "-w", str(path)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=True,
             ).stdout.strip()
         except (subprocess.SubprocessError, OSError) as exc:
             raise RuntimeError(f"dlss5_visual_enhancer: winepath failed for {path}: {exc}") from exc
@@ -175,10 +198,20 @@ class DLSS5VisualEnhancerRestorer(BaseRestorer):
             if not cv2.imwrite(str(src), cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)):
                 raise RuntimeError("dlss5_visual_enhancer: failed to write temporary input frame")
             cmd = [
-                *self._launcher, str(self._cli), "render",
-                self._native_path(src), "-o", self._native_path(dst),
-                "--style", style, "--strength", str(strength),
-                "--format", "png", "--quiet", "--json",
+                *self._launcher,
+                str(self._cli),
+                "render",
+                self._native_path(src),
+                "-o",
+                self._native_path(dst),
+                "--style",
+                style,
+                "--strength",
+                str(strength),
+                "--format",
+                "png",
+                "--quiet",
+                "--json",
             ]
             if extra.get("gpu") is not None:
                 cmd += ["--gpu", str(extra["gpu"])]
@@ -188,7 +221,9 @@ class DLSS5VisualEnhancerRestorer(BaseRestorer):
 
             out = cv2.imread(str(dst), cv2.IMREAD_COLOR)
             if out is None:
-                raise RuntimeError("dlss5_visual_enhancer: Visual Enhancer produced no output image")
+                raise RuntimeError(
+                    "dlss5_visual_enhancer: Visual Enhancer produced no output image"
+                )
         out = cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
         if out.shape != frame.shape:
             raise RuntimeError(
@@ -201,15 +236,17 @@ class DLSS5VisualEnhancerRestorer(BaseRestorer):
     def _run(cmd: list[str], timeout: float) -> None:
         try:
             proc = subprocess.run(  # noqa: S603 - fixed argv, no shell
-                cmd, capture_output=True, text=True, timeout=timeout, check=False,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
             )
         except subprocess.TimeoutExpired as exc:
             raise RuntimeError(f"dlss5_visual_enhancer timed out after {timeout:.0f}s") from exc
         if proc.returncode == 0:
             return
         detail = (proc.stderr or proc.stdout or "").strip()
-        try:
+        with contextlib.suppress(ValueError, AttributeError):
             detail = json.loads(proc.stdout).get("error", detail)
-        except (ValueError, AttributeError):
-            pass
         raise RuntimeError(f"Visual Enhancer exited with status {proc.returncode}: {detail[:500]}")
