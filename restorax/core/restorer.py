@@ -16,6 +16,7 @@ class RestorerCategory(str, Enum):
     ARTIFACT_REMOVAL = "artifact_removal"
     HDR_CONVERSION = "hdr_conversion"
     STABILIZATION = "stabilization"
+    ENHANCEMENT = "enhancement"  # perceptual/neural-rendering enhancement at constant resolution
     AUDIO_RESTORATION = "audio_restoration"  # reserved for future video+audio hybrid restorers
 
 

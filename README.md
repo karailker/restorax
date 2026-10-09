@@ -2,12 +2,12 @@
 
 **Open-source AI video restoration toolkit for old films, home videos, and archival footage.**
 
-[![Tests](https://img.shields.io/badge/tests-515%2B%20passing-brightgreen)](tests/)
+[![CI](https://github.com/karailker/restorax/actions/workflows/ci.yml/badge.svg)](https://github.com/karailker/restorax/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11-blue)](pyproject.toml)
 [![PyTorch](https://img.shields.io/badge/pytorch-2.3%2B-orange)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-RestoraX combines 25 AI models into a single, modular restoration pipeline with a **visual node-based pipeline builder**, REST API, and CLI — designed to be a competitive open-source alternative to Topaz Video AI and DaVinci Resolve Super Scale.
+RestoraX combines 25 restoration models (13 produce real output today — see [Model status](#model-status)) plus an optional external DLSS 5 enhancer into a single, modular restoration pipeline with a **visual node-based pipeline builder**, REST API, and CLI — designed to be a competitive open-source alternative to Topaz Video AI and DaVinci Resolve Super Scale.
 
 Beyond linear presets, RestoraX ships a **Pipeline DAG Engine** (typed ports, parallel branches, merge strategies, retry policies, per-branch progress) and a **ComfyUI-style visual builder** — drag restorers onto a canvas, wire them into branching graphs, and run them with live progress.
 
@@ -96,7 +96,37 @@ docker-compose up --build                      # prod: GPU, PostgreSQL, MinIO
 
 ---
 
+## Model status
+
+Not every registered restorer ships working weights yet. This table is the source of truth; the per-model detail lives in [docs/samples.md](docs/samples.md).
+
+| State | Models |
+|---|---|
+| **Real output** | Real-ESRGAN, Waifu2x, EvTexture, CodeFormer, GFPGAN, ProPainter (scratch removal), YADIF, Demucs, VoiceFixer |
+| **Classical fallback** (no neural weights) | RIFE, Video Stabilization, GaVS, RNNoise |
+| **Needs weights / arch / extra** | BasicVSR++, VRT, TDM, SeedVR, Upscale-A-Video, MambaIR, FlashVSR, CodeFormer++, DDColor, HDRTVDM, DicFace, AI Deinterlace |
+
+Restorers that cannot load raise an explicit `RestorerLoadError` rather than silently degrading.
+
+### DLSS 5 Neural Rendering (optional, external)
+
+`dlss5_visual_enhancer` drives [Visual Enhancer](https://github.com/Merserk/dlss5-visual-enhancer)'s `VE_CLI.exe` to apply NVIDIA DLSS 5 Neural Rendering. RestoraX does **not** bundle or redistribute Visual Enhancer or any NVIDIA binaries — you install it yourself under its own license, then point RestoraX at it:
+
+```bash
+# Windows 11 + NVIDIA RTX
+set RESTORAX_VE_CLI=C:\VisualEnhancer\VE_CLI.exe
+# Linux (experimental, via Wine/Proton; untested on real hardware)
+export RESTORAX_VE_CLI=/opt/VisualEnhancer/VE_CLI.exe
+export RESTORAX_VE_LAUNCHER="wine"
+```
+
+Parameters: `style` (0/1/2) and `strength` (0–2). Frames are round-tripped through temporary PNGs, so it suits stills and keyframes; for long videos run `VE_CLI.exe` directly. Resolution is unchanged — chain a super-resolution stage for scaling.
+
+---
+
 ## Benchmark Results
+
+> **Caveat:** the numbers below are *indicative* targets taken from the cited papers and stub-model CPU timings, **not** measurements of RestoraX with real weights for models marked as needing weights above. Reproduce with `scripts/run_benchmarks.py`.
 
 All benchmarks use standard evaluation protocols from SR/restoration literature:
 

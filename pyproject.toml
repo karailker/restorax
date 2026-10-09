@@ -127,6 +127,7 @@ flashvsr_x4          = "restorax.restorers.super_resolution.flashvsr:FlashVSRRes
 evtexture_x4         = "restorax.restorers.super_resolution.evtexture:EvTextureRestorer"
 seedvr               = "restorax.restorers.super_resolution.seedvr:SeedVRRestorer"
 dicface              = "restorax.restorers.face_restoration.dicface:DicFaceRestorer"
+dlss5_visual_enhancer = "restorax.restorers.enhancement.dlss5_visual_enhancer:DLSS5VisualEnhancerRestorer"
 
 [tool.hatch.build.targets.wheel]
 packages = ["restorax"]

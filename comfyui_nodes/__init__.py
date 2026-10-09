@@ -9,6 +9,7 @@ from . import (
     audio,
     colorization,
     deinterlacing,
+    enhancement,
     face_restoration,
     frame_interpolation,
     hdr,
@@ -17,7 +18,7 @@ from . import (
 )
 
 _MODULES = [
-    artifact_removal, audio, colorization, deinterlacing, face_restoration,
+    artifact_removal, audio, colorization, deinterlacing, enhancement, face_restoration,
     frame_interpolation, hdr, stabilization, super_resolution,
 ]
 
