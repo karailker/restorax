@@ -195,10 +195,15 @@ jobs:
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install basicsr av opencv-python-headless
           pip install -e .
-          pip install pip-audit
+          pip install pip-audit "setuptools>=83"
 
+      # Ignored: PYSEC-2026-1215 / CVE-2024-27763 (basicsr command injection through the
+      # SLURM_NODELIST environment variable in its distributed-training helper). No fixed
+      # release exists, an attacker needs control of the process environment, and RestoraX
+      # only uses basicsr's network architectures, never its SLURM launcher.
+      # Remove the ignore once basicsr ships a fix.
       - name: pip-audit
-        run: pip-audit --skip-editable --progress-spinner off
+        run: pip-audit --skip-editable --progress-spinner off --ignore-vuln PYSEC-2026-1215
 
   npm-audit:
     name: Dependency audit (npm audit)
