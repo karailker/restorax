@@ -19,6 +19,8 @@ Usage:
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 from restorax.benchmarks.datasets import BenchmarkDataset, FramePair
@@ -174,7 +176,7 @@ class AudioRestorationSuite:
         self._sr = sample_rate
         self._n = int(sample_rate * duration)
 
-    def run(self, restorer: object, device_str: str = "cpu") -> dict:
+    def run(self, restorer: object, device_str: str = "cpu") -> dict[str, Any]:
         """Returns dict of {degradation: {snr_before, snr_after, mse_before, mse_after}}."""
         from restorax.audio.restorer import AudioRestorerParams
 

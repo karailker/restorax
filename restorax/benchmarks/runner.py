@@ -22,6 +22,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -44,7 +45,7 @@ class BenchmarkResult:
     num_frames: int
     timestamp: str
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     def to_markdown_row(self) -> str:
@@ -64,7 +65,7 @@ class BenchmarkSuite:
     baselines: dict[str, BaselineResult] = None  # type: ignore[assignment]
 
     def to_json(self) -> str:
-        data: dict = {"results": [r.to_dict() for r in self.results]}
+        data: dict[str, Any] = {"results": [r.to_dict() for r in self.results]}
         if self.baselines:
             from dataclasses import asdict
 

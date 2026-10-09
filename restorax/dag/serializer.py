@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from restorax.core.exceptions import DAGValidationError
@@ -10,7 +11,7 @@ from restorax.dag.node import Node
 _NODE_REGISTRY: dict[str, type[Node]] = {}
 
 
-def dag_node_type(type_id: str):
+def dag_node_type(type_id: str) -> Callable[[type[Node]], type[Node]]:
     """Class decorator that registers a Node subclass under a string type ID."""
 
     def decorator(cls: type[Node]) -> type[Node]:

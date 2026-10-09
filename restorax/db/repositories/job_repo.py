@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,8 +43,8 @@ class JobRepository:
         completed_at: datetime | None = None,
         output_path: str | None = None,
         error: str | None = None,
-        metrics: dict | None = None,
-        dag_run: dict | None = None,
+        metrics: dict[str, Any] | None = None,
+        dag_run: dict[str, Any] | None = None,
     ) -> JobModel:
         job = await self.get(job_id)
         job.status = status

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +36,7 @@ class PipelineRepository:
         return list(result.scalars().all())
 
     async def update(
-        self, pipeline_id: str, name: str, description: str, config: dict
+        self, pipeline_id: str, name: str, description: str, config: dict[str, Any]
     ) -> PipelineTemplateModel:
         p = await self.get(pipeline_id)
         p.name = name

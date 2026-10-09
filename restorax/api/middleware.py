@@ -27,7 +27,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 
             trace.get_current_span().set_attribute("http.request_id", request_id)
         except Exception:
-            pass
+            logger.debug("best-effort telemetry step failed", exc_info=True)
 
         request.state.request_id = request_id
         response: Response = await call_next(request)  # type: ignore[operator]

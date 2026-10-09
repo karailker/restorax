@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from restorax.config import Settings
@@ -102,25 +102,25 @@ def configure_telemetry(settings: Settings) -> None:
     SQLAlchemyInstrumentor().instrument()
 
 
-def get_tracer():
+def get_tracer() -> Any:
     from opentelemetry import trace
 
     return trace.get_tracer("restorax")
 
 
-def get_meter():
+def get_meter() -> Any:
     from opentelemetry import metrics
 
     return metrics.get_meter("restorax")
 
 
-def get_jobs_counter():
+def get_jobs_counter() -> Any:
     return _jobs_counter
 
 
-def get_job_duration_histogram():
+def get_job_duration_histogram() -> Any:
     return _job_duration_histogram
 
 
-def get_active_jobs_counter():
+def get_active_jobs_counter() -> Any:
     return _active_jobs_counter

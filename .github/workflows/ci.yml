@@ -26,10 +26,10 @@ jobs:
         run: pip install ruff
 
       - name: Check formatting
-        run: ruff format --check restorax/ tests/ comfyui_nodes/ scripts/
+        run: ruff format --check restorax/ tests/ scripts/
 
       - name: Lint
-        run: ruff check restorax/ tests/ comfyui_nodes/ scripts/
+        run: ruff check restorax/ tests/ scripts/
 
   # ── Type checking ─────────────────────────────────────────────────────────────
   typecheck:
@@ -42,11 +42,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install deps for type checking
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+
+      - name: Install dependencies (CPU torch)
         run: |
-          pip install mypy pydantic pydantic-settings \
-            "sqlalchemy[asyncio]" celery redis fastapi \
-            types-pyyaml types-redis click
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install basicsr av opencv-python-headless
+          pip install -e ".[dev]"
 
       - name: mypy
         run: mypy restorax/ --ignore-missing-imports --no-strict-optional
@@ -159,6 +165,89 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # ── Security & supply chain ───────────────────────────────────────────────────
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar -xz gitleaks
+          ./gitleaks detect --source . --redact --verbose
+
+  python-audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (CPU torch)
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install basicsr av opencv-python-headless
+          pip install -e .
+          pip install pip-audit "setuptools>=83"
+
+      # Ignored: PYSEC-2026-1215 / CVE-2024-27763 (basicsr command injection through the
+      # SLURM_NODELIST environment variable in its distributed-training helper). No fixed
+      # release exists, an attacker needs control of the process environment, and RestoraX
+      # only uses basicsr's network architectures, never its SLURM launcher.
+      # Remove the ignore once basicsr ships a fix.
+      - name: pip-audit
+        run: pip-audit --skip-editable --progress-spinner off --ignore-vuln PYSEC-2026-1215
+
+  npm-audit:
+    name: Dependency audit (npm audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  workflows:
+    name: Workflow lint (actionlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run actionlint
+        run: |
+          curl -sSfL https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz | tar -xz actionlint
+          ./actionlint -color
+
+  # Needs "Dependency graph" enabled (Settings > Advanced Security). Once it is on,
+  # set the repository variable ENABLE_DEPENDENCY_REVIEW=true to turn this job on.
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request' && vars.ENABLE_DEPENDENCY_REVIEW == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
 
   # ── Docker build ──────────────────────────────────────────────────────────────
   docker-build:

@@ -32,6 +32,6 @@ ComfyUI node pack, and CLI.
 
 - **Pipeline DAG engine** — typed ports, parallel branches, merge strategies, retry policies
 - **React Flow visual builder** — drag-and-drop node canvas at `/builder`
-- **ComfyUI node pack** — 25 custom nodes in `comfyui_nodes/`, installable as a ComfyUI plugin
+- **ComfyUI node pack** — custom nodes for every restorer, maintained in the separate [restorax-comfyui](https://github.com/karailker/restorax-comfyui) repository (linked here as the `comfyui_nodes/` git submodule)
 - **REST API + WebSocket** — submit jobs, stream progress, download results
 - **CLI** — single-command restoration without running the server
