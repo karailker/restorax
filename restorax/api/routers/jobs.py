@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse, Response
@@ -235,8 +236,8 @@ async def get_job_branches(job_id: str, db: AsyncSession = Depends(get_db)) -> B
     except JobNotFoundError:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found") from None
 
-    dag_run: dict = job.dag_run or {}
-    node_states: dict = dag_run.get("node_states", {})
+    dag_run: dict[str, Any] = job.dag_run or {}
+    node_states: dict[str, Any] = dag_run.get("node_states", {})
 
     # Find parallel nodes from dag_run and extract branch info
     branches: list[BranchInfo] = []
@@ -275,7 +276,7 @@ async def merge_job_branches(
     except JobNotFoundError:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found") from None
 
-    dag_run: dict = job.dag_run or {}
+    dag_run: dict[str, Any] = job.dag_run or {}
     if not dag_run:
         raise HTTPException(
             status_code=409, detail="Job has no DAG run data (not a DAG job or not yet executed)"

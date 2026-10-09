@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from collections import OrderedDict
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import torch
@@ -106,7 +107,7 @@ class AudioModelRegistry:
 
 
 def load_audio_pipeline_from_config(
-    config: dict,
+    config: dict[str, Any],
     registry: AudioModelRegistry,
     device: torch.device,
 ) -> AudioPipeline | None:

@@ -25,6 +25,26 @@ Start the app:
 honcho start -f Procfile.dev
 ```
 
+Optional but recommended: run the same checks as CI before every commit.
+```bash
+pip install pre-commit && pre-commit install
+```
+
+---
+
+## Quality checks (all enforced in CI)
+
+```bash
+ruff check restorax/ tests/ comfyui_nodes/ scripts/   # lint, includes security rules (S)
+ruff format --check restorax/ tests/ comfyui_nodes/ scripts/
+mypy restorax/ --ignore-missing-imports --no-strict-optional
+gitleaks detect --source . --redact                   # secret scan
+pip-audit --skip-editable                             # Python dependency CVEs
+cd frontend && npm audit --omit=dev --audit-level=high
+```
+
+mypy runs with `disallow_untyped_defs`, `disallow_any_generics` and `disallow_untyped_calls`: new code must be fully annotated. Vendored upstream architectures (`*_arch.py`, `propainter/`) are excluded from lint and type checks so they stay identical to upstream.
+
 ---
 
 ## Running tests
@@ -33,8 +53,8 @@ honcho start -f Procfile.dev
 # All Python tests (unit + integration + system)
 pytest tests/ -q
 
-# Frontend tests
-cd frontend && npm test
+# Frontend typecheck and build
+cd frontend && npm run typecheck && npm run build
 
 # With coverage
 pytest tests/ --cov=restorax --cov-report=term-missing

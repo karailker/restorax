@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import cv2
 import numpy as np
@@ -41,7 +42,7 @@ class YadifDeinterlaceRestorer(BaseRestorer):
 
     # No tunable knobs: motion-adaptive YADIF with auto field parity (mode=send_frame,
     # one output frame per input frame) is the sensible universal default.
-    PARAM_SCHEMA: list = []
+    PARAM_SCHEMA: list[Any] = []
 
     def __init__(self) -> None:
         self._device: torch.device | None = None
@@ -129,9 +130,10 @@ class YadifDeinterlaceRestorer(BaseRestorer):
             tmp = Path(tmpdir)
             for i, f in enumerate(frames):
                 cv2.imwrite(str(tmp / f"in_{i:04d}.png"), cv2.cvtColor(f, cv2.COLOR_RGB2BGR))
-            result = subprocess.run(
+            ffmpeg_bin = shutil.which("ffmpeg") or "ffmpeg"
+            result = subprocess.run(  # noqa: S603 - fixed argv, no shell
                 [
-                    "ffmpeg",
+                    ffmpeg_bin,
                     "-y",
                     "-framerate",
                     "25",

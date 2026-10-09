@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 import click
 from rich.console import Console
@@ -56,7 +57,7 @@ def download_models_group(
         return
 
     # Build target list
-    targets: list = []
+    targets: list[Any] = []
     if download_all:
         targets = list(CATALOG)
     else:
@@ -120,7 +121,7 @@ def download_models_group(
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-def _print_status_table(catalog: list) -> None:
+def _print_status_table(catalog: list[Any]) -> None:
     table = Table(title="Model Weights Status", show_header=True)
     table.add_column("Name", style="cyan")
     table.add_column("Group")

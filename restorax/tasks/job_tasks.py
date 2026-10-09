@@ -12,6 +12,7 @@ import os
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import structlog
 import torch
@@ -118,7 +119,9 @@ def _get_audio_registry() -> object:
 
 
 @task_prerun.connect
-def _on_task_prerun(task_id: str, task: object, args: tuple, kwargs: dict, **_: object) -> None:
+def _on_task_prerun(
+    task_id: str, task: object, args: tuple[Any, ...], kwargs: dict[str, Any], **_: object
+) -> None:
     job_id = kwargs.get("job_id") or (args[0] if args else None)
     structlog.contextvars.clear_contextvars()
     ctx: dict[str, str] = {"celery_task_id": task_id}
@@ -158,7 +161,12 @@ class JobTask(Task):  # type: ignore[type-arg]
     abstract = True
 
     def on_failure(
-        self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: object
+        self,
+        exc: Exception,
+        task_id: str,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+        einfo: object,
     ) -> None:
         job_id = kwargs.get("job_id") or (args[0] if args else None)
         if job_id:
@@ -175,7 +183,7 @@ class JobTask(Task):  # type: ignore[type-arg]
             if _ac is not None:
                 _ac.add(-1, {"pipeline": ""})
         except Exception:
-            pass
+            logger.debug("best-effort telemetry step failed", exc_info=True)
         super().on_failure(exc, task_id, args, kwargs, einfo)
 
 
@@ -187,7 +195,7 @@ def run_job(
     input_path: str,
     output_path: str,
     restore_audio: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """
     Execute a restoration pipeline on a video file.
 
@@ -208,7 +216,7 @@ def run_job(
         if ctr is not None:
             ctr.add(1, {"pipeline": pipeline_preset_path})
     except Exception:
-        pass
+        logger.debug("best-effort telemetry step failed", exc_info=True)
     _update_job_db(job_id, status="running", started_at=datetime.now(UTC))
     reporter.update(0.0, status="running")
 
@@ -291,18 +299,18 @@ def run_job(
         if _ac is not None:
             _ac.add(-1, {"pipeline": pipeline_preset_path})
     except Exception:
-        pass
+        logger.debug("best-effort telemetry step failed", exc_info=True)
     return {"output_path": output_path, "metrics": {}}
 
 
 @celery_app.task(bind=True, base=JobTask, name="restorax.tasks.job_tasks.run_dag_job")
 def run_dag_job(
-    self,
+    self: Task,
     job_id: str,
     dag_id: str,
     input_path: str,
     output_path: str,
-) -> dict:
+) -> dict[str, Any]:
     """
     Execute a DAG pipeline on a video file.
     Loads the DAG from DB, builds ExecutionContext, runs DAGExecutor.
@@ -332,7 +340,7 @@ def run_dag_job(
         device_str = "cuda:0"
     device = torch.device(device_str if torch.cuda.is_available() or device_str == "cpu" else "cpu")
 
-    async def _load_dag():
+    async def _load_dag() -> Any:
         from restorax.core.exceptions import PipelineConfigError
         from restorax.db.repositories.pipeline_repo import PipelineRepository
         from restorax.db.session import AsyncSessionLocal

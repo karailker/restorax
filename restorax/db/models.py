@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import JSON, DateTime, Float, String, Text
@@ -29,8 +30,8 @@ class JobModel(Base):
     # Result fields
     output_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    metrics: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    dag_run: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    metrics: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    dag_run: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     # Celery
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -49,7 +50,7 @@ class PipelineTemplateModel(Base):
     id: Mapped[str] = mapped_column(String(128), primary_key=True)
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    config: Mapped[dict] = mapped_column(JSON, nullable=False)  # full YAML parsed to dict
+    config: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)  # full YAML parsed to dict
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=lambda: datetime.now(UTC)
     )

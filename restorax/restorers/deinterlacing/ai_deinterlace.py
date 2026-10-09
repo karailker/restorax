@@ -22,6 +22,7 @@ returned unchanged.
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -148,9 +149,10 @@ class AIDeinterlaceRestorer(BaseRestorer):
                     cv2.imwrite(str(tmpdir_p / f"in_{i:04d}.png"), bgr)
 
                 # Run FFmpeg YADIF
-                result = subprocess.run(
+                ffmpeg_bin = shutil.which("ffmpeg") or "ffmpeg"
+                result = subprocess.run(  # noqa: S603 - fixed argv, no shell
                     [
-                        "ffmpeg",
+                        ffmpeg_bin,
                         "-y",
                         "-framerate",
                         "25",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -51,7 +52,7 @@ async def _check_redis() -> str:
         return "fail"
 
 
-def _celery_inspect():
+def _celery_inspect() -> Any:
     """Return a Celery Inspect instance. Extracted for testability."""
     from restorax.tasks.celery_app import celery_app
 
@@ -59,7 +60,7 @@ def _celery_inspect():
 
 
 @router.get("/health/celery")
-async def celery_health() -> dict:
+async def celery_health() -> dict[str, Any]:
     """Return Celery worker count, active task count, and queued task count."""
     try:
         inspect = _celery_inspect()
