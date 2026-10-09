@@ -35,8 +35,8 @@ pip install pre-commit && pre-commit install
 ## Quality checks (all enforced in CI)
 
 ```bash
-ruff check restorax/ tests/ comfyui_nodes/ scripts/   # lint, includes security rules (S)
-ruff format --check restorax/ tests/ comfyui_nodes/ scripts/
+ruff check restorax/ tests/ scripts/   # lint, includes security rules (S)
+ruff format --check restorax/ tests/ scripts/
 mypy restorax/ --ignore-missing-imports --no-strict-optional
 gitleaks detect --source . --redact                   # secret scan
 pip-audit --skip-editable                             # Python dependency CVEs

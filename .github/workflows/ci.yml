@@ -26,10 +26,10 @@ jobs:
         run: pip install ruff
 
       - name: Check formatting
-        run: ruff format --check restorax/ tests/ comfyui_nodes/ scripts/
+        run: ruff format --check restorax/ tests/ scripts/
 
       - name: Lint
-        run: ruff check restorax/ tests/ comfyui_nodes/ scripts/
+        run: ruff check restorax/ tests/ scripts/
 
   # ── Type checking ─────────────────────────────────────────────────────────────
   typecheck:

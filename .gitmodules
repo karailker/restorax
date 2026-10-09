@@ -1,0 +1,3 @@
+[submodule "comfyui_nodes"]
+	path = comfyui_nodes
+	url = https://github.com/karailker/restorax-comfyui.git

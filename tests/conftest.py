@@ -7,7 +7,6 @@ GPU fixtures are marked @pytest.mark.gpu and skipped in CI by default.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import numpy as np
@@ -142,8 +141,6 @@ def pytest_collection_modifyitems(config, items):
 
     asset_dir = Path(__file__).parent / "assets"
 
-    skip_comfyui = pytest.mark.skip(reason="needs $COMFYUI_PATH set to a real ComfyUI checkout")
-
     for item in items:
         for marker in item.iter_markers("requires_weights"):
             model_name = marker.args[0] if marker.args else ""
@@ -158,5 +155,3 @@ def pytest_collection_modifyitems(config, items):
             not asset_dir.exists() or not any(asset_dir.iterdir())
         ):
             item.add_marker(pytest.mark.skip(reason="test assets not downloaded"))
-        if "requires_comfyui" in item.keywords and not os.environ.get("COMFYUI_PATH"):
-            item.add_marker(skip_comfyui)

@@ -15,7 +15,7 @@ Brief description of what this PR changes and why.
 
 - [ ] Tests pass locally (`pytest tests/ -q` and `cd frontend && npm run typecheck`)
 - [ ] New code has tests
-- [ ] No new ruff errors (`ruff check restorax/ tests/ comfyui_nodes/ scripts/`)
+- [ ] No new ruff errors (`ruff check restorax/ tests/ scripts/`)
 - [ ] No new mypy errors (`mypy restorax/ --ignore-missing-imports`)
 - [ ] PR description explains the "why", not just the "what"
 
