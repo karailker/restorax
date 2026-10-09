@@ -106,16 +106,16 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
     def _restore(self, frame: np.ndarray, fidelity: float) -> np.ndarray:
         """Full CodeFormer++ inference with face detection."""
         helper = self._face_helper
-        helper.clean_all()  # type: ignore[union-attr]
-        helper.read_image(frame)  # type: ignore[union-attr]
-        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr]
-        helper.align_warp_face()  # type: ignore[union-attr]
+        helper.clean_all()  # type: ignore[union-attr,attr-defined]
+        helper.read_image(frame)  # type: ignore[union-attr,attr-defined]
+        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr,attr-defined]
+        helper.align_warp_face()  # type: ignore[union-attr,attr-defined]
 
-        if not helper.cropped_faces:  # type: ignore[union-attr]
+        if not helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             return frame
 
         restored_faces = []
-        for cropped_face in helper.cropped_faces:  # type: ignore[union-attr]
+        for cropped_face in helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             face_rgb = cv2.cvtColor(cropped_face, cv2.COLOR_BGR2RGB)
             t = (
                 torch.from_numpy(face_rgb)
@@ -132,9 +132,9 @@ class CodeFormerPlusPlusRestorer(BaseRestorer):
             )
             restored_faces.append(cv2.cvtColor(restored_rgb, cv2.COLOR_RGB2BGR))
 
-        helper.add_restored_face(restored_faces)  # type: ignore[union-attr]
-        helper.paste_faces_to_input_image()  # type: ignore[union-attr]
-        result = helper.output  # type: ignore[union-attr]
+        helper.add_restored_face(restored_faces)  # type: ignore[union-attr,attr-defined]
+        helper.paste_faces_to_input_image()  # type: ignore[union-attr,attr-defined]
+        result = helper.output  # type: ignore[union-attr,attr-defined]
         return result if result is not None else frame
 
     @staticmethod

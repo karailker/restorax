@@ -73,7 +73,7 @@ def _lena_like(size: int = 128) -> np.ndarray:
         frame[max(0, y - 4) : min(size, y + 4), x] = [40, 30, 20]
     # Feathers: high-frequency texture (tests high-frequency SR recovery)
     for _ in range(120):
-        x, y = int(rng.integers(size * 0.3, size)), int(rng.integers(0, size * 0.6))
+        x, y = int(rng.integers(int(size * 0.3), size)), int(rng.integers(0, int(size * 0.6)))
         cv2.line(
             frame,
             (x, y),
@@ -300,7 +300,7 @@ class BenchmarkDataset:
                 ref, (self.width // factor, self.height // factor), interpolation=cv2.INTER_CUBIC
             )
             # 2. Add noise
-            noise = rng.normal(0, 15, small.shape).astype(np.float32)
+            noise = np.asarray(rng.normal(0, 15, small.shape), dtype=np.float32)
             small = np.clip(small.astype(np.float32) + noise, 0, 255).astype(np.uint8)
             # 3. JPEG
             _, buf = cv2.imencode(
@@ -465,7 +465,7 @@ class BenchmarkDataset:
         for _ in range(self.num_pairs):
             frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
             for c in range(3):
-                base = rng.integers(30, 200)
+                base = int(rng.integers(30, 200))
                 gradient = np.linspace(base, base + 50, self.width, dtype=np.uint8)
                 frame[:, :, c] = gradient[np.newaxis, :]
             for _ in range(5):

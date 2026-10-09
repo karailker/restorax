@@ -157,11 +157,11 @@ class VideoStabilizationRestorer(BaseRestorer):
         transforms = np.zeros((len(grays) - 1, 3), dtype=np.float64)
 
         for i in range(len(grays) - 1):
-            pts = cv2.goodFeaturesToTrack(grays[i], mask=None, **feature_params)
+            pts = cv2.goodFeaturesToTrack(grays[i], mask=None, **feature_params)  # type: ignore[call-overload]
             if pts is None or len(pts) < 4:
                 continue  # no features — keep zero transform (no correction)
 
-            pts_next, status, _ = cv2.calcOpticalFlowPyrLK(
+            pts_next, status, _ = cv2.calcOpticalFlowPyrLK(  # type: ignore[call-overload]
                 grays[i], grays[i + 1], pts, None, **lk_params
             )
             if pts_next is None:

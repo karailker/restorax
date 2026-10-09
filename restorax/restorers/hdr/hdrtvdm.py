@@ -84,7 +84,7 @@ class HDRTVDMRestorer(BaseRestorer):
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     def load(self, device: torch.device) -> None:
-        self._model = self._build_model(device)
+        self._model = self._build_model(device)  # type: ignore[assignment]
         self._device = device
         self._loaded = True
         logger.info("HDRTVDM loaded on %s", device)

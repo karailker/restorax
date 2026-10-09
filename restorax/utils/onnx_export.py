@@ -68,7 +68,7 @@ def export_restorer_to_onnx(
     with torch.inference_mode():
         torch.onnx.export(
             model,
-            dummy,
+            dummy,  # type: ignore[arg-type]
             str(onnx_path),
             opset_version=opset_version,
             input_names=["input"],
@@ -115,8 +115,8 @@ def _validate_onnx(onnx_path: Path, dummy_np: np.ndarray) -> None:
     """Run a forward pass through the ONNX model to verify correctness."""
     try:
         session = load_onnx_session(onnx_path, device="cpu")
-        input_name = session.get_inputs()[0].name  # type: ignore[union-attr]
-        outputs = session.run(None, {input_name: dummy_np})  # type: ignore[union-attr]
+        input_name = session.get_inputs()[0].name  # type: ignore[union-attr,attr-defined]
+        outputs = session.run(None, {input_name: dummy_np})  # type: ignore[union-attr,attr-defined]
         logger.info("ONNX validation passed — output shape: %s", outputs[0].shape)
     except ImportError:
         logger.warning("onnxruntime not installed — skipping ONNX validation")
@@ -142,4 +142,4 @@ def _register_all(registry: object) -> None:
         DDColorRestorer,
         RIFERestorer,
     ]:
-        registry.register(cls)
+        registry.register(cls)  # type: ignore[type-abstract]

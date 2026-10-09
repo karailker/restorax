@@ -86,7 +86,7 @@ def _get_registry() -> ModelRegistry:
             YadifDeinterlaceRestorer,
             DLSS5VisualEnhancerRestorer,
         ]:
-            _registry.register(cls)
+            _registry.register(cls)  # type: ignore[type-abstract]
 
         # Auto-discover and register third-party plugin restorers
         register_plugins(_registry)

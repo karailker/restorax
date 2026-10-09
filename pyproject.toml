@@ -160,8 +160,29 @@ ignore = [
 # ── Mypy ──────────────────────────────────────────────────────────────────────
 [tool.mypy]
 python_version = "3.11"
-strict = true
 ignore_missing_imports = true
+check_untyped_defs = true
+# Optional deps (basicsr, mamba-ssm, ...) differ per environment, so ignores may flip.
+warn_unused_ignores = false
+warn_redundant_casts = true
+no_implicit_optional = true
+# Not strict yet: the codebase predates full annotations. Tighten per-package
+# (disallow_untyped_defs) as modules get annotated.
+
+# Vendored upstream architectures are kept as-is and are not type-checked.
+[[tool.mypy.overrides]]
+module = [
+    "restorax.restorers.artifact_removal.propainter_arch",
+    "restorax.restorers.face_restoration.codeformer_arch",
+    "restorax.restorers.face_restoration.vqgan_arch",
+    "restorax.restorers.frame_interpolation.rife_arch.*",
+    "restorax.restorers.super_resolution.evtexture_arch",
+    "restorax.restorers.super_resolution.upscale_a_video_arch",
+    "restorax.restorers.super_resolution.vrt_arch",
+    "restorax.restorers.super_resolution.waifu2x_arch",
+    "restorax.restorers.artifact_removal.propainter.*",
+]
+ignore_errors = true
 
 # ── Pytest ────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]

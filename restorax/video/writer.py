@@ -56,7 +56,7 @@ class VideoWriter:
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             self._container = av.open(str(self._path), mode="w")
-            self._video_stream = self._container.add_stream(
+            self._video_stream = self._container.add_stream(  # type: ignore[assignment]
                 self._codec, rate=Fraction(self._fps).limit_denominator(1001)
             )
             self._video_stream.width = self._out_width
@@ -71,7 +71,7 @@ class VideoWriter:
             return
         try:
             # Flush encoder
-            for packet in self._video_stream.encode():  # type: ignore[union-attr]
+            for packet in self._video_stream.encode():  # type: ignore[union-attr,attr-defined]
                 self._container.mux(packet)
             # Mux audio from source if available
             if self._source_path and self._meta.has_audio:
@@ -107,7 +107,7 @@ class VideoWriter:
         # Re-open output in append mode is not possible; use a temp approach:
         # Write audio packets from source directly into output container.
         # Note: This works when container is still open (called before close flush).
-        audio_stream = self._container.add_stream(template=src.streams.audio[0])
+        audio_stream = self._container.add_stream(template=src.streams.audio[0])  # type: ignore[call-overload]
         for packet in src.demux(src.streams.audio[0]):
             if packet.dts is None:
                 continue

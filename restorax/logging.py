@@ -37,7 +37,7 @@ def configure_logging(app_env: str = "development", log_level: str = "INFO") -> 
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.contextvars.merge_contextvars,
-        _inject_otel_context,
+        _inject_otel_context,  # type: ignore[list-item]
         structlog.processors.StackInfoRenderer(),
         structlog.processors.ExceptionRenderer(),
     ]

@@ -159,26 +159,26 @@ class CodeFormerRestorer(BaseRestorer):
         fidelity = float(params.extra.get("fidelity", _DEFAULT_FIDELITY))
 
         helper = self._face_helper
-        helper.clean_all()  # type: ignore[union-attr]
-        helper.read_image(frame)  # type: ignore[union-attr]
-        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr]
-        helper.align_warp_face()  # type: ignore[union-attr]
+        helper.clean_all()  # type: ignore[union-attr,attr-defined]
+        helper.read_image(frame)  # type: ignore[union-attr,attr-defined]
+        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr,attr-defined]
+        helper.align_warp_face()  # type: ignore[union-attr,attr-defined]
 
         # No faces detected — return unchanged
-        if not helper.cropped_faces:  # type: ignore[union-attr]
+        if not helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             return frame
 
         restored_faces = []
-        for cropped_face in helper.cropped_faces:  # type: ignore[union-attr]
+        for cropped_face in helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             face_t = self._face_to_tensor(cropped_face)
             with torch.inference_mode():
                 output = self._net(face_t, w=fidelity, adain=True)[0]
             restored = self._tensor_to_face(output)
             restored_faces.append(restored)
 
-        helper.add_restored_face(restored_faces)  # type: ignore[union-attr]
-        helper.paste_faces_to_input_image()  # type: ignore[union-attr]
-        result = helper.output  # type: ignore[union-attr]
+        helper.add_restored_face(restored_faces)  # type: ignore[union-attr,attr-defined]
+        helper.paste_faces_to_input_image()  # type: ignore[union-attr,attr-defined]
+        result = helper.output  # type: ignore[union-attr,attr-defined]
 
         return result if result is not None else frame
 

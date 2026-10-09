@@ -177,7 +177,7 @@ class ScratchRemovalRestorer(BaseRestorer):
         masks: list[np.ndarray],
     ) -> list[np.ndarray]:
         """Delegate to ProPainter recurrent network."""
-        results = self._model.inpaint(frames, masks)  # type: ignore[union-attr]
+        results = self._model.inpaint(frames, masks)  # type: ignore[union-attr,attr-defined]
         return results
 
     # ── Build model ───────────────────────────────────────────────────────────

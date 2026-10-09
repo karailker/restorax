@@ -45,7 +45,7 @@ async def _check_redis() -> str:
         async with asyncio.timeout(2.0):
             r = aioredis.from_url(settings.redis_url)
             await r.ping()
-            await r.aclose()
+            await r.aclose()  # type: ignore[attr-defined]
         return "ok"
     except Exception:
         return "fail"

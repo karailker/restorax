@@ -53,6 +53,6 @@ async def job_progress(websocket: WebSocket, job_id: str) -> None:
         pass
     finally:
         await pubsub.unsubscribe(channel)
-        await client.aclose()
+        await client.aclose()  # type: ignore[attr-defined]
         with contextlib.suppress(Exception):
             await websocket.close()

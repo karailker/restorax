@@ -139,7 +139,7 @@ class RIFERestorer(BaseRestorer):
             t1 = self._frame_to_tensor(frame1)
             t0, t1, (ph, pw) = self._pad_to_multiple(t0, t1, multiple=32)
             with torch.inference_mode():
-                mid_t = self._model.inference(t0, t1, timestep=0.5)  # type: ignore[union-attr]
+                mid_t = self._model.inference(t0, t1, timestep=0.5)  # type: ignore[union-attr,attr-defined]
             if ph or pw:
                 mid_t = mid_t[:, :, : mid_t.shape[2] - ph, : mid_t.shape[3] - pw]
             return self._tensor_to_frame(mid_t)

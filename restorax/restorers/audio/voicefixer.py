@@ -107,7 +107,7 @@ class VoiceFixerRestorer(AudioRestorer):
 
                 AudioWriter().write_wav(inp, audio, sr)
 
-                self._model.restore(  # type: ignore[union-attr]
+                self._model.restore(  # type: ignore[union-attr,attr-defined]
                     input=str(inp),
                     output_dir=tmpdir,
                     mode=mode,

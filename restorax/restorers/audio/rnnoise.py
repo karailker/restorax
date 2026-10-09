@@ -116,14 +116,14 @@ class RNNoiseRestorer(AudioRestorer):
             out_frames = []
             for i in range(0, len(pcm), _FRAME_SIZE):
                 frame = pcm[i : i + _FRAME_SIZE].tobytes()
-                processed = self._denoiser.process_frame(frame)  # type: ignore[union-attr]
+                processed = self._denoiser.process_frame(frame)  # type: ignore[union-attr,attr-defined]
                 out_frames.append(np.frombuffer(processed, dtype=np.int16))
             result_pcm = np.concatenate(out_frames)[: len(mono)]
             return result_pcm.astype(np.float32) / 32768.0
 
         # noisereduce fallback
         if hasattr(self._denoiser, "reduce_noise"):
-            return self._denoiser.reduce_noise(  # type: ignore[union-attr]
+            return self._denoiser.reduce_noise(  # type: ignore[union-attr,attr-defined]
                 y=mono.astype(np.float32), sr=_RNNOISE_SR
             )
 

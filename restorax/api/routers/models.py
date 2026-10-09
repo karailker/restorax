@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from typing import Any
 
 from fastapi import APIRouter
 
@@ -38,7 +39,8 @@ from restorax.restorers.super_resolution.waifu2x import Waifu2xRestorer
 
 router = APIRouter(prefix="/models", tags=["models"])
 
-_RESTORER_CLASSES = [
+# Mixes video (BaseRestorer) and audio restorer classes, hence Any.
+_RESTORER_CLASSES: list[Any] = [
     RealESRGANx4Restorer,
     BasicVSRPlusPlusRestorer,
     UpscaleAVideoRestorer,

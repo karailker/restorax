@@ -101,11 +101,11 @@ class AudioWriter:
 
         # Copy video stream without re-encoding
         in_vs = in_video.streams.video[0]
-        out_vs = out.add_stream(template=in_vs)
+        out_vs = out.add_stream(template=in_vs)  # type: ignore[call-overload]
 
         # Add audio stream from temp WAV
         in_as = in_audio.streams.audio[0]
-        out_as = out.add_stream(template=in_as)
+        out_as = out.add_stream(template=in_as)  # type: ignore[call-overload]
 
         # Mux video packets
         for packet in in_video.demux(in_vs):
@@ -115,7 +115,7 @@ class AudioWriter:
             out.mux(packet)
 
         # Mux audio packets
-        for packet in in_audio.demux(in_as):
+        for packet in in_audio.demux(in_as):  # type: ignore[assignment]
             if packet.dts is None:
                 continue
             packet.stream = out_as

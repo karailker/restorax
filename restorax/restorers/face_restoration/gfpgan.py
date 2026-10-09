@@ -110,7 +110,7 @@ class GFPGANRestorer(BaseRestorer):
         only_center_face = False
 
         try:
-            _, restored_faces, restored_img = self._gfpgan.enhance(  # type: ignore[union-attr]
+            _, restored_faces, restored_img = self._gfpgan.enhance(  # type: ignore[union-attr,attr-defined]
                 frame,
                 has_aligned=has_aligned,
                 only_center_face=only_center_face,

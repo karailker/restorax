@@ -127,8 +127,8 @@ class VRTRestorer(BaseRestorer):
 
         out = out.squeeze(0).float().clamp(0, 1)  # T C H W
         result = []
-        for t in range(len(frames)):  # only return non-padded frames
-            frame_t = out[t].permute(1, 2, 0).mul(255.0).byte().cpu().numpy()
+        for i in range(len(frames)):  # only return non-padded frames
+            frame_t = out[i].permute(1, 2, 0).mul(255.0).byte().cpu().numpy()
             result.append(frame_t)
         return result
 
