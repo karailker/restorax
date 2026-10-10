@@ -1,19 +1,15 @@
 """
-FlashVSR — Fast Lightweight Video Super-Resolution.
+FlashVSR adapter (not usable yet).
 
-FlashVSR is designed for real-time or near-real-time video SR on consumer
-GPUs, achieving a good quality/speed tradeoff by using a lightweight
-recurrent architecture with efficient attention. It is competitive with
-BasicVSR at 3–5× the inference speed.
+FlashVSR (OpenImagingLab, Apache-2.0, github.com/OpenImagingLab/FlashVSR) is a
+one-step streaming *diffusion* video super-resolution model. Its official
+implementation needs the Block-Sparse Attention library on CUDA, and its weights
+are published on Hugging Face (v1 and v1.1). This adapter is a placeholder: the
+vendored ``flashvsr_arch`` module does not exist, so ``load()`` raises
+``RestorerLoadError`` rather than silently degrading to a stub. Earlier text
+describing it as a lightweight recurrent network was inaccurate.
 
-Reference: "FlashVSR: Real-Time Video Super-Resolution with Flash Attention"
-           (Technical report, 2024)
-
-Note: Public weights and official code are not yet released.
-      The vendored ``restorax.restorers.super_resolution.flashvsr_arch``
-      module must be present for this restorer to load.  If that import
-      fails, ``load()`` raises ``RestorerLoadError`` rather than silently
-      degrading to a stub.
+Status: ``gpu_only`` in ``restorax.models_catalog``.
 """
 
 from __future__ import annotations

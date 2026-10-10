@@ -94,6 +94,11 @@ def download_models_group(
     from huggingface_hub import hf_hub_download, snapshot_download
 
     for entry in unique_targets:
+        if entry.status == "unavailable":
+            console.print(f"[yellow]  skipped {entry.name}: {entry.note}[/yellow]")
+            continue
+        if entry.status in ("gpu_only", "needs_work"):
+            console.print(f"[dim]  note {entry.name} ({entry.status}): {entry.note}[/dim]")
         if entry.is_ready() and not force:
             console.print(
                 f"[dim]  skipped {entry.name} (already present; use --force to re-download)[/dim]"
@@ -136,10 +141,13 @@ def _print_status_table(catalog: list[Any]) -> None:
     table.add_column("Group")
     table.add_column("Size (MB)", justify="right")
     table.add_column("Source")
+    table.add_column("Status")
     table.add_column("Ready", justify="center")
 
     for entry in catalog:
         ready = "[green]✓[/green]" if entry.is_ready() else "[red]✗[/red]"
-        table.add_row(entry.name, entry.group, str(entry.size_mb), _source(entry), ready)
+        table.add_row(
+            entry.name, entry.group, str(entry.size_mb), _source(entry), entry.status, ready
+        )
 
     console.print(table)
