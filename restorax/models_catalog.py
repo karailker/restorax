@@ -67,7 +67,7 @@ CATALOG: list[ModelEntry] = [
     ModelEntry("codeformer_pp", "face", "sczhou/CodeFormerPlusPlus", ["codeformer_pp.pth"], 380),
     ModelEntry("gfpgan", "face", "TencentARC/GFPGANv1.4", ["GFPGANv1.4.pth"], 330),
     ModelEntry("dicface", "face", "YaNgZhAnG-V5/DicFace", ["dicface.pth"], 200),
-    ModelEntry("ddcolor", "sr", "piddnad/ddcolor_models", ["ddcolor_artistic.pth"], 850),
+    ModelEntry("ddcolor", "sr", "piddnad/ddcolor_modelscope", ["model.safetensors"], 900),
     ModelEntry("hdrtvdm", "extras", "AndreGuo/HDRTVDM", ["HDRTVNet.pth"], 50),
     ModelEntry("gavs", "extras", "Annbless/GAVS", ["gavs.pth"], 120),
     ModelEntry("deinterlace", "extras", "tonycaisy/deinterlace-net", ["deinterlace.pth"], 30),
@@ -110,8 +110,10 @@ _STATUS: dict[str, tuple[Status, str]] = {
     ),
     "ddcolor": (
         "needs_work",
-        "Weights are public on Hugging Face (piddnad/ddcolor_*) and the code is open "
-        "(github.com/piddnad/DDColor), but the architecture is not vendored yet.",
+        "Architecture (Apache-2.0, github.com/piddnad/DDColor) is vendored and the inference "
+        "pipeline follows the reference; verified on CPU with random weights. Verification "
+        "with the real Hugging Face weights (piddnad/ddcolor_*) runs in the real-weights "
+        "workflow and the status becomes ready once it passes.",
     ),
     "hdrtvdm": (
         "needs_work",

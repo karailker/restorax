@@ -30,6 +30,7 @@ dependencies = [
     "torch>=2.3.0",
     "torchvision>=0.18.0",
     "numpy>=1.26.0",
+    "safetensors>=0.4.0",  # DDColor Hugging Face weights
     "packaging>=23.0",  # vendored VRT version checks
     "scipy>=1.11.0",  # vendored ProPainter / RAFT
     "einops>=0.7.0",  # vendored ProPainter
@@ -144,6 +145,7 @@ extend-exclude = [
     "comfyui_nodes",  # git submodule: karailker/restorax-comfyui (linted in its own repo)
     "restorax/restorers/*/*_arch.py",
     "restorax/restorers/*/rife_arch",
+    "restorax/restorers/colorization/ddcolor_arch",
     "restorax/restorers/artifact_removal/propainter",
 ]
 
@@ -188,6 +190,7 @@ module = [
     "restorax.restorers.face_restoration.codeformer_arch",
     "restorax.restorers.face_restoration.vqgan_arch",
     "restorax.restorers.frame_interpolation.rife_arch.*",
+    "restorax.restorers.colorization.ddcolor_arch.*",
     "restorax.restorers.super_resolution.evtexture_arch",
     "restorax.restorers.super_resolution.upscale_a_video_arch",
     "restorax.restorers.super_resolution.vrt_arch",
@@ -205,6 +208,7 @@ disallow_subclassing_any = false
 # Calls into vendored (untyped) upstream architectures and optional instrumentation.
 [[tool.mypy.overrides]]
 module = [
+    "restorax.restorers.colorization.ddcolor",
     "restorax.restorers.super_resolution.waifu2x",
     "restorax.restorers.super_resolution.evtexture",
     "restorax.restorers.super_resolution.vrt",

@@ -96,22 +96,35 @@ def test_waifu2x_upscales_set5(test_assets):
 
 
 @pytest.mark.requires_weights("ddcolor")
-@pytest.mark.requires_assets
-def test_ddcolor_colorizes_grayscale(test_assets):
-    """DDColor produces an RGB colorized output from a grayscale input."""
-    import cv2
+def test_ddcolor_restores_plausible_color():
+    """DDColor must add real chroma and move a gray photo closer to the color original.
+
+    Uses the bundled scikit-image photographs (no downloads), converts them to gray and
+    checks that the colorized result is more saturated than gray and has a lower error
+    against the original than the gray input does.
+    """
+    cv2 = pytest.importorskip("cv2")
+    skimage_data = pytest.importorskip("skimage.data")
 
     from restorax.core.restorer import RestorerParams
     from restorax.restorers.colorization.ddcolor import DDColorRestorer
 
-    img_path = test_assets / "set5" / "bird.png"
-    frame = cv2.cvtColor(cv2.imread(str(img_path)), cv2.COLOR_BGR2RGB)
-    gray = np.stack([cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)] * 3, axis=-1)
+    def psnr(a: np.ndarray, b: np.ndarray) -> float:
+        mse = np.mean((a.astype(np.float64) - b.astype(np.float64)) ** 2)
+        return float(10 * np.log10(255**2 / mse))
 
     restorer = DDColorRestorer()
     restorer.load(torch.device("cpu"))
-    out = restorer.process_frame(gray, RestorerParams(scale=1, half_precision=False))
-    restorer.unload()
-
-    assert out.shape == gray.shape
-    assert out.dtype == np.uint8
+    try:
+        gains = []
+        for image in (skimage_data.astronaut(), skimage_data.coffee(), skimage_data.chelsea()):
+            color = np.ascontiguousarray(image[:256, :256])
+            gray = np.repeat(cv2.cvtColor(color, cv2.COLOR_RGB2GRAY)[..., None], 3, axis=-1)
+            out = restorer.process_frame(gray, RestorerParams(half_precision=False))
+            assert out.shape == gray.shape and out.dtype == np.uint8
+            chroma = cv2.cvtColor(out, cv2.COLOR_RGB2LAB)[:, :, 1:].astype(float) - 128
+            assert np.abs(chroma).mean() > 3, "output is still (almost) gray"
+            gains.append(psnr(out, color) - psnr(gray, color))
+        assert np.mean(gains) > 0.5, f"colorization did not approach the original: {gains}"
+    finally:
+        restorer.unload()
