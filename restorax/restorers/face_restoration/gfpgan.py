@@ -123,7 +123,8 @@ class GFPGANRestorer(BaseRestorer):
         if restored_img is None:
             return frame
 
-        return restored_img
+        frame_out: np.ndarray = restored_img
+        return frame_out
 
     # ── Internal ──────────────────────────────────────────────────────────────
 

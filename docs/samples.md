@@ -59,35 +59,41 @@ document.addEventListener('DOMContentLoaded', () => {
 | # | Model | Status | Notes |
 |---|-------|--------|-------|
 | 1 | RealESRGAN x4plus | ✅ real | Weights: `models/real_esrgan/` |
-| 2 | BasicVSR++ | ❌ weights | Arch fixed (BasicVSRPlusPlus); no public weight mirror |
-| 3 | Upscale-A-Video | ❌ arch | Honest adapter shim vendored; real pipeline (~6000 LOC custom UNet/attention) not ported, `diffusers` not installed |
-| 4 | VRT | ❌ weights | Arch vendored; `JingyunLiang/VRT` weights have no public mirror |
-| 5 | MambaIR | ❌ arch | `mamba_ir_arch` not vendored; `pip install mamba-ssm` needed |
-| 6 | TDM | ❌ weights | Diffusion model; no public weights released |
-| 7 | SeedVR | ❌ weights | Diffusion model; no public weights released |
+| 2 | BasicVSR++ | ❌ needs work | Weights are public (OpenMMLab model zoo); the architecture needs compiled CUDA deformable-conv ops, a CPU-capable port is not written |
+| 3 | Upscale-A-Video | ❌ GPU only | Diffusion model (NTU S-Lab License 1.0, non-commercial); only an adapter shim exists, the real pipeline is not ported |
+| 4 | VRT | ✅ real | Arch vendored (CC BY-NC 4.0); official `001_VRT_videosr_bi_REDS_6frames.pth` (166 MB) downloads from the project's GitHub release; verified on CPU, +2.8 to +5.8 dB over bicubic |
+| 5 | MambaIR | ❌ GPU only | Needs the `mamba-ssm` CUDA kernels (no CPU path); architecture not vendored |
+| 6 | TDM | ❌ unavailable | No public code or weights found for a video-SR model by this name |
+| 7 | SeedVR | ❌ GPU only | Official SeedVR/SeedVR2 weights exist on Hugging Face but need >= 24 GB VRAM; adapter not implemented |
 | 8 | Waifu2x | ✅ real | Arch vendored (`UpConv_7`, GPLv3, yu45020/Waifu2x); weights downloaded+extracted from upstream 7z via `py7zr` (`restorax[waifu2x]`) |
-| 9 | FlashVSR | ❌ arch | `flashvsr_arch` not vendored yet |
+| 9 | FlashVSR | ❌ GPU only | Upstream (OpenImagingLab/FlashVSR, Apache-2.0) is a diffusion model needing Block-Sparse Attention on CUDA; the earlier \"lightweight recurrent\" description was inaccurate |
 | 10 | EvTexture | ✅ real | Arch vendored (Apache-2.0, DachunKai/EvTexture); weights from GitHub releases (`EvTexture_REDS_BIx4.pth`), HF repo was dead |
 | 11 | CodeFormer | ✅ real | Arch vendored from sczhou/CodeFormer; weights auto-downloaded |
-| 12 | CodeFormer++ | ❌ arch | `codeformer_pp_arch` not vendored yet |
+| 12 | CodeFormer++ | ❌ unavailable | CodeFormer++ is a 2025 paper (arXiv 2510.04410); no official code or weights found |
 | 13 | GFPGAN | ✅ real | Fixed dead HF repo → `nlightcho/gfpgan_v14` |
-| 14 | DicFace | ❌ extra | `pip install restorax[dicface]` |
-| 15 | DDColor | ❌ arch+weights | `ddcolor_arch` not vendored; `piddnad/DDColor` HF dead |
-| 16 | RIFE | ✅ running | Classical fallback (temporal arch pending) |
+| 14 | DicFace | ❌ needs work | Upstream: fudan-generative-vision/DicFace (ICCV 2025); weight location unverified, adapter not implemented |
+| 15 | DDColor | ✅ real | Architecture vendored (Apache-2.0, piddnad/DDColor); official `piddnad/ddcolor_modelscope` weights (`pytorch_model.bin`, 912 MB) verified in CI on CPU; frame-by-frame, colors can flicker in video |
+| 16 | RIFE | ⚠️ fallback | Architecture vendored, weights not wired (Practical-RIFE weights live on Google Drive / third-party mirrors); linear blend is used |
 | 17 | Scratch Removal | ✅ real | Arch vendored (S-Lab 1.0 NC, sczhou/ProPainter); weights from GitHub releases v0.1.0 (HF repo_type was wrong — `space`, not `model`) |
-| 18 | HDRTVDM | ❌ arch+weights | `hdrtvdm_arch` not vendored; `AndreGuo/HDRTVDM` HF dead |
-| 19 | Video Stabilization | ✅ running | OpenCV optical-flow fallback |
-| 20 | GaVS | ✅ running | OpenCV fallback (arch not yet public) |
-| 21 | AI Deinterlace | ❌ extra | `deinterlace_arch` (DeinterlaceNet) required |
+| 18 | HDRTVDM | ❌ needs work | Upstream: andreguo/hdrtvdm; architecture and weights not wired |
+| 19 | Video Stabilization | ⚠️ fallback | OpenCV optical-flow stabilization (classical) |
+| 20 | GaVS | ⚠️ fallback | Upstream: huawei-bayerlab/GaVS, not integrated; OpenCV fallback is used |
+| 21 | AI Deinterlace | ❌ needs work | Referenced source could not be verified; use YADIF |
 | 22 | YADIF | ✅ real | Classical YADIF — no weights needed |
 | 23 | Demucs | ✅ real | htdemucs weights auto-downloaded |
 | 24 | VoiceFixer | ✅ real | Weights auto-downloaded |
-| 25 | RNNoise | ✅ running | Lightweight classical noise gate |
+| 25 | RNNoise | ⚠️ fallback | Classical noise gate; the RNNoise network is not bundled |
 
-❌ weights — no public weight mirror found; supply manually via `models/`.
-❌ arch — architecture module not yet vendored into this repo.
-❌ arch+weights — both missing.
-13/25 models produce real output as of this sprint.
+✅ real — produces real output with real weights (or is a classical method by design, like YADIF).
+⚠️ fallback — runs, but through a classical (non-neural) fallback.
+❌ needs work — public weights/code exist, but the adapter or architecture is unfinished.
+❌ GPU only — upstream needs CUDA-only kernels or very large VRAM; not implemented here.
+❌ unavailable — no public code or weights could be found.
+
+**11 of 25 models fully work today, 4 run through classical fallbacks, 10 are not usable yet.**
+The machine-readable version of this table, with the evidence for each entry, is `_STATUS` in
+[`restorax/models_catalog.py`](https://github.com/karailker/restorax/blob/main/restorax/models_catalog.py);
+`restorax download-models` prints it.
 
 ---
 
@@ -108,6 +114,18 @@ document.addEventListener('DOMContentLoaded', () => {
 Original → Degraded → Restored composite:
 
 ![SR composite](assets/restorations/sr_real_esrgan_composite.png)
+
+---
+
+## 4× Video Super-Resolution — VRT
+
+Six frames of a slowly panning real photograph (NASA astronaut portrait, public domain, from `scikit-image`) were downscaled 4× with anti-aliased bicubic, then upscaled again. Real weights, CPU inference.
+
+![VRT composite](assets/restorations/sr_vrt_composite.png)
+
+Measured on three real photographs, mean PSNR against the original: **+5.8 dB**, **+5.6 dB** and **+2.8 dB** over bicubic upscaling. VRT was trained on anti-aliased (MATLAB-style) bicubic degradation, so low-resolution inputs made with a plain `cv2.resize` (which aliases) look worse than bicubic. Input frames must be at least 64×64 px; other sizes are padded to a multiple of 32 internally.
+
+Reproduce: `restorax download-models --model vrt` then `pytest tests/integration/test_real_inference.py -k vrt`.
 
 ---
 

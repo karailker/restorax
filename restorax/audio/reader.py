@@ -74,7 +74,8 @@ class AudioReader:
 def _normalize_to_float32(audio: np.ndarray) -> np.ndarray:
     """Convert any integer or float dtype to float32 normalized to [-1.0, 1.0]."""
     if audio.dtype == np.float32:
-        return np.clip(audio, -1.0, 1.0)
+        clipped: np.ndarray = np.clip(audio, -1.0, 1.0)
+        return clipped
     if audio.dtype == np.float64:
         return np.clip(audio.astype(np.float32), -1.0, 1.0)
     if audio.dtype == np.int16:

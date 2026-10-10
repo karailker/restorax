@@ -7,7 +7,7 @@
 [![PyTorch](https://img.shields.io/badge/pytorch-2.3%2B-orange)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-RestoraX combines 25 restoration models (13 produce real output today — see [Model status](#model-status)) plus an optional external DLSS 5 enhancer into a single, modular restoration pipeline with a **visual node-based pipeline builder**, REST API, and CLI — designed to be a competitive open-source alternative to Topaz Video AI and DaVinci Resolve Super Scale.
+RestoraX combines 25 restoration models (11 fully work today, 4 more run through classical fallbacks — see [Model status](#model-status)) plus an optional external DLSS 5 enhancer into a single, modular restoration pipeline with a **visual node-based pipeline builder**, REST API, and CLI — designed to be a competitive open-source alternative to Topaz Video AI and DaVinci Resolve Super Scale.
 
 Beyond linear presets, RestoraX ships a **Pipeline DAG Engine** (typed ports, parallel branches, merge strategies, retry policies, per-branch progress) and a **ComfyUI-style visual builder** — drag restorers onto a canvas, wire them into branching graphs, and run them with live progress.
 
@@ -102,9 +102,13 @@ Not every registered restorer ships working weights yet. This table is the sourc
 
 | State | Models |
 |---|---|
-| **Real output** | Real-ESRGAN, Waifu2x, EvTexture, CodeFormer, GFPGAN, ProPainter (scratch removal), YADIF, Demucs, VoiceFixer |
-| **Classical fallback** (no neural weights) | RIFE, Video Stabilization, GaVS, RNNoise |
-| **Needs weights / arch / extra** | BasicVSR++, VRT, TDM, SeedVR, Upscale-A-Video, MambaIR, FlashVSR, CodeFormer++, DDColor, HDRTVDM, DicFace, AI Deinterlace |
+| **Ready** (real output, real weights) | Real-ESRGAN, VRT, DDColor, Waifu2x, EvTexture, CodeFormer, GFPGAN, ProPainter (scratch removal), YADIF, Demucs, VoiceFixer |
+| **Classical fallback** (no neural weights wired) | RIFE, Video Stabilization, GaVS, RNNoise |
+| **Needs work** (public weights/code exist, adapter unfinished) | BasicVSR++, HDRTVDM, DicFace, AI Deinterlace |
+| **GPU only** (upstream needs CUDA-only kernels or very large VRAM; not implemented) | MambaIR, FlashVSR, SeedVR, Upscale-A-Video |
+| **Unavailable** (no public release found) | CodeFormer++, TDM |
+
+The evidence behind each status lives in [`restorax/models_catalog.py`](restorax/models_catalog.py) and is printed by `restorax download-models`. Details and samples: [docs/samples.md](docs/samples.md).
 
 Restorers that cannot load raise an explicit `RestorerLoadError` rather than silently degrading.
 
@@ -126,6 +130,8 @@ Parameters: `style` (0/1/2) and `strength` (0–2). Frames are round-tripped thr
 
 ## Benchmark Results
 
+> † Not usable yet (see [Model status](#model-status)): the figures for these rows are literature or placeholder values, not RestoraX measurements.
+>
 > **Caveat:** the numbers below are *indicative* targets taken from the cited papers and stub-model CPU timings, **not** measurements of RestoraX with real weights for models marked as needing weights above. Reproduce with `scripts/run_benchmarks.py`.
 
 All benchmarks use standard evaluation protocols from SR/restoration literature:
@@ -155,14 +161,14 @@ Test images: Lena/Cameraman/Baboon/Urban reproductions (public-domain equivalent
 |---|---|---|---|---|---|---|
 | `waifu2x_x2` (2×) | Nagadomi 2014 | 29.0 | 0.830 | 0.115 | ~80 | 1 GB |
 | `real_esrgan_x4plus` | Wang et al. ICCVW 2021 | 28.4 | 0.821 | 0.123 | ~12 | 4 GB |
-| `flashvsr_x4` | — 2024 | 28.8 | 0.827 | 0.119 | ~40 | 2 GB |
-| `mamba_ir_x4` | Guo et al. ECCV 2024 | 29.1 | 0.835 | 0.118 | ~18 | 3 GB |
+| `flashvsr_x4`† | — 2024 | 28.8 | 0.827 | 0.119 | ~40 | 2 GB |
+| `mamba_ir_x4`† | Guo et al. ECCV 2024 | 29.1 | 0.835 | 0.118 | ~18 | 3 GB |
 | `evtexture_x4` | Kai et al. ICML 2024 | 29.6 | 0.843 | 0.112 | ~8 | 6 GB |
-| `basicvsr_pp_x4` | Chan et al. CVPR 2022 | 30.2 | 0.851 | 0.109 | ~3 | 8 GB |
+| `basicvsr_pp_x4`† | Chan et al. CVPR 2022 | 30.2 | 0.851 | 0.109 | ~3 | 8 GB |
 | `vrt_x4` | Liang et al. TIP 2024 | 30.8 | 0.858 | 0.105 | ~1.4 | 8 GB |
-| `upscale_a_video` | Zhou et al. CVPR 2024 | 32.1 | 0.877 | 0.092 | ~0.4 | 12 GB |
-| `tdm` | Si et al. 2025 | 33.0 | 0.891 | 0.082 | ~0.2 | 12 GB |
-| `seedvr` | Iceclear CVPR 2025 | 33.5 | 0.898 | 0.075 | ~0.1 | 16 GB |
+| `upscale_a_video`† | Zhou et al. CVPR 2024 | 32.1 | 0.877 | 0.092 | ~0.4 | 12 GB |
+| `tdm`† | Si et al. 2025 | 33.0 | 0.891 | 0.082 | ~0.2 | 12 GB |
+| `seedvr`† | Iceclear CVPR 2025 | 33.5 | 0.898 | 0.075 | ~0.1 | 16 GB |
 
 ### Face Restoration (blind degradation)
 
@@ -170,8 +176,8 @@ Test images: Lena/Cameraman/Baboon/Urban reproductions (public-domain equivalent
 |---|---|---|---|---|
 | `codeformer` | Zhou et al. NeurIPS 2022 | 27.6 | 0.764 | ~9 |
 | `gfpgan_v14` | Wang et al. CVPR 2021 | 27.1 | 0.758 | ~11 |
-| `dicface` | Zhang et al. ICCV 2023 | 28.1 | 0.779 | ~7 |
-| `codeformer_pp` | — 2025 | 28.3 | 0.785 | ~6 |
+| `dicface`† | Zhang et al. ICCV 2023 | 28.1 | 0.779 | ~7 |
+| `codeformer_pp`† | — 2025 | 28.3 | 0.785 | ~6 |
 
 ### Colorization (grayscale → color, SSIM ↑)
 

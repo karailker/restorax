@@ -108,7 +108,10 @@ class MambaIRRestorer(BaseRestorer):
             t = t.half()
         with torch.inference_mode():
             out = self._model(t)
-        return out.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).mul(255.0).byte().cpu().numpy()
+        frame_out: np.ndarray = (
+            out.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).mul(255.0).byte().cpu().numpy()
+        )
+        return frame_out
 
     def _process_tiled(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
         from restorax.video.utils import merge_tiles, tile_frame
@@ -140,7 +143,8 @@ class MambaIRRestorer(BaseRestorer):
             model.load_state_dict(ckpt.get("params", ckpt), strict=False)
             model.eval().to(device)
             logger.info("MambaIR arch loaded from vendored module")
-            return model
+            loaded: torch.nn.Module = model
+            return loaded
         except ImportError as exc:
             raise RestorerLoadError(
                 f"MambaIR unavailable: {exc}. Install: pip install mamba-ssm"

@@ -70,13 +70,20 @@ class TestBenchmarkCommand:
         result = _runner().invoke(cli, ["benchmark", "compare", "--help"])
         assert result.exit_code == 0
 
-    def test_benchmark_run_cpu_small(self, tmp_path):
-        """Run benchmark with 1 frame on CPU — must produce JSON output."""
+    def test_benchmark_run_cpu_small(self, tmp_path, monkeypatch):
+        """Run benchmark with 1 frame on CPU — must produce JSON output.
+
+        Uses a classical restorer so the test needs no weights; with the default
+        (all restorers) it would download and run every model that has public weights.
+        """
+        monkeypatch.setenv("RESTORAX_MODEL_DIR", str(tmp_path / "models"))
         result = _runner().invoke(
             cli,
             [
                 "benchmark",
                 "run",
+                "--restorer",
+                "video_stabilization",
                 "--device",
                 "cpu",
                 "--num-frames",

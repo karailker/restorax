@@ -197,7 +197,8 @@ class AIDeinterlaceRestorer(BaseRestorer):
         with torch.inference_mode():
             out = self._model(tensor)  # 1 3 H W
         result = out.squeeze(0).permute(1, 2, 0).cpu().numpy()
-        return (result * 255.0).clip(0, 255).astype(np.uint8)
+        frame_out: np.ndarray = (result * 255.0).clip(0, 255).astype(np.uint8)
+        return frame_out
 
     @staticmethod
     def _load_arch(device: torch.device) -> torch.nn.Module:
@@ -214,4 +215,5 @@ class AIDeinterlaceRestorer(BaseRestorer):
                 f"AIDeinterlaceRestorer requires the vendored deinterlace_arch module "
                 f"(DeinterlaceNet) which is not installed: {exc}"
             ) from exc
-        return DeinterlaceNet().to(device)
+        model: torch.nn.Module = DeinterlaceNet().to(device)
+        return model

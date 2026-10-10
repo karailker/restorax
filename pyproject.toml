@@ -30,6 +30,8 @@ dependencies = [
     "torch>=2.3.0",
     "torchvision>=0.18.0",
     "numpy>=1.26.0",
+    "safetensors>=0.4.0",  # DDColor Hugging Face weights
+    "packaging>=23.0",  # vendored VRT version checks
     "scipy>=1.11.0",  # vendored ProPainter / RAFT
     "einops>=0.7.0",  # vendored ProPainter
     "pillow>=10.3.0",
@@ -143,6 +145,7 @@ extend-exclude = [
     "comfyui_nodes",  # git submodule: karailker/restorax-comfyui (linted in its own repo)
     "restorax/restorers/*/*_arch.py",
     "restorax/restorers/*/rife_arch",
+    "restorax/restorers/colorization/ddcolor_arch",
     "restorax/restorers/artifact_removal/propainter",
 ]
 
@@ -177,8 +180,8 @@ warn_redundant_casts = true
 warn_unused_configs = true
 # Optional deps (basicsr, mamba-ssm, ...) differ per environment, so ignores may flip.
 warn_unused_ignores = false
-# Still off (next ratchet steps): warn_return_any (~22 values coming from untyped
-# third-party libs such as OpenCV) and no_implicit_reexport.
+warn_return_any = true
+no_implicit_reexport = true
 
 # Vendored upstream architectures are kept as-is and are not type-checked.
 [[tool.mypy.overrides]]
@@ -187,6 +190,7 @@ module = [
     "restorax.restorers.face_restoration.codeformer_arch",
     "restorax.restorers.face_restoration.vqgan_arch",
     "restorax.restorers.frame_interpolation.rife_arch.*",
+    "restorax.restorers.colorization.ddcolor_arch.*",
     "restorax.restorers.super_resolution.evtexture_arch",
     "restorax.restorers.super_resolution.upscale_a_video_arch",
     "restorax.restorers.super_resolution.vrt_arch",
@@ -204,6 +208,7 @@ disallow_subclassing_any = false
 # Calls into vendored (untyped) upstream architectures and optional instrumentation.
 [[tool.mypy.overrides]]
 module = [
+    "restorax.restorers.colorization.ddcolor",
     "restorax.restorers.super_resolution.waifu2x",
     "restorax.restorers.super_resolution.evtexture",
     "restorax.restorers.super_resolution.vrt",

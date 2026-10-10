@@ -99,13 +99,16 @@ class GaVSRestorer(BaseRestorer):
 
         # Fallback to OpenCV stabilization
         if self._fallback is not None:
-            return self._fallback.process_sequence(frames, params)  # type: ignore[attr-defined]
+            stabilized: list[np.ndarray] = self._fallback.process_sequence(  # type: ignore[attr-defined]
+                frames, params
+            )
+            return stabilized
 
         return frames  # identity if nothing available
 
     def _gavs_stabilize(self, frames: list[np.ndarray], params: RestorerParams) -> list[np.ndarray]:
         """Placeholder for the GaVS inference call."""
-        result = self._model.stabilize(frames)  # type: ignore[union-attr,attr-defined]
+        result: list[np.ndarray] = self._model.stabilize(frames)  # type: ignore[union-attr,attr-defined]
         return result
 
     def _try_load_gavs(self, device: torch.device) -> bool:

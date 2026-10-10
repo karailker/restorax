@@ -244,4 +244,5 @@ class _RIFEIFNetWrapper:
     ) -> torch.Tensor:
         x = torch.cat((img0, img1), dim=1)  # (1, 6, H, W)
         merged, _, _ = self._net(x, timestep=timestep)
-        return merged
+        mid: torch.Tensor = merged
+        return mid

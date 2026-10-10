@@ -147,7 +147,10 @@ class Waifu2xRestorer(BaseRestorer):
             t = t.half()
         with torch.inference_mode():
             out = self._model(t)
-        return out.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).mul(255.0).byte().cpu().numpy()
+        frame_out: np.ndarray = (
+            out.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).mul(255.0).byte().cpu().numpy()
+        )
+        return frame_out
 
     def _process_tiled(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
         from restorax.video.utils import merge_tiles, tile_frame
