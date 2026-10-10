@@ -52,41 +52,54 @@ class TestDDColorVariants:
         assert "bogus" not in kwargs
 
 
+class _FakeEntryNotFoundError(Exception):
+    """Stands in for huggingface_hub.errors.EntryNotFoundError."""
+
+
+def _install_fake_hub(monkeypatch, tmp_path, download):
+    """Install a fake ``huggingface_hub`` (the real one may be stubbed by other test modules)."""
+    import sys
+    import types
+    from types import SimpleNamespace
+
+    hub = types.ModuleType("huggingface_hub")
+    hub.hf_hub_download = download  # type: ignore[attr-defined]
+    errors = types.ModuleType("huggingface_hub.errors")
+    errors.EntryNotFoundError = _FakeEntryNotFoundError  # type: ignore[attr-defined]
+    hub.errors = errors  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "huggingface_hub", hub)
+    monkeypatch.setitem(sys.modules, "huggingface_hub.errors", errors)
+    # Replace the module attribute itself: other tests may have swapped the settings object.
+    monkeypatch.setattr("restorax.config.settings", SimpleNamespace(model_dir=str(tmp_path)))
+
+
 class TestDDColorWeights:
     def test_prefers_safetensors_then_falls_back(self, monkeypatch, tmp_path):
-        from huggingface_hub.errors import EntryNotFoundError
-
-        from restorax.config import settings
         from restorax.restorers.colorization import ddcolor
 
-        monkeypatch.setattr(settings, "model_dir", str(tmp_path))
         asked: list[str] = []
 
         def fake_download(repo_id, filename, local_dir):
             asked.append(filename)
-            if filename == "config.json" or filename == "model.safetensors":
-                raise EntryNotFoundError("missing")
+            if filename in ("config.json", "model.safetensors"):
+                raise _FakeEntryNotFoundError("missing")
             target = Path(local_dir) / filename
+            target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(b"x")
             return str(target)
 
-        monkeypatch.setattr("huggingface_hub.hf_hub_download", fake_download)
+        _install_fake_hub(monkeypatch, tmp_path, fake_download)
         path, config = ddcolor._download_weights("paper_tiny")
         assert path.name == "pytorch_model.bin" and config is None
         assert asked == ["config.json", "model.safetensors", "pytorch_model.bin"]
 
     def test_no_weight_file_is_a_load_error(self, monkeypatch, tmp_path):
-        from huggingface_hub.errors import EntryNotFoundError
-
-        from restorax.config import settings
         from restorax.restorers.colorization import ddcolor
 
-        monkeypatch.setattr(settings, "model_dir", str(tmp_path))
-
         def fake_download(repo_id, filename, local_dir):
-            raise EntryNotFoundError("missing")
+            raise _FakeEntryNotFoundError("missing")
 
-        monkeypatch.setattr("huggingface_hub.hf_hub_download", fake_download)
+        _install_fake_hub(monkeypatch, tmp_path, fake_download)
         with pytest.raises(RestorerLoadError, match="No weight file"):
             ddcolor._download_weights("modelscope")
 

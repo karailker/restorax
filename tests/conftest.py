@@ -145,7 +145,7 @@ def pytest_collection_modifyitems(config, items):
         for marker in item.iter_markers("requires_weights"):
             model_name = marker.args[0] if marker.args else ""
             weight_dir = model_dir / model_name
-            if not weight_dir.exists():
+            if not weight_dir.is_dir() or not any(f.is_file() for f in weight_dir.rglob("*")):
                 item.add_marker(
                     pytest.mark.skip(
                         reason=f"weights absent: {weight_dir}. Run: restorax download-models --model {model_name}"

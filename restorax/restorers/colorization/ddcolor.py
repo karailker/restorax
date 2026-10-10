@@ -205,7 +205,6 @@ def _download_weights(variant: str) -> tuple[Path, dict[str, Any] | None]:
     model_dir = Path(settings.model_dir) / "ddcolor"
     if variant != _DEFAULT_VARIANT:
         model_dir = model_dir / variant
-    model_dir.mkdir(parents=True, exist_ok=True)
 
     config: dict[str, Any] | None = None
     try:
