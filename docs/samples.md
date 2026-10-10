@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
 | 1 | RealESRGAN x4plus | ✅ real | Weights: `models/real_esrgan/` |
 | 2 | BasicVSR++ | ❌ weights | Arch fixed (BasicVSRPlusPlus); no public weight mirror |
 | 3 | Upscale-A-Video | ❌ arch | Honest adapter shim vendored; real pipeline (~6000 LOC custom UNet/attention) not ported, `diffusers` not installed |
-| 4 | VRT | ❌ weights | Arch vendored; `JingyunLiang/VRT` weights have no public mirror |
+| 4 | VRT | ✅ real | Arch vendored (CC BY-NC 4.0); official `001_VRT_videosr_bi_REDS_6frames.pth` (166 MB) downloads from the project's GitHub release; verified on CPU, +2.8 to +5.8 dB over bicubic |
 | 5 | MambaIR | ❌ arch | `mamba_ir_arch` not vendored; `pip install mamba-ssm` needed |
 | 6 | TDM | ❌ weights | Diffusion model; no public weights released |
 | 7 | SeedVR | ❌ weights | Diffusion model; no public weights released |
@@ -84,10 +84,10 @@ document.addEventListener('DOMContentLoaded', () => {
 | 24 | VoiceFixer | ✅ real | Weights auto-downloaded |
 | 25 | RNNoise | ✅ running | Lightweight classical noise gate |
 
-❌ weights — no public weight mirror found; supply manually via `models/`.
+❌ weights — no public weights found for this model; supply manually via `models/`.
 ❌ arch — architecture module not yet vendored into this repo.
 ❌ arch+weights — both missing.
-13/25 models produce real output as of this sprint.
+14/25 models produce real output as of this sprint.
 
 ---
 
@@ -108,6 +108,18 @@ document.addEventListener('DOMContentLoaded', () => {
 Original → Degraded → Restored composite:
 
 ![SR composite](assets/restorations/sr_real_esrgan_composite.png)
+
+---
+
+## 4× Video Super-Resolution — VRT
+
+Six frames of a slowly panning real photograph (NASA astronaut portrait, public domain, from `scikit-image`) were downscaled 4× with anti-aliased bicubic, then upscaled again. Real weights, CPU inference.
+
+![VRT composite](assets/restorations/sr_vrt_composite.png)
+
+Measured on three real photographs, mean PSNR against the original: **+5.8 dB**, **+5.6 dB** and **+2.8 dB** over bicubic upscaling. VRT was trained on anti-aliased (MATLAB-style) bicubic degradation, so low-resolution inputs made with a plain `cv2.resize` (which aliases) look worse than bicubic. Input frames must be at least 64×64 px; other sizes are padded to a multiple of 32 internally.
+
+Reproduce: `restorax download-models --model vrt` then `pytest tests/integration/test_real_inference.py -k vrt`.
 
 ---
 

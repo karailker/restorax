@@ -1,7 +1,7 @@
 # restorax/models_catalog.py
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
@@ -16,6 +16,9 @@ class ModelEntry:
     weight_files: list[str]
     size_mb: int
     snapshot: bool = False
+    # Direct HTTPS downloads (e.g. GitHub release assets), keyed by weight file name.
+    # When set, these are used instead of the Hugging Face repo.
+    urls: dict[str, str] = field(default_factory=dict)
 
     def weight_dir(self) -> Path:
         from restorax.config import settings
@@ -33,7 +36,19 @@ CATALOG: list[ModelEntry] = [
     ModelEntry(
         "basicvsr_pp", "sr", "sczhou/BasicVSR-PlusPlus", ["BasicVSR_PlusPlus_REDS4.pth"], 20
     ),
-    ModelEntry("vrt", "sr", "JingyunLiang/VRT", ["VRT_videosr_bi_Vimeo_7frames.pth"], 350),
+    ModelEntry(
+        "vrt",
+        "sr",
+        "JingyunLiang/VRT",
+        ["001_VRT_videosr_bi_REDS_6frames.pth"],
+        166,
+        urls={
+            "001_VRT_videosr_bi_REDS_6frames.pth": (
+                "https://github.com/JingyunLiang/VRT/releases/download/v0.0/"
+                "001_VRT_videosr_bi_REDS_6frames.pth"
+            )
+        },
+    ),
     ModelEntry("waifu2x", "sr", "deepghs/waifu2x", ["waifu2x_x2.pth"], 5),
     ModelEntry("mamba_ir", "sr", "csguoh/MambaIR", ["MambaIR_SR_x4.pth"], 80),
     ModelEntry("evtexture", "sr", "DachunKai/EvTexture", ["evtexture_x4.pth"], 80),

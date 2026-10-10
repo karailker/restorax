@@ -1,5 +1,5 @@
 """
-restorax download-models — download model weights from Hugging Face.
+restorax download-models — download model weights (Hugging Face or direct release URLs).
 
 Usage:
   restorax download-models                        # show status table
@@ -104,7 +104,12 @@ def download_models_group(
         weight_dir.mkdir(parents=True, exist_ok=True)
 
         try:
-            if entry.snapshot:
+            if entry.urls:
+                from restorax.utils.weights import download_file
+
+                for filename, url in entry.urls.items():
+                    download_file(url, weight_dir / filename)
+            elif entry.snapshot:
                 snapshot_download(repo_id=entry.hf_repo, local_dir=str(weight_dir))
             else:
                 for filename in entry.weight_files:
@@ -121,16 +126,20 @@ def download_models_group(
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
+def _source(entry: Any) -> str:
+    return "GitHub release" if entry.urls else entry.hf_repo
+
+
 def _print_status_table(catalog: list[Any]) -> None:
     table = Table(title="Model Weights Status", show_header=True)
     table.add_column("Name", style="cyan")
     table.add_column("Group")
     table.add_column("Size (MB)", justify="right")
-    table.add_column("HF Repo")
+    table.add_column("Source")
     table.add_column("Ready", justify="center")
 
     for entry in catalog:
         ready = "[green]✓[/green]" if entry.is_ready() else "[red]✗[/red]"
-        table.add_row(entry.name, entry.group, str(entry.size_mb), entry.hf_repo, ready)
+        table.add_row(entry.name, entry.group, str(entry.size_mb), _source(entry), ready)
 
     console.print(table)

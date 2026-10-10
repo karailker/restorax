@@ -17,7 +17,7 @@ import torch.nn as nn
 import torchvision
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
-from distutils.version import LooseVersion
+from packaging.version import Version  # restorax: distutils was removed in Python 3.12
 from torch.nn.modules.utils import _pair, _single
 import numpy as np
 from functools import reduce, lru_cache
@@ -530,7 +530,7 @@ class Upsample(nn.Sequential):
     """
 
     def __init__(self, scale, num_feat):
-        assert LooseVersion(torch.__version__) >= LooseVersion('1.8.1'), \
+        assert Version(torch.__version__.split('+')[0]) >= Version('1.8.1'), \
             'PyTorch version >= 1.8.1 to support 5D PixelShuffle.'
 
         class Transpose_Dim12(nn.Module):

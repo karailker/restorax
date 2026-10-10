@@ -7,7 +7,7 @@
 [![PyTorch](https://img.shields.io/badge/pytorch-2.3%2B-orange)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-RestoraX combines 25 restoration models (13 produce real output today — see [Model status](#model-status)) plus an optional external DLSS 5 enhancer into a single, modular restoration pipeline with a **visual node-based pipeline builder**, REST API, and CLI — designed to be a competitive open-source alternative to Topaz Video AI and DaVinci Resolve Super Scale.
+RestoraX combines 25 restoration models (14 produce real output today — see [Model status](#model-status)) plus an optional external DLSS 5 enhancer into a single, modular restoration pipeline with a **visual node-based pipeline builder**, REST API, and CLI — designed to be a competitive open-source alternative to Topaz Video AI and DaVinci Resolve Super Scale.
 
 Beyond linear presets, RestoraX ships a **Pipeline DAG Engine** (typed ports, parallel branches, merge strategies, retry policies, per-branch progress) and a **ComfyUI-style visual builder** — drag restorers onto a canvas, wire them into branching graphs, and run them with live progress.
 
@@ -102,9 +102,9 @@ Not every registered restorer ships working weights yet. This table is the sourc
 
 | State | Models |
 |---|---|
-| **Real output** | Real-ESRGAN, Waifu2x, EvTexture, CodeFormer, GFPGAN, ProPainter (scratch removal), YADIF, Demucs, VoiceFixer |
+| **Real output** | Real-ESRGAN, VRT, Waifu2x, EvTexture, CodeFormer, GFPGAN, ProPainter (scratch removal), YADIF, Demucs, VoiceFixer |
 | **Classical fallback** (no neural weights) | RIFE, Video Stabilization, GaVS, RNNoise |
-| **Needs weights / arch / extra** | BasicVSR++, VRT, TDM, SeedVR, Upscale-A-Video, MambaIR, FlashVSR, CodeFormer++, DDColor, HDRTVDM, DicFace, AI Deinterlace |
+| **Needs weights / arch / extra** | BasicVSR++, TDM, SeedVR, Upscale-A-Video, MambaIR, FlashVSR, CodeFormer++, DDColor, HDRTVDM, DicFace, AI Deinterlace |
 
 Restorers that cannot load raise an explicit `RestorerLoadError` rather than silently degrading.
 

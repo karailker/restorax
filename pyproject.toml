@@ -30,6 +30,7 @@ dependencies = [
     "torch>=2.3.0",
     "torchvision>=0.18.0",
     "numpy>=1.26.0",
+    "packaging>=23.0",  # vendored VRT version checks
     "scipy>=1.11.0",  # vendored ProPainter / RAFT
     "einops>=0.7.0",  # vendored ProPainter
     "pillow>=10.3.0",
