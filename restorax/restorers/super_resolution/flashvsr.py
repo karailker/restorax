@@ -113,4 +113,5 @@ class FlashVSRRestorer(BaseRestorer):
                 "before this restorer can be used."
             ) from exc
         logger.info("FlashVSR arch loaded from vendored module")
-        return FlashVSR(scale=4).eval().to(device)
+        model: torch.nn.Module = FlashVSR(scale=4).eval().to(device)
+        return model

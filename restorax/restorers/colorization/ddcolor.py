@@ -173,7 +173,8 @@ class DDColorRestorer(BaseRestorer):
         if missing:
             logger.warning("DDColor checkpoint: %d missing keys", len(missing))
 
-        return model.to(device)
+        ready: torch.nn.Module = model.to(device)
+        return ready
 
     def _resolve_weight_path(self) -> Path:
         from restorax.config import settings

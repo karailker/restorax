@@ -58,18 +58,20 @@ class S3StorageBackend:
     def load(self, key: str) -> bytes:
         try:
             response = self._client.get_object(Bucket=self._bucket, Key=key)
-            return response["Body"].read()
+            data: bytes = response["Body"].read()
+            return data
         except self._ClientError as exc:
             raise StorageError(f"S3 get failed for key '{key}': {exc}") from exc
 
     def url(self, key: str) -> str:
         # Pre-signed URL valid for 1 hour; works with MinIO and AWS S3
         try:
-            return self._client.generate_presigned_url(
+            url: str = self._client.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": self._bucket, "Key": key},
                 ExpiresIn=3600,
             )
+            return url
         except Exception:
             return f"{self._endpoint_url}/{self._bucket}/{key}"
 

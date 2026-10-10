@@ -123,9 +123,10 @@ class RNNoiseRestorer(AudioRestorer):
 
         # noisereduce fallback
         if hasattr(self._denoiser, "reduce_noise"):
-            return self._denoiser.reduce_noise(  # type: ignore[union-attr,attr-defined]
+            denoised: np.ndarray = self._denoiser.reduce_noise(  # type: ignore[union-attr,attr-defined]
                 y=mono.astype(np.float32), sr=_RNNOISE_SR
             )
+            return denoised
 
         return mono
 
@@ -161,15 +162,17 @@ def _resample(audio: np.ndarray, from_sr: int, to_sr: int) -> np.ndarray:
         from scipy.signal import resample_poly
 
         g = gcd(from_sr, to_sr)
-        return resample_poly(audio, to_sr // g, from_sr // g).astype(np.float32)
+        resampled: np.ndarray = resample_poly(audio, to_sr // g, from_sr // g).astype(np.float32)
+        return resampled
     except ImportError:
         # Naive linear interpolation if scipy unavailable
         n_samples = int(len(audio) * to_sr / from_sr)
-        return np.interp(
+        interpolated: np.ndarray = np.interp(
             np.linspace(0, len(audio) - 1, n_samples),
             np.arange(len(audio)),
             audio,
         ).astype(np.float32)
+        return interpolated
 
 
 class _NoisereduceAdapter:
@@ -177,7 +180,8 @@ class _NoisereduceAdapter:
         self._nr = nr_module
 
     def reduce_noise(self, y: np.ndarray, sr: int) -> np.ndarray:
-        return self._nr.reduce_noise(y=y, sr=sr)  # type: ignore[attr-defined]
+        reduced: np.ndarray = self._nr.reduce_noise(y=y, sr=sr)  # type: ignore[attr-defined]
+        return reduced
 
 
 class _RNNoiseStub:

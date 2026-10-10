@@ -177,8 +177,8 @@ warn_redundant_casts = true
 warn_unused_configs = true
 # Optional deps (basicsr, mamba-ssm, ...) differ per environment, so ignores may flip.
 warn_unused_ignores = false
-# Still off (next ratchet steps): warn_return_any (~22 values coming from untyped
-# third-party libs such as OpenCV) and no_implicit_reexport.
+warn_return_any = true
+no_implicit_reexport = true
 
 # Vendored upstream architectures are kept as-is and are not type-checked.
 [[tool.mypy.overrides]]

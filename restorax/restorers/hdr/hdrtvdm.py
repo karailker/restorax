@@ -124,7 +124,8 @@ class HDRTVDMRestorer(BaseRestorer):
             hdr = self._model(t)  # type: ignore[operator]
         # Display tone-map back to 8-bit for pipeline preview
         hdr_np = hdr.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).cpu().numpy()
-        return (hdr_np * 255).astype(np.uint8)
+        frame_out: np.ndarray = (hdr_np * 255).astype(np.uint8)
+        return frame_out
 
     @staticmethod
     def _build_model(device: torch.device) -> object:

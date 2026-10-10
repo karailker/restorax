@@ -217,7 +217,7 @@ def _snr(clean: np.ndarray, noisy: np.ndarray) -> float:
     noise_power = float(np.mean((clean - noisy[: len(clean)]) ** 2))
     if noise_power < 1e-12:
         return 999.0
-    return 10.0 * np.log10(signal_power / noise_power)
+    return float(10.0 * np.log10(signal_power / noise_power))
 
 
 def _noise_std(signal: np.ndarray, snr_db: float) -> float:
@@ -233,6 +233,7 @@ def _pink_noise(rng: np.random.Generator, n: int, channels: int, amplitude: floa
 
     try:
         lowpass = uniform_filter1d(white, size=100, axis=0)
-        return (white * 0.5 + lowpass * 0.5).astype(np.float32)
+        mixed: np.ndarray = (white * 0.5 + lowpass * 0.5).astype(np.float32)
+        return mixed
     except ImportError:
         return white
