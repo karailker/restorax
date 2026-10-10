@@ -304,7 +304,8 @@ class TestMissingHuggingfaceHub:
 
 
 class TestDownloadFailure:
-    def test_failure_prints_warning_and_continues(self, runner: CliRunner, tmp_path) -> None:
+    def test_failure_prints_warning_and_exits_nonzero(self, runner: CliRunner, tmp_path) -> None:
+        """A failed download is reported for every model, then the command fails (CI relies on it)."""
         with (
             patch.object(_hfh, "hf_hub_download", side_effect=RuntimeError("network error")),
             patch.object(_hfh, "snapshot_download"),
@@ -312,6 +313,7 @@ class TestDownloadFailure:
             patch.object(ModelEntry, "weight_dir", return_value=tmp_path),
         ):
             result = runner.invoke(_test_cli, ["download-models", "--all"])
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         assert "Warning" in result.output
         assert "network error" in result.output
+        assert "Failed to download" in result.output

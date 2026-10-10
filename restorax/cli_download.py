@@ -93,6 +93,7 @@ def download_models_group(
 
     from huggingface_hub import hf_hub_download, snapshot_download
 
+    failed: list[str] = []
     for entry in unique_targets:
         if entry.status == "unavailable":
             console.print(f"[yellow]  skipped {entry.name}: {entry.note}[/yellow]")
@@ -125,7 +126,12 @@ def download_models_group(
                     )
             console.print(f"[green]✓ {entry.name}[/green]")
         except Exception as exc:  # noqa: BLE001
+            failed.append(entry.name)
             console.print(f"[yellow]Warning: failed to download '{entry.name}': {exc}[/yellow]")
+
+    if failed:
+        console.print(f"[red]Failed to download: {', '.join(failed)}[/red]")
+        sys.exit(1)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

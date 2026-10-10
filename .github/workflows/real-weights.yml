@@ -64,3 +64,7 @@ jobs:
 
       - name: Real-inference tests
         run: python -m pytest tests/integration/test_real_inference.py ${{ matrix.tests }} -v --tb=short -p no:cacheprovider
+
+      - name: Weight files used
+        if: always()
+        run: find models -type f -size +1M -exec ls -la {} \;
