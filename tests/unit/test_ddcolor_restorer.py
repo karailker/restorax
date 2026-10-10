@@ -74,14 +74,14 @@ def _install_fake_hub(monkeypatch, tmp_path, download):
 
 
 class TestDDColorWeights:
-    def test_prefers_safetensors_then_falls_back(self, monkeypatch, tmp_path):
+    def test_tries_each_known_weight_file_in_order(self, monkeypatch, tmp_path):
         from restorax.restorers.colorization import ddcolor
 
         asked: list[str] = []
 
         def fake_download(repo_id, filename, local_dir):
             asked.append(filename)
-            if filename in ("config.json", "model.safetensors"):
+            if filename in ("config.json", "pytorch_model.bin", "model.safetensors"):
                 raise _FakeEntryNotFoundError("missing")
             target = Path(local_dir) / filename
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -90,8 +90,13 @@ class TestDDColorWeights:
 
         _install_fake_hub(monkeypatch, tmp_path, fake_download)
         path, config = ddcolor._download_weights("paper_tiny")
-        assert path.name == "pytorch_model.bin" and config is None
-        assert asked == ["config.json", "model.safetensors", "pytorch_model.bin"]
+        assert path.name == "pytorch_model.pt" and config is None
+        assert asked == [
+            "config.json",
+            "pytorch_model.bin",
+            "model.safetensors",
+            "pytorch_model.pt",
+        ]
 
     def test_no_weight_file_is_a_load_error(self, monkeypatch, tmp_path):
         from restorax.restorers.colorization import ddcolor

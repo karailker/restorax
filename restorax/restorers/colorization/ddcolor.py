@@ -47,7 +47,7 @@ _DEFAULT_VARIANT = "modelscope"
 # The network was trained at this size; chroma is predicted at 512x512 and upsampled.
 _MODEL_SIZE = 512
 # Files a ``piddnad/ddcolor_*`` repo may contain, in order of preference.
-_WEIGHT_CANDIDATES = ("model.safetensors", "pytorch_model.bin", "pytorch_model.pt")
+_WEIGHT_CANDIDATES = ("pytorch_model.bin", "model.safetensors", "pytorch_model.pt")
 _HF_REPO = f"{_HF_ORG}/ddcolor_{_DEFAULT_VARIANT}"
 _WEIGHT_FILE = _WEIGHT_CANDIDATES[0]
 

@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
 | 12 | CodeFormer++ | ❌ unavailable | CodeFormer++ is a 2025 paper (arXiv 2510.04410); no official code or weights found |
 | 13 | GFPGAN | ✅ real | Fixed dead HF repo → `nlightcho/gfpgan_v14` |
 | 14 | DicFace | ❌ needs work | Upstream: fudan-generative-vision/DicFace (ICCV 2025); weight location unverified, adapter not implemented |
-| 15 | DDColor | ❌ needs work | Weights public on Hugging Face (`piddnad/ddcolor_*`), code open (piddnad/DDColor); architecture not vendored yet |
+| 15 | DDColor | ✅ real | Architecture vendored (Apache-2.0, piddnad/DDColor); official `piddnad/ddcolor_modelscope` weights (`pytorch_model.bin`, 912 MB) verified in CI on CPU; frame-by-frame, colors can flicker in video |
 | 16 | RIFE | ⚠️ fallback | Architecture vendored, weights not wired (Practical-RIFE weights live on Google Drive / third-party mirrors); linear blend is used |
 | 17 | Scratch Removal | ✅ real | Arch vendored (S-Lab 1.0 NC, sczhou/ProPainter); weights from GitHub releases v0.1.0 (HF repo_type was wrong — `space`, not `model`) |
 | 18 | HDRTVDM | ❌ needs work | Upstream: andreguo/hdrtvdm; architecture and weights not wired |
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
 ❌ GPU only — upstream needs CUDA-only kernels or very large VRAM; not implemented here.
 ❌ unavailable — no public code or weights could be found.
 
-**10 of 25 models fully work today, 4 run through classical fallbacks, 11 are not usable yet.**
+**11 of 25 models fully work today, 4 run through classical fallbacks, 10 are not usable yet.**
 The machine-readable version of this table, with the evidence for each entry, is `_STATUS` in
 [`restorax/models_catalog.py`](https://github.com/karailker/restorax/blob/main/restorax/models_catalog.py);
 `restorax download-models` prints it.

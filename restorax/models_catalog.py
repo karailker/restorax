@@ -67,7 +67,7 @@ CATALOG: list[ModelEntry] = [
     ModelEntry("codeformer_pp", "face", "sczhou/CodeFormerPlusPlus", ["codeformer_pp.pth"], 380),
     ModelEntry("gfpgan", "face", "TencentARC/GFPGANv1.4", ["GFPGANv1.4.pth"], 330),
     ModelEntry("dicface", "face", "YaNgZhAnG-V5/DicFace", ["dicface.pth"], 200),
-    ModelEntry("ddcolor", "sr", "piddnad/ddcolor_modelscope", ["model.safetensors"], 900),
+    ModelEntry("ddcolor", "sr", "piddnad/ddcolor_modelscope", ["pytorch_model.bin"], 870),
     ModelEntry("hdrtvdm", "extras", "AndreGuo/HDRTVDM", ["HDRTVNet.pth"], 50),
     ModelEntry("gavs", "extras", "Annbless/GAVS", ["gavs.pth"], 120),
     ModelEntry("deinterlace", "extras", "tonycaisy/deinterlace-net", ["deinterlace.pth"], 30),
@@ -109,11 +109,10 @@ _STATUS: dict[str, tuple[Status, str]] = {
         "not written yet.",
     ),
     "ddcolor": (
-        "needs_work",
-        "Architecture (Apache-2.0, github.com/piddnad/DDColor) is vendored and the inference "
-        "pipeline follows the reference; verified on CPU with random weights. Verification "
-        "with the real Hugging Face weights (piddnad/ddcolor_*) runs in the real-weights "
-        "workflow and the status becomes ready once it passes.",
+        "ready",
+        "Verified in CI with the official piddnad/ddcolor_modelscope weights (pytorch_model.bin, "
+        "912 MB) on CPU: the result carries real chroma and is closer to the color original "
+        "than the gray input. Works frame by frame, so colors can flicker between video frames.",
     ),
     "hdrtvdm": (
         "needs_work",
