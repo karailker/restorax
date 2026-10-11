@@ -30,7 +30,7 @@ class TestDicFaceRestorerMeta:
         assert caps.output_color_space == "bgr"
 
     def test_capabilities_tags(self):
-        assert "iccv2023" in DicFaceRestorer().capabilities.tags
+        assert "iccv2025" in DicFaceRestorer().capabilities.tags
 
 
 class TestDicFaceRestorerLoadError:

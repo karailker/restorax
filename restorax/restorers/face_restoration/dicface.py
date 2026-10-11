@@ -1,15 +1,17 @@
 """
-DicFace — Dictionary-based blind face restoration.
+DicFace — temporally-coherent video face restoration.
 
-DicFace (ICCV 2023) builds a cross-scale dictionary of high-quality facial
-components (eyes, nose, mouth, skin) and uses it to guide restoration via
-cross-attention. Achieves significantly better identity preservation than
-CodeFormer on real-world degraded portraits while recovering more detail
-than methods that rely solely on GAN priors.
+DicFace reformulates CodeFormer's discrete codebook lookup as Dirichlet-
+distributed continuous variables and adds a temporal transformer over a
+window of frames, giving smoother identity/detail consistency across a
+video than single-frame blind face restorers (CodeFormer/GFPGAN).
 
-Model source: https://github.com/YaNgZhAnG-V5/DicFace
-Paper: "Dictionary-based Face Restoration with High-Frequency Hybrid-Awareness"
-       (ICCV 2023)
+Model source: https://github.com/fudan-generative-vision/DicFace
+Paper: "DicFace: Dirichlet-Constrained Variational Codebook Learning for
+        Temporally Coherent Video Face Restoration" (ICCV 2025)
+
+Weight: downloaded from HuggingFace Hub (fudan-generative-ai/DicFace_model)
+on first use — the "bfr_100k.pth" blind-face-restoration checkpoint.
 """
 
 from __future__ import annotations
@@ -32,17 +34,24 @@ from restorax.core.restorer import (
 
 logger = logging.getLogger(__name__)
 
-_HF_REPO = "YaNgZhAnG-V5/DicFace"
-_WEIGHT_FILE = "dicface.pth"
+_HF_REPO = "fudan-generative-ai/DicFace_model"
+_HF_WEIGHT_PATH = "CodeFormer/bfr_100k.pth"
+_WEIGHT_FILE = "bfr_100k.pth"
 _DEFAULT_FIDELITY = 0.5
+
+# Checkpoint was trained with this fixed temporal window; the arch's
+# position_emb_temporal parameter shape must match it exactly.
+_FRAME_LENGTH = 5
 
 
 class DicFaceRestorer(BaseRestorer):
     """
-    Dictionary-based blind face restoration (DicFace, ICCV 2023).
+    Temporally-coherent blind face restoration (DicFace, ICCV 2025).
 
-    Better identity preservation than CodeFormer/GFPGAN while recovering
-    more facial detail. Ideal for portrait videos and close-up interview footage.
+    Processes faces in non-overlapping windows of _FRAME_LENGTH frames so the
+    codebook-lookup transformer has temporal context, reducing flicker versus
+    CodeFormer/GFPGAN on video. Ideal for portrait videos and close-up
+    interview footage.
 
     extra params:
       fidelity: float 0.0–1.0 (0=max enhancement, 1=max fidelity)
@@ -77,16 +86,16 @@ class DicFaceRestorer(BaseRestorer):
             category=RestorerCategory.FACE_RESTORATION,
             input_color_space="bgr",
             output_color_space="bgr",
-            requires_temporal=False,
+            requires_temporal=True,
             min_vram_gb=4.0,
             scale_factor=1,
-            tags=["face_restoration", "dicface", "dictionary", "identity", "iccv2023"],
+            tags=["face_restoration", "dicface", "dictionary", "identity", "temporal", "iccv2025"],
         )
 
     def load(self, device: torch.device) -> None:
         try:
             from restorax.restorers.face_restoration.dicface_arch import (
-                DicFaceNet,  # type: ignore[import]
+                TemporalCodeFormerDirDistMultiScale,
             )
         except ImportError as exc:
             raise RestorerLoadError(
@@ -118,7 +127,14 @@ class DicFaceRestorer(BaseRestorer):
                 ) from exc
 
         try:
-            net = DicFaceNet().to(device)
+            net = TemporalCodeFormerDirDistMultiScale(
+                dim_embed=512,
+                n_head=8,
+                n_layers=9,
+                codebook_size=1024,
+                connect_list=["32", "64", "128", "256"],
+                frame_length=_FRAME_LENGTH,
+            ).to(device)
             ckpt = torch.load(weight_path, map_location="cpu", weights_only=True)
             net.load_state_dict(ckpt.get("params_ema", ckpt), strict=False)
             net.eval()
