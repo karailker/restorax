@@ -14,13 +14,15 @@ against standard SR paper baselines from SRCNN / EDSR / Real-ESRGAN.
 
 Output: BenchmarkResult / BenchmarkSuite → JSON + Markdown table.
 """
+
 from __future__ import annotations
 
 import json
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -43,7 +45,7 @@ class BenchmarkResult:
     num_frames: int
     timestamp: str
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     def to_markdown_row(self) -> str:
@@ -60,12 +62,13 @@ class BenchmarkResult:
 @dataclass
 class BenchmarkSuite:
     results: list[BenchmarkResult]
-    baselines: dict[str, "BaselineResult"] = None  # type: ignore[assignment]
+    baselines: dict[str, BaselineResult] = None  # type: ignore[assignment]
 
     def to_json(self) -> str:
-        data: dict = {"results": [r.to_dict() for r in self.results]}
+        data: dict[str, Any] = {"results": [r.to_dict() for r in self.results]}
         if self.baselines:
             from dataclasses import asdict
+
             data["baselines"] = {k: asdict(v) for k, v in self.baselines.items()}
         return json.dumps(data, indent=2)
 
@@ -158,7 +161,7 @@ class BenchmarkRunner:
             vram_peak_mb=mon.peak_mb,
             device=device_str,
             num_frames=len(pairs),
-            timestamp=datetime.now(tz=timezone.utc).isoformat(),
+            timestamp=datetime.now(tz=UTC).isoformat(),
         )
 
     def run_all_degradations(
@@ -186,4 +189,5 @@ class BenchmarkRunner:
 
 def _resize_ref(ref: np.ndarray, w: int, h: int) -> np.ndarray:
     import cv2
+
     return cv2.resize(ref, (w, h), interpolation=cv2.INTER_CUBIC)

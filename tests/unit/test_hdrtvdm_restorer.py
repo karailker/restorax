@@ -1,4 +1,5 @@
 """Unit tests for HDRTVDMRestorer."""
+
 from __future__ import annotations
 
 import builtins

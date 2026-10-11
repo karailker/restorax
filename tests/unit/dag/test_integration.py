@@ -1,4 +1,5 @@
 """Integration test: full ParallelNode + MergeNode round-trip with synthetic frames."""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,14 +7,11 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import numpy as np
-import pytest
 
 from restorax.dag.context import ExecutionContext, ProgressEmitter
 from restorax.dag.edge import Edge
 from restorax.dag.executor import DAGExecutor
 from restorax.dag.graph import DAG
-from restorax.dag.node import NodeResult, Port
-from restorax.dag.nodes.control import PassNode
 from restorax.dag.nodes.merge import MergeNode
 from restorax.dag.nodes.parallel import BranchConfig, ParallelNode
 from restorax.dag.serializer import DAGSerializer
@@ -61,7 +59,9 @@ def test_parallel_then_merge_blend(tmp_path: Path):
     ctx = _make_ctx(tmp_path)
     chunks = _make_frames()
     run = asyncio.run(
-        DAGExecutor().execute(dag, ctx, initial_inputs={"parallel": {"chunks": chunks, "meta": None}})
+        DAGExecutor().execute(
+            dag, ctx, initial_inputs={"parallel": {"chunks": chunks, "meta": None}}
+        )
     )
 
     assert run.succeeded

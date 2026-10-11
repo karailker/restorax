@@ -3,6 +3,7 @@
 The `run` command is exercised in integration tests since it requires video I/O.
 These tests cover the informational commands that need no GPU or real files.
 """
+
 from __future__ import annotations
 
 from click.testing import CliRunner
@@ -15,6 +16,7 @@ def _runner() -> CliRunner:
 
 
 # ── restorax models ───────────────────────────────────────────────────────────
+
 
 class TestModelsCommand:
     def test_exits_zero(self):
@@ -34,6 +36,7 @@ class TestModelsCommand:
 
 # ── restorax presets ──────────────────────────────────────────────────────────
 
+
 class TestPresetsCommand:
     def test_exits_zero(self):
         result = _runner().invoke(cli, ["presets"])
@@ -49,6 +52,7 @@ class TestPresetsCommand:
 
 
 # ── restorax benchmark ────────────────────────────────────────────────────────
+
 
 class TestBenchmarkCommand:
     def test_benchmark_group_help(self):
@@ -66,14 +70,28 @@ class TestBenchmarkCommand:
         result = _runner().invoke(cli, ["benchmark", "compare", "--help"])
         assert result.exit_code == 0
 
-    def test_benchmark_run_cpu_small(self, tmp_path):
-        """Run benchmark with 1 frame on CPU — must produce JSON output."""
-        result = _runner().invoke(cli, [
-            "benchmark", "run",
-            "--device", "cpu",
-            "--num-frames", "1",
-            "--output-dir", str(tmp_path),
-        ])
+    def test_benchmark_run_cpu_small(self, tmp_path, monkeypatch):
+        """Run benchmark with 1 frame on CPU — must produce JSON output.
+
+        Uses a classical restorer so the test needs no weights; with the default
+        (all restorers) it would download and run every model that has public weights.
+        """
+        monkeypatch.setenv("RESTORAX_MODEL_DIR", str(tmp_path / "models"))
+        result = _runner().invoke(
+            cli,
+            [
+                "benchmark",
+                "run",
+                "--restorer",
+                "video_stabilization",
+                "--device",
+                "cpu",
+                "--num-frames",
+                "1",
+                "--output-dir",
+                str(tmp_path),
+            ],
+        )
         assert result.exit_code == 0, result.output
         json_files = list(tmp_path.glob("*.json"))
         assert len(json_files) >= 1, "No JSON files produced"
@@ -86,6 +104,7 @@ class TestBenchmarkCommand:
 
 
 # ── restorax --help ───────────────────────────────────────────────────────────
+
 
 class TestTopLevelHelp:
     def test_help(self):

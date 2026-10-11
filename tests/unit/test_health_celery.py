@@ -1,4 +1,5 @@
 """Tests for GET /health/celery — Celery queue depth and worker info."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -10,6 +11,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture(scope="module")
 def client():
     from restorax.api.app import app
+
     return TestClient(app)
 
 

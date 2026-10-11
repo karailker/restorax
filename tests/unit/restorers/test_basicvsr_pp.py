@@ -1,4 +1,5 @@
 """Unit tests for BasicVSRPlusPlusRestorer — no GPU, no real weights."""
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -28,6 +29,7 @@ def mock_restorer() -> BasicVSRPlusPlusRestorer:
 
 def _make_mock_model():
     """Returns a callable that simulates 4× upscaling on B T C H W tensors."""
+
     def forward(tensor: torch.Tensor) -> torch.Tensor:
         b, t, c, h, w = tensor.shape
         return tensor.repeat_interleave(4, dim=3).repeat_interleave(4, dim=4)
@@ -35,9 +37,15 @@ def _make_mock_model():
     class _FakeModel:
         def __call__(self, x: torch.Tensor) -> torch.Tensor:
             return forward(x)
-        def eval(self): return self
-        def to(self, d): return self
-        def half(self): return self
+
+        def eval(self):
+            return self
+
+        def to(self, d):
+            return self
+
+        def half(self):
+            return self
 
     return _FakeModel()
 

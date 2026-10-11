@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from restorax.core.exceptions import DAGValidationError
@@ -10,12 +11,14 @@ from restorax.dag.node import Node
 _NODE_REGISTRY: dict[str, type[Node]] = {}
 
 
-def dag_node_type(type_id: str):
+def dag_node_type(type_id: str) -> Callable[[type[Node]], type[Node]]:
     """Class decorator that registers a Node subclass under a string type ID."""
+
     def decorator(cls: type[Node]) -> type[Node]:
         _NODE_REGISTRY[type_id] = cls
         cls._dag_type_id = type_id  # type: ignore[attr-defined]
         return cls
+
     return decorator
 
 
@@ -55,8 +58,7 @@ class DAGSerializer:
             type_id = node_data.get("type")
             if type_id not in _NODE_REGISTRY:
                 raise DAGValidationError(
-                    f"Unknown node type '{type_id}'. "
-                    f"Registered types: {list(_NODE_REGISTRY)}"
+                    f"Unknown node type '{type_id}'. Registered types: {list(_NODE_REGISTRY)}"
                 )
             cls = _NODE_REGISTRY[type_id]
             nodes[node_data["id"]] = cls.from_dict(node_data)

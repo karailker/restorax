@@ -1,0 +1,70 @@
+name: Real-weights verification
+
+# Runs the real-inference tests (tests/integration/test_real_inference.py) with the
+# official model weights on CPU. These tests are skipped in the regular CI because
+# the weights are large; this workflow downloads them (cached) and proves that the
+# models still produce real, good-quality output.
+on:
+  pull_request:
+    paths:
+      - "restorax/restorers/**"
+      - "restorax/models_catalog.py"
+      - "restorax/utils/weights.py"
+      - "tests/integration/test_real_inference.py"
+      - ".github/workflows/real-weights.yml"
+  schedule:
+    - cron: "37 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-weights:
+    name: Real inference (${{ matrix.model }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - model: vrt
+            download: "--model vrt"
+            tests: "-k vrt"
+          - model: ddcolor
+            download: "--model ddcolor"
+            tests: "-k ddcolor"
+    env:
+      RESTORAX_MODEL_DIR: ${{ github.workspace }}/models
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache weights
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: weights-${{ matrix.model }}-${{ hashFiles('restorax/models_catalog.py') }}
+
+      - name: Install dependencies (CPU torch)
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install basicsr av opencv-python-headless
+          pip install -e ".[dev]" scikit-image
+
+      - name: Download weights
+        run: restorax download-models ${{ matrix.download }}
+
+      - name: List downloaded files
+        run: find models -type f -exec ls -la {} \;
+
+      - name: Real-inference tests
+        run: python -m pytest tests/integration/test_real_inference.py ${{ matrix.tests }} -v --tb=short -p no:cacheprovider
+
+      - name: Weight files used
+        if: always()
+        run: find models -type f -size +1M -exec ls -la {} \;

@@ -12,6 +12,7 @@ Paper: "BasicVSR++: Improving Video Super-Resolution with Enhanced
 
 Weights: loaded from BasicSR's official HuggingFace checkpoint.
 """
+
 from __future__ import annotations
 
 import logging
@@ -22,11 +23,11 @@ import torch
 
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
+    HALF_PRECISION_SPEC,
     BaseRestorer,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,10 +60,10 @@ class BasicVSRPlusPlusRestorer(BaseRestorer):
             category=RestorerCategory.SUPER_RESOLUTION,
             input_color_space="rgb",
             output_color_space="rgb",
-            requires_temporal=True,   # uses process_sequence, not process_frame
+            requires_temporal=True,  # uses process_sequence, not process_frame
             max_batch_size=1,
             min_vram_gb=8.0,
-            supports_compile=False,   # deformable conv not compatible with compile
+            supports_compile=False,  # deformable conv not compatible with compile
             scale_factor=4,
             tags=["super_resolution", "temporal", "x4", "video"],
         )
@@ -73,9 +74,7 @@ class BasicVSRPlusPlusRestorer(BaseRestorer):
         try:
             from basicsr.archs.basicvsrpp_arch import BasicVSRPlusPlus
         except ImportError as exc:
-            raise RestorerLoadError(
-                "basicsr is required for BasicVSRPlusPlusRestorer."
-            ) from exc
+            raise RestorerLoadError("basicsr is required for BasicVSRPlusPlusRestorer.") from exc
 
         weight_path = self._resolve_weight_path()
         logger.info("Loading BasicVSR++ from %s on %s", weight_path, device)

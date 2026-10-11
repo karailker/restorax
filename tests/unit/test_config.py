@@ -1,4 +1,5 @@
 """Unit tests for Settings (pydantic-settings config)."""
+
 from __future__ import annotations
 
 import pytest
@@ -10,8 +11,11 @@ class TestSettingsDefaults:
     """Test settings default values when no env vars are set."""
 
     KEYS = [
-        "RESTORAX_DATABASE_URL", "RESTORAX_DEVICE", "RESTORAX_STORAGE_BACKEND",
-        "RESTORAX_REGISTRY_MAX_LOADED", "RESTORAX_LOG_LEVEL",
+        "RESTORAX_DATABASE_URL",
+        "RESTORAX_DEVICE",
+        "RESTORAX_STORAGE_BACKEND",
+        "RESTORAX_REGISTRY_MAX_LOADED",
+        "RESTORAX_LOG_LEVEL",
     ]
 
     @pytest.fixture(autouse=True)

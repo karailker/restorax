@@ -1,7 +1,6 @@
 """Unit tests for audio restorers — no real models, no GPU required."""
-from __future__ import annotations
 
-from unittest.mock import patch
+from __future__ import annotations
 
 import numpy as np
 import pytest
@@ -28,10 +27,12 @@ def _mono(seconds: float = 1.0, sr: int = 48000) -> np.ndarray:
 
 # ── DemucsRestorer ────────────────────────────────────────────────────────────
 
+
 class TestDemucsRestorer:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.audio.demucs import DemucsRestorer, _DemucsStub
+
         r = DemucsRestorer()
         r._model = _DemucsStub()
         r._device = torch.device("cpu")
@@ -40,6 +41,7 @@ class TestDemucsRestorer:
 
     def test_name(self, restorer):
         from restorax.restorers.audio.demucs import DemucsRestorer
+
         assert DemucsRestorer().name == "demucs_htdemucs"
 
     def test_category(self, restorer):
@@ -73,10 +75,12 @@ class TestDemucsRestorer:
 
 # ── VoiceFixerRestorer ────────────────────────────────────────────────────────
 
+
 class TestVoiceFixerRestorer:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.audio.voicefixer import VoiceFixerRestorer, _VoiceFixerStub
+
         r = VoiceFixerRestorer()
         r._model = _VoiceFixerStub()
         r._device = torch.device("cpu")
@@ -85,6 +89,7 @@ class TestVoiceFixerRestorer:
 
     def test_name(self):
         from restorax.restorers.audio.voicefixer import VoiceFixerRestorer
+
         assert VoiceFixerRestorer().name == "voicefixer"
 
     def test_category(self, restorer):
@@ -110,10 +115,12 @@ class TestVoiceFixerRestorer:
 
 # ── RNNoiseRestorer ───────────────────────────────────────────────────────────
 
+
 class TestRNNoiseRestorer:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.audio.rnnoise import RNNoiseRestorer, _RNNoiseStub
+
         r = RNNoiseRestorer()
         r._denoiser = _RNNoiseStub()
         r._device = torch.device("cpu")
@@ -122,6 +129,7 @@ class TestRNNoiseRestorer:
 
     def test_name(self):
         from restorax.restorers.audio.rnnoise import RNNoiseRestorer
+
         assert RNNoiseRestorer().name == "rnnoise"
 
     def test_category(self, restorer):

@@ -1,16 +1,16 @@
 """Unit tests for CodeFormerRestorer and GFPGANRestorer — no GPU, no real weights."""
+
 from __future__ import annotations
 
 import numpy as np
-import pytest
 import torch
 
 from restorax.core.restorer import RestorerCategory, RestorerParams
 from restorax.restorers.face_restoration.codeformer import CodeFormerRestorer
 from restorax.restorers.face_restoration.gfpgan import GFPGANRestorer
 
-
 # ── CodeFormer ────────────────────────────────────────────────────────────────
+
 
 def test_codeformer_capabilities() -> None:
     caps = CodeFormerRestorer().capabilities
@@ -27,7 +27,7 @@ def test_codeformer_name() -> None:
 
 def test_codeformer_process_frame_no_faces() -> None:
     """When face_helper detects no faces, the original frame must be returned unchanged."""
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import MagicMock
 
     restorer = CodeFormerRestorer()
     restorer._loaded = True
@@ -59,6 +59,7 @@ def test_codeformer_unloads_model() -> None:
 
 
 # ── GFPGAN ────────────────────────────────────────────────────────────────────
+
 
 def test_gfpgan_capabilities() -> None:
     caps = GFPGANRestorer().capabilities

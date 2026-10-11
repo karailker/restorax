@@ -14,6 +14,7 @@ Paper: "Towards Robust Blind Face Restoration with Codebook Lookup
 
 Weight: downloaded from HuggingFace Hub on first use.
 """
+
 from __future__ import annotations
 
 import logging
@@ -26,10 +27,10 @@ import torch
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
     BaseRestorer,
+    ParamSpec,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,9 +57,16 @@ class CodeFormerRestorer(BaseRestorer):
     """
 
     PARAM_SCHEMA = [
-        ParamSpec("fidelity", "float", _DEFAULT_FIDELITY, "Fidelity",
-                  minimum=0.0, maximum=1.0, step=0.05,
-                  help="0 = best quality, 1 = best identity preservation"),
+        ParamSpec(
+            "fidelity",
+            "float",
+            _DEFAULT_FIDELITY,
+            "Fidelity",
+            minimum=0.0,
+            maximum=1.0,
+            step=0.05,
+            help="0 = best quality, 1 = best identity preservation",
+        ),
     ]
 
     def __init__(self) -> None:
@@ -75,7 +83,7 @@ class CodeFormerRestorer(BaseRestorer):
     def capabilities(self) -> RestorerCapabilities:
         return RestorerCapabilities(
             category=RestorerCategory.FACE_RESTORATION,
-            input_color_space="bgr",   # facexlib expects BGR
+            input_color_space="bgr",  # facexlib expects BGR
             output_color_space="bgr",
             requires_temporal=False,
             min_vram_gb=4.0,
@@ -87,12 +95,11 @@ class CodeFormerRestorer(BaseRestorer):
 
     def load(self, device: torch.device) -> None:
         try:
-            from restorax.restorers.face_restoration.codeformer_arch import CodeFormer
             from facexlib.utils.face_restoration_helper import FaceRestoreHelper
+
+            from restorax.restorers.face_restoration.codeformer_arch import CodeFormer
         except ImportError as exc:
-            raise RestorerLoadError(
-                "facexlib is required: pip install facexlib"
-            ) from exc
+            raise RestorerLoadError("facexlib is required: pip install facexlib") from exc
 
         weight_path = self._resolve_weight_path()
         logger.info("Loading CodeFormer from %s on %s", weight_path, device)
@@ -152,26 +159,26 @@ class CodeFormerRestorer(BaseRestorer):
         fidelity = float(params.extra.get("fidelity", _DEFAULT_FIDELITY))
 
         helper = self._face_helper
-        helper.clean_all()  # type: ignore[union-attr]
-        helper.read_image(frame)  # type: ignore[union-attr]
-        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr]
-        helper.align_warp_face()  # type: ignore[union-attr]
+        helper.clean_all()  # type: ignore[union-attr,attr-defined]
+        helper.read_image(frame)  # type: ignore[union-attr,attr-defined]
+        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr,attr-defined]
+        helper.align_warp_face()  # type: ignore[union-attr,attr-defined]
 
         # No faces detected — return unchanged
-        if not helper.cropped_faces:  # type: ignore[union-attr]
+        if not helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             return frame
 
         restored_faces = []
-        for cropped_face in helper.cropped_faces:  # type: ignore[union-attr]
+        for cropped_face in helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             face_t = self._face_to_tensor(cropped_face)
             with torch.inference_mode():
                 output = self._net(face_t, w=fidelity, adain=True)[0]
             restored = self._tensor_to_face(output)
             restored_faces.append(restored)
 
-        helper.add_restored_face(restored_faces)  # type: ignore[union-attr]
-        helper.paste_faces_to_input_image()  # type: ignore[union-attr]
-        result = helper.output  # type: ignore[union-attr]
+        helper.add_restored_face(restored_faces)  # type: ignore[union-attr,attr-defined]
+        helper.paste_faces_to_input_image()  # type: ignore[union-attr,attr-defined]
+        result = helper.output  # type: ignore[union-attr,attr-defined]
 
         return result if result is not None else frame
 

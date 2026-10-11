@@ -103,7 +103,9 @@ class VideoOutputNode(Node):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
 
         first_frame = chunks[0][0] if chunks and chunks[0] else None
-        out_h, out_w = (first_frame.shape[:2] if first_frame is not None else (meta.height, meta.width))
+        out_h, out_w = (
+            first_frame.shape[:2] if first_frame is not None else (meta.height, meta.width)
+        )
 
         with VideoWriter(path, meta=meta, out_width=out_w, out_height=out_h, fps=fps) as writer:
             for chunk in chunks:

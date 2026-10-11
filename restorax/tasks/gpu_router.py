@@ -13,11 +13,12 @@ Usage:
     CUDA_VISIBLE_DEVICES=0 celery worker --queues gpu_0 --concurrency=1
     CUDA_VISIBLE_DEVICES=1 celery worker --queues gpu_1 --concurrency=1
 """
+
 from __future__ import annotations
 
 import itertools
 import os
-from typing import Iterator
+from collections.abc import Iterator
 
 _DEFAULT_QUEUE = "gpu_default"
 

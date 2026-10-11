@@ -1,19 +1,24 @@
 """Tests for plugin discovery and registration."""
+
 from __future__ import annotations
 
 import importlib.metadata
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-import pytest
 import torch
 
-from restorax.core.restorer import BaseRestorer, RestorerCapabilities, RestorerCategory, RestorerParams
-from restorax.core.registry import ModelRegistry
 from restorax.core.plugin import discover_plugins, register_plugins
-
+from restorax.core.registry import ModelRegistry
+from restorax.core.restorer import (
+    BaseRestorer,
+    RestorerCapabilities,
+    RestorerCategory,
+    RestorerParams,
+)
 
 # ── Fake plugin restorer ──────────────────────────────────────────────────────
+
 
 class _FakePluginRestorer(BaseRestorer):
     @property
@@ -41,6 +46,7 @@ class _FakePluginRestorer(BaseRestorer):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _make_fake_entry_point(cls: type) -> MagicMock:
     ep = MagicMock(spec=importlib.metadata.EntryPoint)
     ep.name = "fake_plugin_restorer"
@@ -50,6 +56,7 @@ def _make_fake_entry_point(cls: type) -> MagicMock:
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
+
 
 def test_discover_plugins_returns_valid_classes() -> None:
     ep = _make_fake_entry_point(_FakePluginRestorer)

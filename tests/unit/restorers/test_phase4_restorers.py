@@ -1,7 +1,8 @@
 """Unit tests for Phase 4 restorers: scratch removal, HDR, stabilization, deinterlacing."""
+
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -9,13 +10,14 @@ import torch
 
 from restorax.core.restorer import RestorerCategory, RestorerParams
 
-
 # ── ScratchRemovalRestorer ─────────────────────────────────────────────────────
+
 
 class TestScratchRemoval:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.artifact_removal.scratch_removal import ScratchRemovalRestorer
+
         r = ScratchRemovalRestorer()
         r._device = torch.device("cpu")
         r._loaded = True
@@ -53,6 +55,7 @@ class TestScratchRemoval:
 
     def test_scratch_detection_temporal(self, restorer):
         from restorax.restorers.artifact_removal.scratch_removal import ScratchRemovalRestorer
+
         frames = [np.full((32, 32, 3), 50, dtype=np.uint8) for _ in range(4)]
         frames[2][:, 15:17] = 240  # scratch only in frame 2
         masks = ScratchRemovalRestorer._detect_scratches_temporal(frames)
@@ -63,10 +66,12 @@ class TestScratchRemoval:
 
 # ── HDRTVDMRestorer ────────────────────────────────────────────────────────────
 
+
 class TestHDRTVDM:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.hdr.hdrtvdm import HDRTVDMRestorer
+
         r = HDRTVDMRestorer()
         mock_model = MagicMock()
         mock_model.side_effect = lambda t: t  # passthrough: same shape tensor
@@ -97,10 +102,12 @@ class TestHDRTVDM:
 
 # ── VideoStabilizationRestorer ─────────────────────────────────────────────────
 
+
 class TestVideoStabilization:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.stabilization.deep_flow_stab import VideoStabilizationRestorer
+
         r = VideoStabilizationRestorer()
         r.load(torch.device("cpu"))
         return r
@@ -132,6 +139,7 @@ class TestVideoStabilization:
 
     def test_smooth_trajectory_shape(self):
         from restorax.restorers.stabilization.deep_flow_stab import VideoStabilizationRestorer
+
         traj = np.random.randn(20, 3)
         smoothed = VideoStabilizationRestorer._smooth_trajectory(traj)
         assert smoothed.shape == traj.shape
@@ -139,10 +147,12 @@ class TestVideoStabilization:
 
 # ── AIDeinterlaceRestorer ──────────────────────────────────────────────────────
 
+
 class TestAIDeinterlace:
     @pytest.fixture
     def restorer(self):
         from restorax.restorers.deinterlacing.ai_deinterlace import AIDeinterlaceRestorer
+
         r = AIDeinterlaceRestorer()
         mock_model = MagicMock()
         mock_model.side_effect = lambda t: t  # passthrough: same-shape tensor
@@ -172,6 +182,7 @@ class TestAIDeinterlace:
 
     def test_is_interlaced_clean_frame_false(self, restorer):
         from restorax.restorers.deinterlacing.ai_deinterlace import AIDeinterlaceRestorer
+
         # Smooth gradient — not interlaced
         frame = np.zeros((64, 64, 3), dtype=np.uint8)
         for i in range(64):

@@ -7,6 +7,7 @@ GET    /pipelines/{id}     — get template
 PUT    /pipelines/{id}     — update template
 DELETE /pipelines/{id}     — delete template
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -36,7 +37,7 @@ async def create_pipeline(
 ) -> PipelineResponse:
     repo = PipelineRepository(db)
     try:
-        existing = await repo.get(req.id)
+        await repo.get(req.id)
         raise HTTPException(status_code=409, detail=f"Pipeline '{req.id}' already exists")
     except PipelineConfigError:
         pass  # does not exist — safe to create
@@ -64,7 +65,7 @@ async def get_pipeline(pipeline_id: str, db: AsyncSession = Depends(get_db)) -> 
     try:
         p = await repo.get(pipeline_id)
     except PipelineConfigError:
-        raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline_id}' not found")
+        raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline_id}' not found") from None
     return PipelineResponse.model_validate(p)
 
 
@@ -76,9 +77,11 @@ async def update_pipeline(
 ) -> PipelineResponse:
     repo = PipelineRepository(db)
     try:
-        p = await repo.update(pipeline_id, name=req.name, description=req.description, config=req.config)
+        p = await repo.update(
+            pipeline_id, name=req.name, description=req.description, config=req.config
+        )
     except PipelineConfigError:
-        raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline_id}' not found")
+        raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline_id}' not found") from None
     return PipelineResponse.model_validate(p)
 
 
@@ -88,7 +91,7 @@ async def delete_pipeline(pipeline_id: str, db: AsyncSession = Depends(get_db)) 
     try:
         await repo.delete(pipeline_id)
     except PipelineConfigError:
-        raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline_id}' not found")
+        raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline_id}' not found") from None
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -105,7 +108,7 @@ async def create_dag(
     try:
         DAGSerializer.from_dict(req.config)
     except (DAGValidationError, Exception) as exc:
-        raise HTTPException(status_code=422, detail=f"Invalid DAG config: {exc}")
+        raise HTTPException(status_code=422, detail=f"Invalid DAG config: {exc}") from None
 
     repo = PipelineRepository(db)
     p = PipelineTemplateModel(
@@ -117,7 +120,7 @@ async def create_dag(
     try:
         created = await repo.create(p)
     except Exception:
-        raise HTTPException(status_code=409, detail=f"DAG '{req.id}' already exists")
+        raise HTTPException(status_code=409, detail=f"DAG '{req.id}' already exists") from None
     return DAGResponse.model_validate(created)
 
 
@@ -127,5 +130,5 @@ async def get_dag(dag_id: str, db: AsyncSession = Depends(get_db)) -> DAGRespons
     try:
         p = await repo.get(dag_id)
     except PipelineConfigError:
-        raise HTTPException(status_code=404, detail=f"DAG '{dag_id}' not found")
+        raise HTTPException(status_code=404, detail=f"DAG '{dag_id}' not found") from None
     return DAGResponse.model_validate(p)

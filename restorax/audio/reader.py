@@ -4,6 +4,7 @@ AudioReader — extract audio from a video container as a float32 numpy array.
 Uses PyAV for direct container access (same as VideoReader) so no FFmpeg
 subprocess is spawned per file. The extracted array is normalized to [-1.0, 1.0].
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -44,7 +45,6 @@ class AudioReader:
 
         audio_stream = container.streams.audio[0]
         sample_rate = audio_stream.rate
-        num_channels = audio_stream.channels or 1
 
         chunks: list[np.ndarray] = []
         try:
@@ -74,7 +74,8 @@ class AudioReader:
 def _normalize_to_float32(audio: np.ndarray) -> np.ndarray:
     """Convert any integer or float dtype to float32 normalized to [-1.0, 1.0]."""
     if audio.dtype == np.float32:
-        return np.clip(audio, -1.0, 1.0)
+        clipped: np.ndarray = np.clip(audio, -1.0, 1.0)
+        return clipped
     if audio.dtype == np.float64:
         return np.clip(audio.astype(np.float32), -1.0, 1.0)
     if audio.dtype == np.int16:

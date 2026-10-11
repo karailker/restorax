@@ -12,6 +12,7 @@ Paper: "Hybrid Transformers for Music Source Separation" (ICASSP 2023)
 Requires: pip install demucs
 Weights: downloaded via demucs.pretrained.get_model() on first use
 """
+
 from __future__ import annotations
 
 import logging
@@ -46,8 +47,13 @@ class DemucsRestorer(AudioRestorer):
     """
 
     PARAM_SCHEMA = [
-        ParamSpec("stems", "multiselect", list(_DEFAULT_STEMS), "Stems to keep",
-                  choices=("vocals", "drums", "bass", "other")),
+        ParamSpec(
+            "stems",
+            "multiselect",
+            list(_DEFAULT_STEMS),
+            "Stems to keep",
+            choices=("vocals", "drums", "bass", "other"),
+        ),
     ]
 
     def __init__(self) -> None:
@@ -88,7 +94,7 @@ class DemucsRestorer(AudioRestorer):
 
     def process_audio(
         self,
-        audio: np.ndarray,          # (num_samples, num_channels) float32
+        audio: np.ndarray,  # (num_samples, num_channels) float32
         params: AudioRestorerParams,
     ) -> np.ndarray:
         assert self._device is not None
@@ -114,7 +120,9 @@ class DemucsRestorer(AudioRestorer):
                 # apply_model returns (batch, stems, channels, samples)
                 separated = apply_model(self._model, tensor, device=self._device, progress=False)
 
-            stem_names: list[str] = getattr(self._model, "sources", ["drums", "bass", "other", "vocals"])
+            stem_names: list[str] = getattr(
+                self._model, "sources", ["drums", "bass", "other", "vocals"]
+            )
             result = torch.zeros_like(tensor.squeeze(0))  # (channels, samples)
             for i, stem_name in enumerate(stem_names):
                 if stem_name in stems_to_keep:
@@ -129,6 +137,7 @@ class DemucsRestorer(AudioRestorer):
     def _build_model(device: torch.device) -> object:
         try:
             from demucs.pretrained import get_model
+
             model = get_model("htdemucs")
             model = model.to(device)
             model.eval()
@@ -144,4 +153,5 @@ class DemucsRestorer(AudioRestorer):
 
 class _DemucsStub:
     """Identity stub: returns input unchanged. Used when demucs is not installed."""
+
     pass

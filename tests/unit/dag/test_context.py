@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+
 from restorax.dag.context import ProgressEmitter
 
 
@@ -15,6 +16,7 @@ def test_progress_emitter_publishes_to_redis():
         assert channel == "restorax:job_progress:job-123"
 
         import json
+
         payload = json.loads(payload_str)
         assert payload["node_id"] == "restore_1"
         assert payload["branch_index"] == 1

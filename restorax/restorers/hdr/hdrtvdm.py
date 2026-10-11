@@ -20,6 +20,7 @@ function, BT.2020 primaries). Downstream muxing to HDR10 container
 requires FFmpeg with appropriate metadata injection (handled by VideoWriter
 when output_hdr=True is set in the job request, Phase 5+).
 """
+
 from __future__ import annotations
 
 import logging
@@ -83,7 +84,7 @@ class HDRTVDMRestorer(BaseRestorer):
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     def load(self, device: torch.device) -> None:
-        self._model = self._build_model(device)
+        self._model = self._build_model(device)  # type: ignore[assignment]
         self._device = device
         self._loaded = True
         logger.info("HDRTVDM loaded on %s", device)
@@ -111,18 +112,26 @@ class HDRTVDMRestorer(BaseRestorer):
     # ── Internal ──────────────────────────────────────────────────────────────
 
     def _model_inference(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
-        t = torch.from_numpy(frame).float().div(255.0).permute(2, 0, 1).unsqueeze(0).to(self._device)
+        t = (
+            torch.from_numpy(frame)
+            .float()
+            .div(255.0)
+            .permute(2, 0, 1)
+            .unsqueeze(0)
+            .to(self._device)
+        )
         with torch.inference_mode():
             hdr = self._model(t)  # type: ignore[operator]
         # Display tone-map back to 8-bit for pipeline preview
         hdr_np = hdr.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).cpu().numpy()
-        return (hdr_np * 255).astype(np.uint8)
+        frame_out: np.ndarray = (hdr_np * 255).astype(np.uint8)
+        return frame_out
 
     @staticmethod
     def _build_model(device: torch.device) -> object:
         try:
-            from restorax.restorers.hdr.hdrtvdm_arch import TriSegNet  # type: ignore[import]
             from restorax.config import settings
+            from restorax.restorers.hdr.hdrtvdm_arch import TriSegNet  # type: ignore[import]
 
             weight_path = Path(settings.model_dir) / "hdrtvdm" / _WEIGHT_FILE
             if not weight_path.exists():
@@ -150,5 +159,3 @@ class HDRTVDMRestorer(BaseRestorer):
             raise RestorerLoadError(
                 "HDRTVDM architecture module not vendored; cannot load model"
             ) from exc
-
-

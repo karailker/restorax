@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import JSON, DateTime, Float, String, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
@@ -29,14 +30,16 @@ class JobModel(Base):
     # Result fields
     output_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    metrics: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    dag_run: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    metrics: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    dag_run: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     # Celery
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     # Timestamps
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=lambda: datetime.now(UTC)
+    )
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -47,6 +50,13 @@ class PipelineTemplateModel(Base):
     id: Mapped[str] = mapped_column(String(128), primary_key=True)
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    config: Mapped[dict] = mapped_column(JSON, nullable=False)  # full YAML parsed to dict
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    config: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)  # full YAML parsed to dict
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=lambda: datetime.now(UTC)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )

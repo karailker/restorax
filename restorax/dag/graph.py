@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from collections import defaultdict, deque
+from dataclasses import dataclass
 
 from restorax.core.exceptions import DAGValidationError, PortTypeMismatchError
 from restorax.dag.edge import Edge
@@ -14,6 +14,7 @@ class DAG:
     Immutable directed acyclic graph of Nodes connected by Edges.
     Validates structure on construction — raises DAGValidationError on any violation.
     """
+
     id: str
     name: str
     nodes: dict[str, Node]

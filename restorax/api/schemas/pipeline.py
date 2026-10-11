@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -7,14 +8,16 @@ class PipelineCreateRequest(BaseModel):
     id: str = Field(..., description="Unique pipeline ID slug (e.g. 'my_pipeline')")
     name: str = Field(..., description="Human-readable name")
     description: str = Field("", description="Optional description")
-    config: dict = Field(..., description="Pipeline config dict (same schema as YAML presets)")
+    config: dict[str, Any] = Field(
+        ..., description="Pipeline config dict (same schema as YAML presets)"
+    )
 
 
 class PipelineResponse(BaseModel):
     id: str
     name: str
     description: str
-    config: dict
+    config: dict[str, Any]
     created_at: datetime
     updated_at: datetime
 
@@ -29,14 +32,16 @@ class DAGCreateRequest(BaseModel):
     id: str = Field(..., description="Unique DAG ID slug (e.g. 'film_restoration_dag')")
     name: str
     description: str = ""
-    config: dict = Field(..., description="Serialised DAG dict from DAGSerializer.to_dict()")
+    config: dict[str, Any] = Field(
+        ..., description="Serialised DAG dict from DAGSerializer.to_dict()"
+    )
 
 
 class DAGResponse(BaseModel):
     id: str
     name: str
     description: str
-    config: dict
+    config: dict[str, Any]
     created_at: datetime
     updated_at: datetime
 

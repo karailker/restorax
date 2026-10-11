@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from restorax.config import Settings
@@ -29,21 +29,22 @@ def configure_telemetry(settings: Settings) -> None:
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-    resource = Resource.create({
-        "service.name": settings.otel_service_name,
-        "service.version": "0.1.0",
-        "deployment.environment": settings.app_env,
-    })
+    resource = Resource.create(
+        {
+            "service.name": settings.otel_service_name,
+            "service.version": "0.1.0",
+            "deployment.environment": settings.app_env,
+        }
+    )
 
     # ── Traces ────────────────────────────────────────────────────────────────
     tracer_provider = TracerProvider(resource=resource)
 
     if settings.otel_exporter_otlp_endpoint:
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
         tracer_provider.add_span_processor(
-            BatchSpanProcessor(
-                OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint)
-            )
+            BatchSpanProcessor(OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint))
         )
 
     trace.set_tracer_provider(tracer_provider)
@@ -55,6 +56,7 @@ def configure_telemetry(settings: Settings) -> None:
             from sentry_sdk.integrations.celery import CeleryIntegration
             from sentry_sdk.integrations.fastapi import FastApiIntegration
             from sentry_sdk.integrations.starlette import StarletteIntegration
+
             sentry_sdk.init(
                 dsn=settings.sentry_dsn,
                 traces_sample_rate=1.0,
@@ -67,6 +69,7 @@ def configure_telemetry(settings: Settings) -> None:
 
     # ── Metrics (Prometheus) ──────────────────────────────────────────────────
     from opentelemetry.exporter.prometheus import PrometheusMetricReader
+
     reader = PrometheusMetricReader()
     meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
     metrics.set_meter_provider(meter_provider)
@@ -99,23 +102,25 @@ def configure_telemetry(settings: Settings) -> None:
     SQLAlchemyInstrumentor().instrument()
 
 
-def get_tracer():
+def get_tracer() -> Any:
     from opentelemetry import trace
+
     return trace.get_tracer("restorax")
 
 
-def get_meter():
+def get_meter() -> Any:
     from opentelemetry import metrics
+
     return metrics.get_meter("restorax")
 
 
-def get_jobs_counter():
+def get_jobs_counter() -> Any:
     return _jobs_counter
 
 
-def get_job_duration_histogram():
+def get_job_duration_histogram() -> Any:
     return _job_duration_histogram
 
 
-def get_active_jobs_counter():
+def get_active_jobs_counter() -> Any:
     return _active_jobs_counter

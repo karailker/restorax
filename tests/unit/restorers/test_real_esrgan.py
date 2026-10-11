@@ -4,6 +4,7 @@ Unit tests for RealESRGANx4Restorer.
 These tests do NOT load real weights or require a GPU.
 They verify the restorer contract: capabilities, frame shape, dtype, tiling API.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

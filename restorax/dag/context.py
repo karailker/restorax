@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import torch
+
     from restorax.core.registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ class ProgressEmitter:
     def __init__(self, job_id: str, redis_url: str) -> None:
         self._job_id = job_id
         import redis as _redis
+
         self._redis = _redis.from_url(redis_url, decode_responses=True)
 
     def emit(
@@ -34,13 +36,15 @@ class ProgressEmitter:
         branch_index: int = 0,
         status: str = "running",
     ) -> None:
-        payload = json.dumps({
-            "job_id": self._job_id,
-            "node_id": node_id,
-            "branch_index": branch_index,
-            "progress": round(progress, 4),
-            "status": status,
-        })
+        payload = json.dumps(
+            {
+                "job_id": self._job_id,
+                "node_id": node_id,
+                "branch_index": branch_index,
+                "progress": round(progress, 4),
+                "status": status,
+            }
+        )
         try:
             self._redis.publish(f"{self._CHANNEL_PREFIX}{self._job_id}", payload)
         except Exception as exc:
@@ -54,8 +58,8 @@ class ExecutionContext:
     run_id: str
     job_id: str
     work_dir: Path
-    device: "torch.device"
-    registry: "ModelRegistry"
+    device: torch.device
+    registry: ModelRegistry
     progress_emitter: ProgressEmitter
     logger: Any  # structlog.BoundLogger
     config: dict[str, Any] = field(default_factory=dict)

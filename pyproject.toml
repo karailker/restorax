@@ -12,6 +12,7 @@ dependencies = [
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.29.0",
     "websockets>=12.0",
+    "python-multipart>=0.0.9",  # FastAPI file upload (Form/UploadFile)
     # Task queue
     "celery[redis]>=5.3.0",
     "redis>=5.0.0",
@@ -29,6 +30,10 @@ dependencies = [
     "torch>=2.3.0",
     "torchvision>=0.18.0",
     "numpy>=1.26.0",
+    "safetensors>=0.4.0",  # DDColor Hugging Face weights
+    "packaging>=23.0",  # vendored VRT version checks
+    "scipy>=1.11.0",  # vendored ProPainter / RAFT
+    "einops>=0.7.0",  # vendored ProPainter
     "pillow>=10.3.0",
     "opencv-python-headless>=4.9.0",
     # ML toolboxes
@@ -94,7 +99,6 @@ dev = [
     "mypy>=1.10.0",
     "types-pyyaml>=6.0.12",
     "types-redis>=4.6.0",
-    "comfy-cli>=1.2.0",
 ]
 
 [project.scripts]
@@ -127,6 +131,7 @@ flashvsr_x4          = "restorax.restorers.super_resolution.flashvsr:FlashVSRRes
 evtexture_x4         = "restorax.restorers.super_resolution.evtexture:EvTextureRestorer"
 seedvr               = "restorax.restorers.super_resolution.seedvr:SeedVRRestorer"
 dicface              = "restorax.restorers.face_restoration.dicface:DicFaceRestorer"
+dlss5_visual_enhancer = "restorax.restorers.enhancement.dlss5_visual_enhancer:DLSS5VisualEnhancerRestorer"
 
 [tool.hatch.build.targets.wheel]
 packages = ["restorax"]
@@ -135,16 +140,83 @@ packages = ["restorax"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+# Vendored third-party architectures are kept byte-identical to upstream.
+extend-exclude = [
+    "comfyui_nodes",  # git submodule: karailker/restorax-comfyui (linted in its own repo)
+    "restorax/restorers/*/*_arch.py",
+    "restorax/restorers/*/rife_arch",
+    "restorax/restorers/colorization/ddcolor_arch",
+    "restorax/restorers/artifact_removal/propainter",
+]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501"]
+select = ["E", "F", "I", "UP", "B", "SIM", "S"]
+ignore = [
+    "E501",
+    "B008",  # FastAPI Depends()/Query() defaults are idiomatic
+    "UP042",  # str+Enum is kept for pydantic/JSON compatibility
+    "S101",  # assert is used for type narrowing, not validation
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests/scripts legitimately import after sys.path or importorskip setup.
+"tests/**" = ["E402", "B905", "SIM117", "S"]
+"scripts/**" = ["E402", "S"]
 
 # ── Mypy ──────────────────────────────────────────────────────────────────────
 [tool.mypy]
 python_version = "3.11"
-strict = true
 ignore_missing_imports = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_subclassing_any = true
+no_implicit_optional = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_configs = true
+# Optional deps (basicsr, mamba-ssm, ...) differ per environment, so ignores may flip.
+warn_unused_ignores = false
+warn_return_any = true
+no_implicit_reexport = true
+
+# Vendored upstream architectures are kept as-is and are not type-checked.
+[[tool.mypy.overrides]]
+module = [
+    "restorax.restorers.artifact_removal.propainter_arch",
+    "restorax.restorers.face_restoration.codeformer_arch",
+    "restorax.restorers.face_restoration.vqgan_arch",
+    "restorax.restorers.frame_interpolation.rife_arch.*",
+    "restorax.restorers.colorization.ddcolor_arch.*",
+    "restorax.restorers.super_resolution.evtexture_arch",
+    "restorax.restorers.super_resolution.upscale_a_video_arch",
+    "restorax.restorers.super_resolution.vrt_arch",
+    "restorax.restorers.super_resolution.waifu2x_arch",
+    "restorax.restorers.artifact_removal.propainter.*",
+]
+ignore_errors = true
+
+# Celery's decorators/Task base class are untyped.
+[[tool.mypy.overrides]]
+module = ["restorax.tasks.job_tasks", "restorax.tasks.celery_app"]
+disallow_untyped_decorators = false
+disallow_subclassing_any = false
+
+# Calls into vendored (untyped) upstream architectures and optional instrumentation.
+[[tool.mypy.overrides]]
+module = [
+    "restorax.restorers.colorization.ddcolor",
+    "restorax.restorers.super_resolution.waifu2x",
+    "restorax.restorers.super_resolution.evtexture",
+    "restorax.restorers.super_resolution.vrt",
+    "restorax.restorers.face_restoration.codeformer",
+    "restorax.restorers.frame_interpolation.rife",
+    "restorax.telemetry",
+]
+disallow_untyped_calls = false
 
 # ── Pytest ────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
@@ -154,7 +226,6 @@ addopts = "-m 'not benchmark'"
 markers = [
     "requires_weights: skip if named model weights are absent from model_dir",
     "requires_assets: skip if standard test assets are not downloaded",
-    "requires_comfyui: needs a real ComfyUI checkout at $COMFYUI_PATH",
     "benchmark: excluded from default run; invoke with pytest -m benchmark",
     "gpu: requires a CUDA GPU",
     "slow: slow integration tests",

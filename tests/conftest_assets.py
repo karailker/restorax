@@ -21,6 +21,7 @@ _ASSETS = {
 
 def _fetch(url: str, dest: Path) -> None:
     import urllib.request
+
     dest.parent.mkdir(parents=True, exist_ok=True)
     if not dest.exists():
         urllib.request.urlretrieve(url, dest)

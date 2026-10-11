@@ -12,6 +12,7 @@ Weights:      ChenyangSi/TDM on HuggingFace Hub (pending public release)
 Temporal consistency is achieved via Sliding Window Cross-Frame Attention
 (SW-CFA) — the restorer requires a temporal sequence (requires_temporal=True).
 """
+
 from __future__ import annotations
 
 import logging
@@ -23,10 +24,10 @@ import torch
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
     BaseRestorer,
+    ParamSpec,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,10 +53,18 @@ class TDMRestorer(BaseRestorer):
     """
 
     PARAM_SCHEMA = [
-        ParamSpec("num_inference_steps", "int", _DEFAULT_STEPS, "Inference steps",
-                  minimum=1, maximum=100, step=1),
-        ParamSpec("guidance_scale", "float", 7.5, "Guidance scale",
-                  minimum=1.0, maximum=20.0, step=0.5),
+        ParamSpec(
+            "num_inference_steps",
+            "int",
+            _DEFAULT_STEPS,
+            "Inference steps",
+            minimum=1,
+            maximum=100,
+            step=1,
+        ),
+        ParamSpec(
+            "guidance_scale", "float", 7.5, "Guidance scale", minimum=1.0, maximum=20.0, step=0.5
+        ),
     ]
 
     def __init__(self) -> None:
@@ -109,26 +118,33 @@ class TDMRestorer(BaseRestorer):
         self, frames: list[np.ndarray], tasks: list[str], steps: int, guidance: float
     ) -> list[np.ndarray]:
         from PIL import Image
+
         pil_frames = [Image.fromarray(f) for f in frames]
         result = self._pipe(  # type: ignore[operator]
-            image=pil_frames, tasks=tasks,
-            num_inference_steps=steps, guidance_scale=guidance,
+            image=pil_frames,
+            tasks=tasks,
+            num_inference_steps=steps,
+            guidance_scale=guidance,
         )
         return [np.array(img) for img in result.frames]
 
     @staticmethod
     def _build_pipeline(device: torch.device) -> object:
         try:
-            from restorax.restorers.super_resolution.tdm_arch import TDMPipeline  # type: ignore[import]
+            from restorax.restorers.super_resolution.tdm_arch import (
+                TDMPipeline,  # type: ignore[import]
+            )
         except ImportError as exc:
             raise RestorerLoadError(
-                f"TDM requires diffusers: pip install 'restorax[diffusion]'"
+                "TDM requires diffusers: pip install 'restorax[diffusion]'"
             ) from exc
         try:
             from restorax.config import settings
+
             weight_dir = Path(settings.model_dir) / "tdm"
             if not weight_dir.exists():
                 from huggingface_hub import snapshot_download
+
                 snapshot_download(repo_id=_HF_REPO, local_dir=str(weight_dir))
             pipe = TDMPipeline.from_pretrained(str(weight_dir)).to(device)
             logger.info("TDM pipeline loaded from vendored module")

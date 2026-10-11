@@ -1,7 +1,7 @@
 """StorageBackend protocol — implemented by local.py and s3.py."""
+
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 

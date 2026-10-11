@@ -11,6 +11,7 @@ Model source: https://github.com/YaNgZhAnG-V5/DicFace
 Paper: "Dictionary-based Face Restoration with High-Frequency Hybrid-Awareness"
        (ICCV 2023)
 """
+
 from __future__ import annotations
 
 import logging
@@ -23,10 +24,10 @@ import torch
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
     BaseRestorer,
+    ParamSpec,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    ParamSpec,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,9 +49,16 @@ class DicFaceRestorer(BaseRestorer):
     """
 
     PARAM_SCHEMA = [
-        ParamSpec("fidelity", "float", _DEFAULT_FIDELITY, "Fidelity",
-                  minimum=0.0, maximum=1.0, step=0.05,
-                  help="0 = best quality, 1 = best identity preservation"),
+        ParamSpec(
+            "fidelity",
+            "float",
+            _DEFAULT_FIDELITY,
+            "Fidelity",
+            minimum=0.0,
+            maximum=1.0,
+            step=0.05,
+            help="0 = best quality, 1 = best identity preservation",
+        ),
     ]
 
     def __init__(self) -> None:
@@ -77,7 +85,9 @@ class DicFaceRestorer(BaseRestorer):
 
     def load(self, device: torch.device) -> None:
         try:
-            from restorax.restorers.face_restoration.dicface_arch import DicFaceNet  # type: ignore[import]
+            from restorax.restorers.face_restoration.dicface_arch import (
+                DicFaceNet,  # type: ignore[import]
+            )
         except ImportError as exc:
             raise RestorerLoadError(
                 "DicFace architecture module is required. "
@@ -88,18 +98,20 @@ class DicFaceRestorer(BaseRestorer):
             from facexlib.utils.face_restoration_helper import FaceRestoreHelper
         except ImportError as exc:
             raise RestorerLoadError(
-                "facexlib is required for DicFace. "
-                "Install with: pip install facexlib"
+                "facexlib is required for DicFace. Install with: pip install facexlib"
             ) from exc
 
         from restorax.config import settings
+
         weight_path = Path(settings.model_dir) / "dicface" / _WEIGHT_FILE
         if not weight_path.exists():
             try:
                 from huggingface_hub import hf_hub_download
+
                 weight_path.parent.mkdir(parents=True, exist_ok=True)
-                hf_hub_download(repo_id=_HF_REPO, filename=_WEIGHT_FILE,
-                                local_dir=str(weight_path.parent))
+                hf_hub_download(
+                    repo_id=_HF_REPO, filename=_WEIGHT_FILE, local_dir=str(weight_path.parent)
+                )
             except Exception as exc:
                 raise RestorerLoadError(
                     f"Failed to download DicFace weights from {_HF_REPO}: {exc}"
@@ -114,9 +126,13 @@ class DicFaceRestorer(BaseRestorer):
             raise RestorerLoadError(f"Failed to load DicFace checkpoint: {exc}") from exc
 
         face_helper = FaceRestoreHelper(
-            upscale_factor=1, face_size=512, crop_ratio=(1, 1),
-            det_model="retinaface_resnet50", save_ext="png",
-            use_parse=True, device=device,
+            upscale_factor=1,
+            face_size=512,
+            crop_ratio=(1, 1),
+            det_model="retinaface_resnet50",
+            save_ext="png",
+            use_parse=True,
+            device=device,
         )
 
         self._net = net
@@ -140,21 +156,29 @@ class DicFaceRestorer(BaseRestorer):
 
     def _restore(self, frame: np.ndarray, fidelity: float) -> np.ndarray:
         helper = self._face_helper
-        helper.clean_all()  # type: ignore[union-attr]
-        helper.read_image(frame)  # type: ignore[union-attr]
-        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr]
-        helper.align_warp_face()  # type: ignore[union-attr]
-        if not helper.cropped_faces:  # type: ignore[union-attr]
+        helper.clean_all()  # type: ignore[union-attr,attr-defined]
+        helper.read_image(frame)  # type: ignore[union-attr,attr-defined]
+        helper.get_face_landmarks_5(only_center_face=False, resize=640, eye_dist_threshold=5)  # type: ignore[union-attr,attr-defined]
+        helper.align_warp_face()  # type: ignore[union-attr,attr-defined]
+        if not helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             return frame
         restored_faces = []
-        for face_bgr in helper.cropped_faces:  # type: ignore[union-attr]
+        for face_bgr in helper.cropped_faces:  # type: ignore[union-attr,attr-defined]
             face_rgb = cv2.cvtColor(face_bgr, cv2.COLOR_BGR2RGB)
-            t = torch.from_numpy(face_rgb).float().div(255.0).permute(2, 0, 1).unsqueeze(0).to(self._device)
+            t = (
+                torch.from_numpy(face_rgb)
+                .float()
+                .div(255.0)
+                .permute(2, 0, 1)
+                .unsqueeze(0)
+                .to(self._device)
+            )
             with torch.inference_mode():
                 out = self._net(t, w=fidelity)[0]  # type: ignore[operator]
-            rgb = out.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).mul(255.0).byte().cpu().numpy()
+            rgb = (
+                out.squeeze(0).permute(1, 2, 0).float().clamp(0, 1).mul(255.0).byte().cpu().numpy()
+            )
             restored_faces.append(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
-        helper.add_restored_face(restored_faces)  # type: ignore[union-attr]
-        helper.paste_faces_to_input_image()  # type: ignore[union-attr]
-        return helper.output if helper.output is not None else frame  # type: ignore[union-attr]
-
+        helper.add_restored_face(restored_faces)  # type: ignore[union-attr,attr-defined]
+        helper.paste_faces_to_input_image()  # type: ignore[union-attr,attr-defined]
+        return helper.output if helper.output is not None else frame  # type: ignore[union-attr,attr-defined]

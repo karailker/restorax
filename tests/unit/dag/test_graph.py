@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import pytest
-from restorax.dag.node import Node, NodeResult, NodeState, Port, RetryPolicy
+
 from restorax.core.exceptions import DAGValidationError
+from restorax.dag.node import Node, NodeResult, Port, RetryPolicy
 
 
 class _EchoNode(Node):
@@ -38,9 +39,9 @@ def test_custom_retry_policy():
     assert node.retry_policy.backoff == "exponential"
 
 
+from restorax.core.exceptions import PortTypeMismatchError
 from restorax.dag.edge import Edge
 from restorax.dag.graph import DAG
-from restorax.core.exceptions import DAGValidationError, PortTypeMismatchError
 
 
 class _FrameNode(Node):
@@ -72,8 +73,12 @@ class _IntNode(Node):
 def _make_linear_dag(n_nodes: int = 2) -> DAG:
     nodes = {f"n{i}": _FrameNode(id=f"n{i}", name=f"Node{i}") for i in range(n_nodes)}
     edges = [
-        Edge(source_node_id=f"n{i}", source_port="frames",
-             target_node_id=f"n{i+1}", target_port="frames")
+        Edge(
+            source_node_id=f"n{i}",
+            source_port="frames",
+            target_node_id=f"n{i + 1}",
+            target_port="frames",
+        )
         for i in range(n_nodes - 1)
     ]
     return DAG(id="test", name="Test", nodes=nodes, edges=edges)

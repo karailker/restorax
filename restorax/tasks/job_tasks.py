@@ -4,18 +4,20 @@ Celery tasks for RestoraX job execution.
 Each task runs on a GPU worker process. The worker maintains a module-level
 ModelRegistry that persists across tasks (warm LRU cache).
 """
+
 from __future__ import annotations
 
-import logging
+import contextlib
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import structlog
-
 import torch
 from celery import Task
+from celery.signals import task_failure, task_postrun, task_prerun
 
 from restorax.config import settings
 from restorax.core.pipeline import PipelineRunner, compute_output_fps, load_pipeline_from_yaml
@@ -34,42 +36,58 @@ _registry: ModelRegistry | None = None
 def _get_registry() -> ModelRegistry:
     global _registry
     if _registry is None:
+        from restorax.core.plugin import register_plugins
         from restorax.restorers.artifact_removal.scratch_removal import ScratchRemovalRestorer
-        from restorax.restorers.face_restoration.dicface import DicFaceRestorer
-        from restorax.restorers.super_resolution.evtexture import EvTextureRestorer
-        from restorax.restorers.super_resolution.flashvsr import FlashVSRRestorer
-        from restorax.restorers.super_resolution.seedvr import SeedVRRestorer
-        from restorax.restorers.super_resolution.waifu2x import Waifu2xRestorer
         from restorax.restorers.colorization.ddcolor import DDColorRestorer
         from restorax.restorers.deinterlacing.ai_deinterlace import AIDeinterlaceRestorer
         from restorax.restorers.deinterlacing.yadif_deinterlace import YadifDeinterlaceRestorer
+        from restorax.restorers.enhancement.dlss5_visual_enhancer import DLSS5VisualEnhancerRestorer
         from restorax.restorers.face_restoration.codeformer import CodeFormerRestorer
         from restorax.restorers.face_restoration.codeformer_pp import CodeFormerPlusPlusRestorer
+        from restorax.restorers.face_restoration.dicface import DicFaceRestorer
         from restorax.restorers.face_restoration.gfpgan import GFPGANRestorer
         from restorax.restorers.frame_interpolation.rife import RIFERestorer
         from restorax.restorers.hdr.hdrtvdm import HDRTVDMRestorer
         from restorax.restorers.stabilization.deep_flow_stab import VideoStabilizationRestorer
         from restorax.restorers.stabilization.gavs import GaVSRestorer
         from restorax.restorers.super_resolution.basicvsr_pp import BasicVSRPlusPlusRestorer
+        from restorax.restorers.super_resolution.evtexture import EvTextureRestorer
+        from restorax.restorers.super_resolution.flashvsr import FlashVSRRestorer
         from restorax.restorers.super_resolution.mamba_ir import MambaIRRestorer
         from restorax.restorers.super_resolution.real_esrgan import RealESRGANx4Restorer
+        from restorax.restorers.super_resolution.seedvr import SeedVRRestorer
         from restorax.restorers.super_resolution.tdm import TDMRestorer
         from restorax.restorers.super_resolution.upscale_a_video import UpscaleAVideoRestorer
         from restorax.restorers.super_resolution.vrt import VRTRestorer
-
-        from restorax.core.plugin import register_plugins
+        from restorax.restorers.super_resolution.waifu2x import Waifu2xRestorer
 
         _registry = ModelRegistry(max_loaded=settings.registry_max_loaded)
         for cls in [
-            RealESRGANx4Restorer, BasicVSRPlusPlusRestorer, UpscaleAVideoRestorer,
-            VRTRestorer, MambaIRRestorer, TDMRestorer, SeedVRRestorer,
-            Waifu2xRestorer, FlashVSRRestorer, EvTextureRestorer,
-            CodeFormerRestorer, CodeFormerPlusPlusRestorer, GFPGANRestorer, DicFaceRestorer,
-            DDColorRestorer, RIFERestorer,
-            ScratchRemovalRestorer, HDRTVDMRestorer, VideoStabilizationRestorer,
-            GaVSRestorer, AIDeinterlaceRestorer, YadifDeinterlaceRestorer,
+            RealESRGANx4Restorer,
+            BasicVSRPlusPlusRestorer,
+            UpscaleAVideoRestorer,
+            VRTRestorer,
+            MambaIRRestorer,
+            TDMRestorer,
+            SeedVRRestorer,
+            Waifu2xRestorer,
+            FlashVSRRestorer,
+            EvTextureRestorer,
+            CodeFormerRestorer,
+            CodeFormerPlusPlusRestorer,
+            GFPGANRestorer,
+            DicFaceRestorer,
+            DDColorRestorer,
+            RIFERestorer,
+            ScratchRemovalRestorer,
+            HDRTVDMRestorer,
+            VideoStabilizationRestorer,
+            GaVSRestorer,
+            AIDeinterlaceRestorer,
+            YadifDeinterlaceRestorer,
+            DLSS5VisualEnhancerRestorer,
         ]:
-            _registry.register(cls)
+            _registry.register(cls)  # type: ignore[type-abstract]
 
         # Auto-discover and register third-party plugin restorers
         register_plugins(_registry)
@@ -99,11 +117,11 @@ def _get_audio_registry() -> object:
 
 # ── Structlog context signals ─────────────────────────────────────────────────
 
-from celery.signals import task_failure, task_postrun, task_prerun
-
 
 @task_prerun.connect
-def _on_task_prerun(task_id: str, task: object, args: tuple, kwargs: dict, **_: object) -> None:
+def _on_task_prerun(
+    task_id: str, task: object, args: tuple[Any, ...], kwargs: dict[str, Any], **_: object
+) -> None:
     job_id = kwargs.get("job_id") or (args[0] if args else None)
     structlog.contextvars.clear_contextvars()
     ctx: dict[str, str] = {"celery_task_id": task_id}
@@ -142,16 +160,22 @@ class JobTask(Task):  # type: ignore[type-arg]
 
     abstract = True
 
-    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: object) -> None:
+    def on_failure(
+        self,
+        exc: Exception,
+        task_id: str,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+        einfo: object,
+    ) -> None:
         job_id = kwargs.get("job_id") or (args[0] if args else None)
         if job_id:
-            try:
+            with contextlib.suppress(Exception):
                 _update_job_db(str(job_id), status="failed", error=str(exc))
-            except Exception:
-                pass
             ProgressReporter(str(job_id)).fail(str(exc))
         try:
             from restorax.telemetry import get_active_jobs_counter, get_jobs_counter
+
             _jc = get_jobs_counter()
             _ac = get_active_jobs_counter()
             if _jc is not None:
@@ -159,7 +183,7 @@ class JobTask(Task):  # type: ignore[type-arg]
             if _ac is not None:
                 _ac.add(-1, {"pipeline": ""})
         except Exception:
-            pass
+            logger.debug("best-effort telemetry step failed", exc_info=True)
         super().on_failure(exc, task_id, args, kwargs, einfo)
 
 
@@ -171,7 +195,7 @@ def run_job(
     input_path: str,
     output_path: str,
     restore_audio: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """
     Execute a restoration pipeline on a video file.
 
@@ -187,12 +211,13 @@ def run_job(
     _start_time = time.perf_counter()
     try:
         from restorax.telemetry import get_active_jobs_counter
+
         ctr = get_active_jobs_counter()
         if ctr is not None:
             ctr.add(1, {"pipeline": pipeline_preset_path})
     except Exception:
-        pass
-    _update_job_db(job_id, status="running", started_at=datetime.now(timezone.utc))
+        logger.debug("best-effort telemetry step failed", exc_info=True)
+    _update_job_db(job_id, status="running", started_at=datetime.now(UTC))
     reporter.update(0.0, status="running")
 
     device_str = settings.device
@@ -202,7 +227,9 @@ def run_job(
 
     registry = _get_registry()
 
-    logger.info("job started", device=str(device), preset=pipeline_preset_path, restore_audio=restore_audio)
+    logger.info(
+        "job started", device=str(device), preset=pipeline_preset_path, restore_audio=restore_audio
+    )
 
     with VideoReader(input_path) as reader:
         meta = reader.meta
@@ -245,9 +272,11 @@ def run_job(
             logger.warning("Audio pipeline failed (%s) — video output kept as-is", exc)
 
     _update_job_db(
-        job_id, status="completed",
-        progress=1.0, output_path=output_path,
-        completed_at=datetime.now(timezone.utc),
+        job_id,
+        status="completed",
+        progress=1.0,
+        output_path=output_path,
+        completed_at=datetime.now(UTC),
     )
     reporter.complete(output_path)
     logger.info("job completed", output_path=output_path)
@@ -257,6 +286,7 @@ def run_job(
             get_job_duration_histogram,
             get_jobs_counter,
         )
+
         _dur = time.perf_counter() - _start_time
         _pipeline_name = Path(pipeline_preset_path).stem
         _jc = get_jobs_counter()
@@ -269,18 +299,18 @@ def run_job(
         if _ac is not None:
             _ac.add(-1, {"pipeline": pipeline_preset_path})
     except Exception:
-        pass
+        logger.debug("best-effort telemetry step failed", exc_info=True)
     return {"output_path": output_path, "metrics": {}}
 
 
 @celery_app.task(bind=True, base=JobTask, name="restorax.tasks.job_tasks.run_dag_job")
 def run_dag_job(
-    self,
+    self: Task,
     job_id: str,
     dag_id: str,
     input_path: str,
     output_path: str,
-) -> dict:
+) -> dict[str, Any]:
     """
     Execute a DAG pipeline on a video file.
     Loads the DAG from DB, builds ExecutionContext, runs DAGExecutor.
@@ -291,11 +321,18 @@ def run_dag_job(
 
     from restorax.dag import DAGExecutor
     from restorax.dag.context import ExecutionContext, ProgressEmitter
+    from restorax.dag.nodes import (  # noqa: F401 — registers node types
+        control,
+        io,
+        map_node,
+        merge,
+        parallel,
+        restore,
+    )
     from restorax.dag.serializer import DAGSerializer
-    from restorax.dag.nodes import control, io, map_node, merge, parallel, restore  # noqa: F401 — registers node types
 
     reporter = ProgressReporter(job_id)
-    _update_job_db(job_id, status="running", started_at=datetime.now(timezone.utc))
+    _update_job_db(job_id, status="running", started_at=datetime.now(UTC))
     reporter.update(0.0, status="running")
 
     device_str = settings.device
@@ -303,16 +340,17 @@ def run_dag_job(
         device_str = "cuda:0"
     device = torch.device(device_str if torch.cuda.is_available() or device_str == "cpu" else "cpu")
 
-    async def _load_dag():
+    async def _load_dag() -> Any:
+        from restorax.core.exceptions import PipelineConfigError
         from restorax.db.repositories.pipeline_repo import PipelineRepository
         from restorax.db.session import AsyncSessionLocal
-        from restorax.core.exceptions import PipelineConfigError
+
         async with AsyncSessionLocal() as session:
             repo = PipelineRepository(session)
             try:
                 template = await repo.get(dag_id)
             except PipelineConfigError:
-                raise ValueError(f"DAG '{dag_id}' not found in database")
+                raise ValueError(f"DAG '{dag_id}' not found in database") from None
         return DAGSerializer.from_dict(template.config)
 
     dag = _asyncio.run(_load_dag())
@@ -339,9 +377,11 @@ def run_dag_job(
         raise RuntimeError(dag_run.error or "DAG execution failed")
 
     _update_job_db(
-        job_id, status="completed",
-        progress=1.0, output_path=output_path,
-        completed_at=datetime.now(timezone.utc),
+        job_id,
+        status="completed",
+        progress=1.0,
+        output_path=output_path,
+        completed_at=datetime.now(UTC),
     )
     reporter.complete(output_path)
     return {"output_path": output_path}
@@ -365,11 +405,11 @@ def _run_audio_pipeline(
         return
 
     from restorax.audio.pipeline import (
-        AudioModelRegistry, AudioPipeline, AudioPipelineRunner, AudioStage,
+        AudioModelRegistry,
+        AudioPipelineRunner,
         load_audio_pipeline_from_config,
     )
     from restorax.audio.reader import AudioReader
-    from restorax.audio.restorer import AudioRestorerParams
     from restorax.audio.writer import AudioWriter
 
     audio_arr, sr = AudioReader(input_path).read()

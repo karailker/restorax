@@ -28,10 +28,10 @@ Usage:
     # Custom output directory
     python scripts/run_benchmarks.py --output-dir /tmp/bench --num-frames 3
 """
+
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -63,12 +63,22 @@ def _get_all_restorer_classes() -> list:
     from restorax.restorers.super_resolution.vrt import VRTRestorer
 
     return [
-        RealESRGANx4Restorer, MambaIRRestorer, BasicVSRPlusPlusRestorer,
-        VRTRestorer, UpscaleAVideoRestorer, TDMRestorer,
-        CodeFormerRestorer, CodeFormerPlusPlusRestorer, GFPGANRestorer,
-        DDColorRestorer, RIFERestorer,
-        ScratchRemovalRestorer, HDRTVDMRestorer,
-        VideoStabilizationRestorer, GaVSRestorer, AIDeinterlaceRestorer,
+        RealESRGANx4Restorer,
+        MambaIRRestorer,
+        BasicVSRPlusPlusRestorer,
+        VRTRestorer,
+        UpscaleAVideoRestorer,
+        TDMRestorer,
+        CodeFormerRestorer,
+        CodeFormerPlusPlusRestorer,
+        GFPGANRestorer,
+        DDColorRestorer,
+        RIFERestorer,
+        ScratchRemovalRestorer,
+        HDRTVDMRestorer,
+        VideoStabilizationRestorer,
+        GaVSRestorer,
+        AIDeinterlaceRestorer,
     ]
 
 
@@ -81,7 +91,10 @@ def run_benchmarks(
 ) -> None:
     device = torch.device(device_str if torch.cuda.is_available() or device_str == "cpu" else "cpu")
     dataset = BenchmarkDataset(
-        width=128, height=128, num_pairs=num_frames, seed=42,
+        width=128,
+        height=128,
+        num_pairs=num_frames,
+        seed=42,
         use_standard_patterns=standard_patterns,
     )
     runner = BenchmarkRunner(half_precision=False)
@@ -139,12 +152,17 @@ def run_benchmarks(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run RestoraX benchmarks")
-    parser.add_argument("--restorer", "-r", default=None, help="Single restorer name (default: all)")
+    parser.add_argument(
+        "--restorer", "-r", default=None, help="Single restorer name (default: all)"
+    )
     parser.add_argument("--device", default="cpu", help="Device: cpu | cuda")
     parser.add_argument("--output-dir", "-o", default="./benchmark_results")
     parser.add_argument("--num-frames", type=int, default=5, help="Frames per degradation type")
-    parser.add_argument("--standard-patterns", action="store_true",
-                        help="Use Lena/Cameraman/Baboon/Urban-style test images instead of random frames")
+    parser.add_argument(
+        "--standard-patterns",
+        action="store_true",
+        help="Use Lena/Cameraman/Baboon/Urban-style test images instead of random frames",
+    )
     args = parser.parse_args()
 
     run_benchmarks(

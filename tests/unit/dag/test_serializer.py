@@ -63,7 +63,8 @@ def test_schema_type_is_dag():
 
 def test_unknown_node_type_raises():
     data = {
-        "id": "t", "name": "t",
+        "id": "t",
+        "name": "t",
         "nodes": [{"type": "totally_unknown", "id": "x", "name": "X"}],
         "edges": [],
     }

@@ -1,35 +1,32 @@
 """
-FlashVSR — Fast Lightweight Video Super-Resolution.
+FlashVSR adapter (not usable yet).
 
-FlashVSR is designed for real-time or near-real-time video SR on consumer
-GPUs, achieving a good quality/speed tradeoff by using a lightweight
-recurrent architecture with efficient attention. It is competitive with
-BasicVSR at 3–5× the inference speed.
+FlashVSR (OpenImagingLab, Apache-2.0, github.com/OpenImagingLab/FlashVSR) is a
+one-step streaming *diffusion* video super-resolution model. Its official
+implementation needs the Block-Sparse Attention library on CUDA, and its weights
+are published on Hugging Face (v1 and v1.1). This adapter is a placeholder: the
+vendored ``flashvsr_arch`` module does not exist, so ``load()`` raises
+``RestorerLoadError`` rather than silently degrading to a stub. Earlier text
+describing it as a lightweight recurrent network was inaccurate.
 
-Reference: "FlashVSR: Real-Time Video Super-Resolution with Flash Attention"
-           (Technical report, 2024)
-
-Note: Public weights and official code are not yet released.
-      The vendored ``restorax.restorers.super_resolution.flashvsr_arch``
-      module must be present for this restorer to load.  If that import
-      fails, ``load()`` raises ``RestorerLoadError`` rather than silently
-      degrading to a stub.
+Status: ``gpu_only`` in ``restorax.models_catalog``.
 """
+
 from __future__ import annotations
 
+import contextlib
 import logging
-from pathlib import Path
 
 import numpy as np
 import torch
 
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
+    HALF_PRECISION_SPEC,
     BaseRestorer,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,10 +67,8 @@ class FlashVSRRestorer(BaseRestorer):
     def load(self, device: torch.device) -> None:
         self._model = self._build_model(device)
         if self.capabilities.supports_compile and device.type == "cuda":
-            try:
+            with contextlib.suppress(Exception):
                 self._model = torch.compile(self._model, mode="reduce-overhead")  # type: ignore[assignment]
-            except Exception:
-                pass
         self._device = device
         self._loaded = True
         logger.info("FlashVSR loaded on %s", device)
@@ -88,7 +83,9 @@ class FlashVSRRestorer(BaseRestorer):
     def process_frame(self, frame: np.ndarray, params: RestorerParams) -> np.ndarray:
         return self.process_sequence([frame], params)[0]
 
-    def process_sequence(self, frames: list[np.ndarray], params: RestorerParams) -> list[np.ndarray]:
+    def process_sequence(
+        self, frames: list[np.ndarray], params: RestorerParams
+    ) -> list[np.ndarray]:
         assert self._model is not None and self._device is not None
         tensors = [torch.from_numpy(f).float().div(255.0).permute(2, 0, 1) for f in frames]
         video = torch.stack(tensors).unsqueeze(0).to(self._device)  # 1 T C H W
@@ -102,7 +99,9 @@ class FlashVSRRestorer(BaseRestorer):
     @staticmethod
     def _build_model(device: torch.device) -> torch.nn.Module:
         try:
-            from restorax.restorers.super_resolution.flashvsr_arch import FlashVSR  # type: ignore[import]
+            from restorax.restorers.super_resolution.flashvsr_arch import (
+                FlashVSR,  # type: ignore[import]
+            )
         except ImportError as exc:
             raise RestorerLoadError(
                 "FlashVSR arch module is not available. "
@@ -110,4 +109,5 @@ class FlashVSRRestorer(BaseRestorer):
                 "before this restorer can be used."
             ) from exc
         logger.info("FlashVSR arch loaded from vendored module")
-        return FlashVSR(scale=4).eval().to(device)
+        model: torch.nn.Module = FlashVSR(scale=4).eval().to(device)
+        return model

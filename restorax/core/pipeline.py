@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -59,7 +59,7 @@ class PipelineRunner:
         total = max(reader.meta.frame_count, 1)
         frames_written = 0
 
-        for chunk_idx, (chunk, is_first, is_last) in enumerate(
+        for _chunk_idx, (chunk, is_first, is_last) in enumerate(
             self._iter_chunks(reader, pipeline.chunk_size, pipeline.chunk_overlap)
         ):
             processed = chunk
@@ -72,14 +72,14 @@ class PipelineRunner:
                 caps = stage.restorer.capabilities
                 # Convert color space if the stage requires a different input format
                 if caps.input_color_space != current_cs:
-                    processed = [_convert_cs(f, current_cs, caps.input_color_space) for f in processed]
+                    processed = [
+                        _convert_cs(f, current_cs, caps.input_color_space) for f in processed
+                    ]
 
                 if caps.requires_temporal:
                     processed = stage.restorer.process_sequence(processed, stage.params)
                 else:
-                    processed = [
-                        stage.restorer.process_frame(f, stage.params) for f in processed
-                    ]
+                    processed = [stage.restorer.process_frame(f, stage.params) for f in processed]
 
                 current_cs = caps.output_color_space
 
@@ -88,9 +88,7 @@ class PipelineRunner:
                 processed = [_convert_cs(f, current_cs, "rgb") for f in processed]
 
             # Trim overlap to avoid writing duplicate frames at boundaries
-            trimmed = self._trim_overlap(
-                processed, pipeline.chunk_overlap, is_first, is_last
-            )
+            trimmed = self._trim_overlap(processed, pipeline.chunk_overlap, is_first, is_last)
 
             for frame in trimmed:
                 writer.write_frame(frame)
@@ -122,7 +120,7 @@ class PipelineRunner:
         for frame in reader:
             buffer.append(frame)
             if len(buffer) >= chunk_size + overlap:
-                yield buffer[:chunk_size + overlap], first_chunk, False
+                yield buffer[: chunk_size + overlap], first_chunk, False
                 # Keep the last `overlap` frames as the start of the next chunk
                 buffer = buffer[chunk_size:]
                 first_chunk = False
@@ -154,7 +152,6 @@ def load_pipeline_from_yaml(path: str | Path, registry: object) -> Pipeline:
     """Load a Pipeline from a YAML preset file."""
     import yaml
 
-    from restorax.core.exceptions import PipelineConfigError
     from restorax.core.registry import ModelRegistry
 
     assert isinstance(registry, ModelRegistry)
@@ -179,7 +176,9 @@ def load_pipeline_from_yaml(path: str | Path, registry: object) -> Pipeline:
             half_precision=stage_cfg.get("half_precision", True),
             extra=stage_cfg.get("extra", {}),
         )
-        stages.append(Stage(restorer=restorer, params=params, enabled=stage_cfg.get("enabled", True)))
+        stages.append(
+            Stage(restorer=restorer, params=params, enabled=stage_cfg.get("enabled", True))
+        )
 
     return Pipeline(
         name=config.get("name", Path(path).stem),

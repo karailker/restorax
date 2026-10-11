@@ -3,12 +3,11 @@ from __future__ import annotations
 import asyncio
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from restorax.core.exceptions import NodeExecutionError
 from restorax.dag.context import ExecutionContext
-from restorax.dag.edge import Edge
 from restorax.dag.graph import DAG
 from restorax.dag.node import Node, NodeResult, NodeState
 
@@ -20,7 +19,7 @@ class DAGRun:
     job_id: str
     node_states: dict[str, NodeState] = field(default_factory=dict)
     node_results: dict[str, NodeResult] = field(default_factory=dict)
-    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     completed_at: datetime | None = None
     failed_node_id: str | None = None
     error: str | None = None
@@ -90,10 +89,10 @@ class DAGExecutor:
                     run.error = str(exc)
                     ctx.progress_emitter.emit(node_id, 0.0, status="failed")
                     self._skip_downstream(node_id, dag, run)
-                    run.completed_at = datetime.now(timezone.utc)
+                    run.completed_at = datetime.now(UTC)
                     return run
 
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = datetime.now(UTC)
         return run
 
     async def dry_run(self, dag: DAG, ctx: ExecutionContext) -> DAGRun:
@@ -104,7 +103,7 @@ class DAGExecutor:
             job_id=ctx.job_id,
             node_states={nid: NodeState.SUCCEEDED for nid in dag.nodes},
         )
-        run.completed_at = datetime.now(timezone.utc)
+        run.completed_at = datetime.now(UTC)
         return run
 
     # ── Internal ──────────────────────────────────────────────────────────────

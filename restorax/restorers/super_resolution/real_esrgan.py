@@ -8,6 +8,7 @@ Model source: https://github.com/xinntao/Real-ESRGAN
 Paper: "Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure
         Synthetic Data" (ICCVW 2021)
 """
+
 from __future__ import annotations
 
 import logging
@@ -18,13 +19,13 @@ import torch
 
 from restorax.core.exceptions import RestorerLoadError
 from restorax.core.restorer import (
+    HALF_PRECISION_SPEC,
+    TILE_OVERLAP_SPEC,
+    TILE_SIZE_SPEC,
     BaseRestorer,
     RestorerCapabilities,
     RestorerCategory,
     RestorerParams,
-    TILE_SIZE_SPEC,
-    TILE_OVERLAP_SPEC,
-    HALF_PRECISION_SPEC,
 )
 
 logger = logging.getLogger(__name__)
@@ -72,8 +73,7 @@ class RealESRGANx4Restorer(BaseRestorer):
             from basicsr.archs.rrdbnet_arch import RRDBNet
         except (ImportError, Exception) as exc:
             raise RestorerLoadError(
-                "basicsr is required for RealESRGANx4Restorer. "
-                "Install with: pip install basicsr"
+                "basicsr is required for RealESRGANx4Restorer. Install with: pip install basicsr"
             ) from exc
 
         weight_path = self._try_resolve_weight_path()

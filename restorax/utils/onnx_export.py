@@ -12,6 +12,7 @@ Usage:
 The exported file is saved to models/<restorer_name>/<restorer_name>.onnx
 and auto-detected by the restorer's load() when available.
 """
+
 from __future__ import annotations
 
 import logging
@@ -67,7 +68,7 @@ def export_restorer_to_onnx(
     with torch.inference_mode():
         torch.onnx.export(
             model,
-            dummy,
+            dummy,  # type: ignore[arg-type]
             str(onnx_path),
             opset_version=opset_version,
             input_names=["input"],
@@ -93,7 +94,9 @@ def load_onnx_session(onnx_path: Path, device: str = "cpu") -> object:
     try:
         import onnxruntime as ort
     except ImportError as exc:
-        raise ImportError("onnxruntime is required. Install with: pip install onnxruntime-gpu") from exc
+        raise ImportError(
+            "onnxruntime is required. Install with: pip install onnxruntime-gpu"
+        ) from exc
 
     providers: list[str] = []
     if device == "cuda":
@@ -112,8 +115,8 @@ def _validate_onnx(onnx_path: Path, dummy_np: np.ndarray) -> None:
     """Run a forward pass through the ONNX model to verify correctness."""
     try:
         session = load_onnx_session(onnx_path, device="cpu")
-        input_name = session.get_inputs()[0].name  # type: ignore[union-attr]
-        outputs = session.run(None, {input_name: dummy_np})  # type: ignore[union-attr]
+        input_name = session.get_inputs()[0].name  # type: ignore[union-attr,attr-defined]
+        outputs = session.run(None, {input_name: dummy_np})  # type: ignore[union-attr,attr-defined]
         logger.info("ONNX validation passed — output shape: %s", outputs[0].shape)
     except ImportError:
         logger.warning("onnxruntime not installed — skipping ONNX validation")
@@ -131,6 +134,12 @@ def _register_all(registry: object) -> None:
     from restorax.restorers.super_resolution.real_esrgan import RealESRGANx4Restorer
 
     assert isinstance(registry, ModelRegistry)
-    for cls in [RealESRGANx4Restorer, BasicVSRPlusPlusRestorer,
-                CodeFormerRestorer, GFPGANRestorer, DDColorRestorer, RIFERestorer]:
-        registry.register(cls)
+    for cls in [
+        RealESRGANx4Restorer,
+        BasicVSRPlusPlusRestorer,
+        CodeFormerRestorer,
+        GFPGANRestorer,
+        DDColorRestorer,
+        RIFERestorer,
+    ]:
+        registry.register(cls)  # type: ignore[type-abstract]

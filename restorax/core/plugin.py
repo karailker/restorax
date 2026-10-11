@@ -15,11 +15,11 @@ This allows the ecosystem to extend RestoraX without modifying the core
 package — a plugin only needs to install itself and the new restorer
 appears automatically in the registry, CLI model list, and API.
 """
+
 from __future__ import annotations
 
 import logging
 from importlib.metadata import entry_points
-from typing import Type
 
 from restorax.core.restorer import BaseRestorer
 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 _ENTRY_POINT_GROUP = "restorax.restorers"
 
 
-def discover_plugins() -> list[Type[BaseRestorer]]:
+def discover_plugins() -> list[type[BaseRestorer]]:
     """
     Load all restorer classes registered under `restorax.restorers`.
 
@@ -37,7 +37,7 @@ def discover_plugins() -> list[Type[BaseRestorer]]:
         Classes that fail to load are skipped with a warning.
     """
     eps = entry_points(group=_ENTRY_POINT_GROUP)
-    classes: list[Type[BaseRestorer]] = []
+    classes: list[type[BaseRestorer]] = []
 
     for ep in eps:
         try:
@@ -45,7 +45,8 @@ def discover_plugins() -> list[Type[BaseRestorer]]:
             if not (isinstance(cls, type) and issubclass(cls, BaseRestorer)):
                 logger.warning(
                     "Plugin entry point '%s' loaded '%s' which is not a BaseRestorer subclass — skipped",
-                    ep.name, cls,
+                    ep.name,
+                    cls,
                 )
                 continue
             classes.append(cls)

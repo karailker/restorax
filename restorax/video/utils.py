@@ -25,7 +25,9 @@ def from_rgb(frame: np.ndarray, dst: str) -> np.ndarray:
     raise ValueError(f"Unsupported destination color space: {dst}")
 
 
-def pad_to_multiple(frame: np.ndarray, multiple: int) -> tuple[np.ndarray, tuple[int, int, int, int]]:
+def pad_to_multiple(
+    frame: np.ndarray, multiple: int
+) -> tuple[np.ndarray, tuple[int, int, int, int]]:
     """
     Pad frame height and width up to the nearest multiple.
 
@@ -48,7 +50,9 @@ def unpad(frame: np.ndarray, pads: tuple[int, int, int, int]) -> np.ndarray:
     """Remove padding applied by pad_to_multiple."""
     pad_top, pad_bottom, pad_left, pad_right = pads
     h, w = frame.shape[:2]
-    return frame[pad_top : h - pad_bottom if pad_bottom else h, pad_left : w - pad_right if pad_right else w]
+    return frame[
+        pad_top : h - pad_bottom if pad_bottom else h, pad_left : w - pad_right if pad_right else w
+    ]
 
 
 def tile_frame(
@@ -100,10 +104,7 @@ def merge_tiles(
         tw = ox2 - ox1
         tile_crop = tile_arr[:th, :tw].astype(np.float32)
 
-        if gaussian_blend:
-            w = _gaussian_window(th, tw)
-        else:
-            w = np.ones((th, tw, 1), dtype=np.float32)
+        w = _gaussian_window(th, tw) if gaussian_blend else np.ones((th, tw, 1), dtype=np.float32)
 
         canvas[oy1:oy2, ox1:ox2] += tile_crop * w
         weight[oy1:oy2, ox1:ox2] += w

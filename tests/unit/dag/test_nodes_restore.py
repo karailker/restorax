@@ -15,9 +15,13 @@ def _make_ctx_for_restore(restorer_mock):
     registry.get.return_value = restorer_mock
     emitter = MagicMock(spec=ProgressEmitter)
     return ExecutionContext(
-        run_id="r1", job_id="j1", work_dir=Path("/tmp"),
-        device=MagicMock(), registry=registry,
-        progress_emitter=emitter, logger=MagicMock(),
+        run_id="r1",
+        job_id="j1",
+        work_dir=Path("/tmp"),
+        device=MagicMock(),
+        registry=registry,
+        progress_emitter=emitter,
+        logger=MagicMock(),
     )
 
 

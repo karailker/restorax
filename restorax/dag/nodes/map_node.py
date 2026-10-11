@@ -15,7 +15,9 @@ class MapNode(Node):
     Useful for batch-processing multiple video clips with the same pipeline.
     """
 
-    def __init__(self, id: str, name: str, sub_dag_dict: dict[str, Any] | None = None, **kwargs: Any) -> None:
+    def __init__(
+        self, id: str, name: str, sub_dag_dict: dict[str, Any] | None = None, **kwargs: Any
+    ) -> None:
         super().__init__(id, name)
         self.sub_dag_dict: dict[str, Any] = sub_dag_dict or {}
 

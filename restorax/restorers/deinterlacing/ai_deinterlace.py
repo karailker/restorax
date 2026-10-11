@@ -18,9 +18,11 @@ Autodetect interlacing: the restorer checks whether the source material
 is actually interlaced before processing. If not interlaced, frames are
 returned unchanged.
 """
+
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -147,11 +149,17 @@ class AIDeinterlaceRestorer(BaseRestorer):
                     cv2.imwrite(str(tmpdir_p / f"in_{i:04d}.png"), bgr)
 
                 # Run FFmpeg YADIF
-                result = subprocess.run(
+                ffmpeg_bin = shutil.which("ffmpeg") or "ffmpeg"
+                result = subprocess.run(  # noqa: S603 - fixed argv, no shell
                     [
-                        "ffmpeg", "-y", "-framerate", "25",
-                        "-i", str(tmpdir_p / "in_%04d.png"),
-                        "-vf", "yadif=mode=0:parity=-1:deint=0",
+                        ffmpeg_bin,
+                        "-y",
+                        "-framerate",
+                        "25",
+                        "-i",
+                        str(tmpdir_p / "in_%04d.png"),
+                        "-vf",
+                        "yadif=mode=0:parity=-1:deint=0",
                         str(tmpdir_p / "out_%04d.png"),
                     ],
                     capture_output=True,
@@ -172,10 +180,7 @@ class AIDeinterlaceRestorer(BaseRestorer):
         except Exception as exc:
             logger.warning("YADIF subprocess failed (%s) — using bob fallback", exc)
             h, w = frames[0].shape[:2]
-            return [
-                cv2.resize(f[0::2], (w, h), interpolation=cv2.INTER_LINEAR)
-                for f in frames
-            ]
+            return [cv2.resize(f[0::2], (w, h), interpolation=cv2.INTER_LINEAR) for f in frames]
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
@@ -192,7 +197,8 @@ class AIDeinterlaceRestorer(BaseRestorer):
         with torch.inference_mode():
             out = self._model(tensor)  # 1 3 H W
         result = out.squeeze(0).permute(1, 2, 0).cpu().numpy()
-        return (result * 255.0).clip(0, 255).astype(np.uint8)
+        frame_out: np.ndarray = (result * 255.0).clip(0, 255).astype(np.uint8)
+        return frame_out
 
     @staticmethod
     def _load_arch(device: torch.device) -> torch.nn.Module:
@@ -201,10 +207,13 @@ class AIDeinterlaceRestorer(BaseRestorer):
         Raises RestorerLoadError if the arch is not present.
         """
         try:
-            from restorax.restorers.deinterlacing.deinterlace_arch import DeinterlaceNet  # type: ignore[import]
+            from restorax.restorers.deinterlacing.deinterlace_arch import (
+                DeinterlaceNet,  # type: ignore[import]
+            )
         except ImportError as exc:
             raise RestorerLoadError(
                 f"AIDeinterlaceRestorer requires the vendored deinterlace_arch module "
                 f"(DeinterlaceNet) which is not installed: {exc}"
             ) from exc
-        return DeinterlaceNet().to(device)
+        model: torch.nn.Module = DeinterlaceNet().to(device)
+        return model

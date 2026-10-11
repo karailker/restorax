@@ -1,4 +1,5 @@
 """Tests for full-reference quality metrics."""
+
 from __future__ import annotations
 
 import math
@@ -6,7 +7,7 @@ import math
 import numpy as np
 import pytest
 
-from restorax.metrics.full_reference import compute_all, lpips, psnr, ssim
+from restorax.metrics.full_reference import compute_all, psnr, ssim
 
 
 def _identical_frames() -> tuple[np.ndarray, np.ndarray]:

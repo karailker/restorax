@@ -5,6 +5,7 @@ These metrics assess quality without needing a ground-truth reference,
 making them suitable for evaluating real degraded footage where the
 original clean version is unavailable.
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,7 +26,7 @@ def niqe(img: np.ndarray) -> float:
         import cv2
 
         gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) if img.ndim == 3 else img
-        niqe_obj = cv2.quality.QualityNIQE_create()
+        niqe_obj = cv2.quality.QualityNIQE_create()  # type: ignore[attr-defined]
         score, _ = niqe_obj.compute(gray)
         return float(score)
     except (ImportError, AttributeError):
@@ -42,7 +43,7 @@ def brisque_score(img: np.ndarray) -> float:
         import cv2
 
         gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) if img.ndim == 3 else img
-        brisque_obj = cv2.quality.QualityBRISQUE_create(
+        brisque_obj = cv2.quality.QualityBRISQUE_create(  # type: ignore[attr-defined]
             model_file_path="",
             range_file_path="",
         )
@@ -53,6 +54,7 @@ def brisque_score(img: np.ndarray) -> float:
 
 
 # ── Internal ──────────────────────────────────────────────────────────────────
+
 
 def _niqe_simple(img: np.ndarray) -> float:
     """

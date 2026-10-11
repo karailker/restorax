@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = "http://localhost:9000"
     s3_bucket: str = "restorax"
     s3_access_key: str = "minioadmin"
-    s3_secret_key: str = "minioadmin"
+    s3_secret_key: str = "minioadmin"  # noqa: S105 - local MinIO dev default; override in production
 
     # ML
     device: str = "cuda"
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # Observability
     otel_service_name: str = "restorax"
-    otel_exporter_otlp_endpoint: str | None = None   # e.g. "http://localhost:4317"
+    otel_exporter_otlp_endpoint: str | None = None  # e.g. "http://localhost:4317"
     sentry_dsn: str | None = None
 
 

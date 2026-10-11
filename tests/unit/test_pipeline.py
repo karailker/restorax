@@ -1,11 +1,10 @@
 """Tests for PipelineRunner chunking, overlap trimming, and progress callbacks."""
+
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Iterator
+from collections.abc import Iterator
 
 import numpy as np
-import pytest
 
 from restorax.core.pipeline import Pipeline, PipelineRunner, Stage, compute_output_fps
 from restorax.core.restorer import RestorerParams
@@ -18,6 +17,7 @@ def _make_frames(n: int, h: int = 8, w: int = 8) -> list[np.ndarray]:
 
 class _FakeReader:
     """Mimics VideoReader for pipeline tests without opening a real file."""
+
     def __init__(self, frames: list[np.ndarray]) -> None:
         self._frames = frames
         self.meta = type("Meta", (), {"frame_count": len(frames)})()  # type: ignore
@@ -28,6 +28,7 @@ class _FakeReader:
 
 class _CapturingWriter:
     """Collects written frames instead of encoding them."""
+
     def __init__(self) -> None:
         self.frames: list[np.ndarray] = []
 
@@ -35,7 +36,9 @@ class _CapturingWriter:
         self.frames.append(frame.copy())
 
 
-def _run(frames: list[np.ndarray], stages: list[Stage], chunk_size: int = 4, overlap: int = 0) -> list[np.ndarray]:
+def _run(
+    frames: list[np.ndarray], stages: list[Stage], chunk_size: int = 4, overlap: int = 0
+) -> list[np.ndarray]:
     pipeline = Pipeline(name="test", stages=stages, chunk_size=chunk_size, chunk_overlap=overlap)
     reader = _FakeReader(frames)
     writer = _CapturingWriter()
@@ -100,6 +103,7 @@ def test_single_frame_video() -> None:
 
 # ── compute_output_fps ─────────────────────────────────────────────────────────
 
+
 def test_compute_output_fps_identity_restorer() -> None:
     """Default temporal_scale=1 → fps unchanged."""
     restorer = IdentityRestorer(scale=1)
@@ -111,8 +115,11 @@ def test_compute_output_fps_identity_restorer() -> None:
 def test_compute_output_fps_rife_doubles() -> None:
     """RIFE has temporal_scale=2 → fps doubles."""
     from unittest.mock import MagicMock
+
     import torch
+
     from restorax.restorers.frame_interpolation.rife import RIFERestorer
+
     restorer = RIFERestorer()
     mock_model = MagicMock()
     mock_model.inference.side_effect = lambda t0, t1, timestep=0.5: (t0 + t1) / 2
@@ -126,15 +133,20 @@ def test_compute_output_fps_rife_doubles() -> None:
 def test_compute_output_fps_disabled_rife_no_change() -> None:
     """Disabled RIFE stage should not multiply fps."""
     from unittest.mock import MagicMock
+
     import torch
+
     from restorax.restorers.frame_interpolation.rife import RIFERestorer
+
     restorer = RIFERestorer()
     mock_model = MagicMock()
     mock_model.inference.side_effect = lambda t0, t1, timestep=0.5: (t0 + t1) / 2
     restorer._model = mock_model
     restorer._device = torch.device("cpu")
     restorer._loaded = True
-    pipeline = Pipeline("disabled", [Stage(restorer=restorer, params=RestorerParams(), enabled=False)])
+    pipeline = Pipeline(
+        "disabled", [Stage(restorer=restorer, params=RestorerParams(), enabled=False)]
+    )
     assert compute_output_fps(pipeline, 24.0) == 24.0
 
 
@@ -144,10 +156,13 @@ def test_compute_output_fps_chained() -> None:
     r2 = IdentityRestorer(scale=4)
     r1.load(None)  # type: ignore[arg-type]
     r2.load(None)  # type: ignore[arg-type]
-    pipeline = Pipeline("chain", [
-        Stage(restorer=r1, params=RestorerParams()),
-        Stage(restorer=r2, params=RestorerParams()),
-    ])
+    pipeline = Pipeline(
+        "chain",
+        [
+            Stage(restorer=r1, params=RestorerParams()),
+            Stage(restorer=r2, params=RestorerParams()),
+        ],
+    )
     assert compute_output_fps(pipeline, 30.0) == 30.0
 
 

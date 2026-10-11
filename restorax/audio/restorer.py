@@ -8,6 +8,7 @@ Deliberately separate from BaseRestorer (video frames) because:
   - Capabilities: sample_rates, supports_stereo (vs. scale_factor, color_space)
   - VRAM budget: audio models share no registry with video models
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -22,15 +23,15 @@ from restorax.core.restorer import ParamSpec
 
 
 class AudioRestorerCategory(str, Enum):
-    SOURCE_SEPARATION = "source_separation"     # Demucs: separate vocals/instruments
-    SPEECH_ENHANCEMENT = "speech_enhancement"   # Voicefixer: restore degraded speech
-    NOISE_SUPPRESSION = "noise_suppression"     # RNNoise: suppress background noise
+    SOURCE_SEPARATION = "source_separation"  # Demucs: separate vocals/instruments
+    SPEECH_ENHANCEMENT = "speech_enhancement"  # Voicefixer: restore degraded speech
+    NOISE_SUPPRESSION = "noise_suppression"  # RNNoise: suppress background noise
 
 
 @dataclass
 class AudioRestorerCapabilities:
     category: AudioRestorerCategory
-    sample_rates: list[int]      # supported input sample rates, e.g. [44100, 48000]
+    sample_rates: list[int]  # supported input sample rates, e.g. [44100, 48000]
     supports_stereo: bool = True
     min_ram_gb: float = 1.0
     tags: list[str] = field(default_factory=list)
@@ -65,8 +66,7 @@ class AudioRestorer(ABC):
 
     @property
     @abstractmethod
-    def capabilities(self) -> AudioRestorerCapabilities:
-        ...
+    def capabilities(self) -> AudioRestorerCapabilities: ...
 
     @abstractmethod
     def load(self, device: torch.device) -> None:
@@ -81,9 +81,9 @@ class AudioRestorer(ABC):
     @abstractmethod
     def process_audio(
         self,
-        audio: np.ndarray,            # (num_samples, num_channels) float32 [-1,1]
+        audio: np.ndarray,  # (num_samples, num_channels) float32 [-1,1]
         params: AudioRestorerParams,
-    ) -> np.ndarray:                  # same shape and dtype
+    ) -> np.ndarray:  # same shape and dtype
         """Process the full audio array. Must preserve shape and dtype."""
         ...
 

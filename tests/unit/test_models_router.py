@@ -1,4 +1,5 @@
 """Tests for GET /models — verifies all restorer categories are present."""
+
 from __future__ import annotations
 
 import pytest
@@ -8,6 +9,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture(scope="module")
 def client():
     from restorax.api.app import app
+
     return TestClient(app)
 
 
@@ -24,10 +26,17 @@ def test_models_lists_all_categories(client):
     resp = client.get("/models")
     categories = {r["category"] for r in resp.json()["restorers"]}
     expected = {
-        "super_resolution", "face_restoration", "colorization",
-        "frame_interpolation", "artifact_removal", "hdr_conversion",
-        "stabilization", "deinterlacing",
-        "source_separation", "speech_enhancement", "noise_suppression",
+        "super_resolution",
+        "face_restoration",
+        "colorization",
+        "frame_interpolation",
+        "artifact_removal",
+        "hdr_conversion",
+        "stabilization",
+        "deinterlacing",
+        "source_separation",
+        "speech_enhancement",
+        "noise_suppression",
     }
     assert expected <= categories, f"Missing categories: {expected - categories}"
 
@@ -42,7 +51,13 @@ def test_models_response_fields(client):
         assert "tags" in r
         if r["category"] in audio_categories:
             assert r.get("min_ram_gb") is not None, f"audio restorer {r['name']} missing min_ram_gb"
-            assert r.get("supports_stereo") is not None, f"audio restorer {r['name']} missing supports_stereo"
+            assert r.get("supports_stereo") is not None, (
+                f"audio restorer {r['name']} missing supports_stereo"
+            )
         else:
-            assert r.get("input_color_space") is not None, f"video restorer {r['name']} missing input_color_space"
-            assert r.get("min_vram_gb") is not None, f"video restorer {r['name']} missing min_vram_gb"
+            assert r.get("input_color_space") is not None, (
+                f"video restorer {r['name']} missing input_color_space"
+            )
+            assert r.get("min_vram_gb") is not None, (
+                f"video restorer {r['name']} missing min_vram_gb"
+            )

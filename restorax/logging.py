@@ -9,15 +9,16 @@ import structlog
 _configured = False
 
 
-def _inject_otel_context(_logger: Any, _method: str, event_dict: dict) -> dict:
+def _inject_otel_context(_logger: Any, _method: str, event_dict: dict[str, Any]) -> dict[str, Any]:
     """Reads the active OTEL span and injects trace_id + span_id as log fields."""
     try:
         from opentelemetry import trace
+
         ctx = trace.get_current_span().get_span_context()
         if ctx and ctx.is_valid:
             event_dict["trace_id"] = format(ctx.trace_id, "032x")
             event_dict["span_id"] = format(ctx.span_id, "016x")
-    except Exception:
+    except Exception:  # noqa: S110 - logging processor must never raise or log recursively
         pass
     return event_dict
 
@@ -36,7 +37,7 @@ def configure_logging(app_env: str = "development", log_level: str = "INFO") -> 
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.contextvars.merge_contextvars,
-        _inject_otel_context,
+        _inject_otel_context,  # type: ignore[list-item]
         structlog.processors.StackInfoRenderer(),
         structlog.processors.ExceptionRenderer(),
     ]

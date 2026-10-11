@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
 
-from restorax.dag.context import ExecutionContext, ProgressEmitter
+from restorax.dag.context import ExecutionContext
 from restorax.dag.node import Node, NodeResult, Port
 from restorax.dag.serializer import dag_node_type
 
@@ -14,6 +13,7 @@ from restorax.dag.serializer import dag_node_type
 @dataclass
 class BranchConfig:
     """A named sequence of (restorer_name, params_dict) steps forming one branch."""
+
     name: str
     restorer_steps: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
 
@@ -80,9 +80,7 @@ class ParallelNode(Node):
                     out_chunks.append(processed)
 
                     overall = (step_idx + (chunk_i + 1) / n_chunks) / total_steps
-                    ctx.progress_emitter.emit(
-                        self.id, overall, branch_index=branch_idx
-                    )
+                    ctx.progress_emitter.emit(self.id, overall, branch_index=branch_idx)
 
                 branch_chunks = out_chunks
 

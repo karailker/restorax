@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -25,7 +26,9 @@ async def ready() -> JSONResponse:
 async def _check_db() -> str:
     try:
         from sqlalchemy import text
+
         from restorax.db.session import AsyncSessionLocal
+
         async with asyncio.timeout(2.0):
             async with AsyncSessionLocal() as session:
                 await session.execute(text("SELECT 1"))
@@ -37,24 +40,27 @@ async def _check_db() -> str:
 async def _check_redis() -> str:
     try:
         import redis.asyncio as aioredis
+
         from restorax.config import settings
+
         async with asyncio.timeout(2.0):
             r = aioredis.from_url(settings.redis_url)
             await r.ping()
-            await r.aclose()
+            await r.aclose()  # type: ignore[attr-defined]
         return "ok"
     except Exception:
         return "fail"
 
 
-def _celery_inspect():
+def _celery_inspect() -> Any:
     """Return a Celery Inspect instance. Extracted for testability."""
     from restorax.tasks.celery_app import celery_app
+
     return celery_app.control.inspect(timeout=2.0)
 
 
 @router.get("/health/celery")
-async def celery_health() -> dict:
+async def celery_health() -> dict[str, Any]:
     """Return Celery worker count, active task count, and queued task count."""
     try:
         inspect = _celery_inspect()

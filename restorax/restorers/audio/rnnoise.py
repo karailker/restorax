@@ -11,6 +11,7 @@ and back to the original sample rate after, using scipy.signal.resample_poly.
 Model source: https://jmvalin.ca/demo/rnnoise/
 Python binding: pip install rnnoise-python (or pip install noisereduce as fallback)
 """
+
 from __future__ import annotations
 
 import logging
@@ -115,16 +116,17 @@ class RNNoiseRestorer(AudioRestorer):
             out_frames = []
             for i in range(0, len(pcm), _FRAME_SIZE):
                 frame = pcm[i : i + _FRAME_SIZE].tobytes()
-                processed = self._denoiser.process_frame(frame)  # type: ignore[union-attr]
+                processed = self._denoiser.process_frame(frame)  # type: ignore[union-attr,attr-defined]
                 out_frames.append(np.frombuffer(processed, dtype=np.int16))
             result_pcm = np.concatenate(out_frames)[: len(mono)]
             return result_pcm.astype(np.float32) / 32768.0
 
         # noisereduce fallback
         if hasattr(self._denoiser, "reduce_noise"):
-            return self._denoiser.reduce_noise(  # type: ignore[union-attr]
+            denoised: np.ndarray = self._denoiser.reduce_noise(  # type: ignore[union-attr,attr-defined]
                 y=mono.astype(np.float32), sr=_RNNOISE_SR
             )
+            return denoised
 
         return mono
 
@@ -133,6 +135,7 @@ class RNNoiseRestorer(AudioRestorer):
         # Try rnnoise-python binding
         try:
             import rnnoise
+
             dn = rnnoise.RNNoise()
             logger.info("RNNoise loaded via rnnoise-python")
             return dn
@@ -142,6 +145,7 @@ class RNNoiseRestorer(AudioRestorer):
         # Try noisereduce as fallback
         try:
             import noisereduce as nr
+
             logger.info("RNNoise using noisereduce fallback")
             return _NoisereduceAdapter(nr)
         except ImportError:
@@ -153,18 +157,22 @@ class RNNoiseRestorer(AudioRestorer):
 
 def _resample(audio: np.ndarray, from_sr: int, to_sr: int) -> np.ndarray:
     try:
-        from scipy.signal import resample_poly
         from math import gcd
+
+        from scipy.signal import resample_poly
+
         g = gcd(from_sr, to_sr)
-        return resample_poly(audio, to_sr // g, from_sr // g).astype(np.float32)
+        resampled: np.ndarray = resample_poly(audio, to_sr // g, from_sr // g).astype(np.float32)
+        return resampled
     except ImportError:
         # Naive linear interpolation if scipy unavailable
         n_samples = int(len(audio) * to_sr / from_sr)
-        return np.interp(
+        interpolated: np.ndarray = np.interp(
             np.linspace(0, len(audio) - 1, n_samples),
             np.arange(len(audio)),
             audio,
         ).astype(np.float32)
+        return interpolated
 
 
 class _NoisereduceAdapter:
@@ -172,9 +180,11 @@ class _NoisereduceAdapter:
         self._nr = nr_module
 
     def reduce_noise(self, y: np.ndarray, sr: int) -> np.ndarray:
-        return self._nr.reduce_noise(y=y, sr=sr)  # type: ignore[attr-defined]
+        reduced: np.ndarray = self._nr.reduce_noise(y=y, sr=sr)  # type: ignore[attr-defined]
+        return reduced
 
 
 class _RNNoiseStub:
     """Passthrough stub."""
+
     pass

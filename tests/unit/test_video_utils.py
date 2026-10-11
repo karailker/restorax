@@ -1,4 +1,5 @@
 """Tests for video utility functions (padding, tiling, color conversion)."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -20,6 +21,7 @@ def _frame(h: int, w: int) -> np.ndarray:
 
 
 # ── Color space ───────────────────────────────────────────────────────────────
+
 
 def test_rgb_roundtrip() -> None:
     frame = _frame(32, 32)
@@ -44,6 +46,7 @@ def test_invalid_color_space_raises() -> None:
 
 # ── Padding ───────────────────────────────────────────────────────────────────
 
+
 def test_pad_to_multiple_already_aligned() -> None:
     frame = _frame(64, 64)
     padded, pads = pad_to_multiple(frame, 32)
@@ -67,6 +70,7 @@ def test_pad_unpad_roundtrip() -> None:
 
 
 # ── Tiling ────────────────────────────────────────────────────────────────────
+
 
 def test_tile_frame_produces_correct_count() -> None:
     frame = _frame(128, 128)

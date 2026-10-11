@@ -1,4 +1,5 @@
 """Unit tests for MambaIRRestorer."""
+
 from __future__ import annotations
 
 import builtins
@@ -7,8 +8,8 @@ from unittest.mock import patch
 import pytest
 
 from restorax.core.exceptions import RestorerLoadError
-from restorax.restorers.super_resolution.mamba_ir import MambaIRRestorer
 from restorax.core.restorer import RestorerCategory
+from restorax.restorers.super_resolution.mamba_ir import MambaIRRestorer
 
 torch = pytest.importorskip("torch")
 

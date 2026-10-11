@@ -1,4 +1,5 @@
 """Tests for ModelRegistry LRU eviction logic."""
+
 from __future__ import annotations
 
 import torch
@@ -69,7 +70,7 @@ def test_unknown_restorer_raises() -> None:
     registry = ModelRegistry()
     try:
         registry.get("nonexistent", _CPU)
-        assert False, "Should have raised"
+        raise AssertionError("Should have raised")
     except RestorerNotFoundError:
         pass
 
