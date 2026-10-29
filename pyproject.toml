@@ -188,6 +188,8 @@ no_implicit_reexport = true
 module = [
     "restorax.restorers.artifact_removal.propainter_arch",
     "restorax.restorers.face_restoration.codeformer_arch",
+    "restorax.restorers.face_restoration.codeformer_pp_arch",
+    "restorax.restorers.face_restoration.dicface_arch",
     "restorax.restorers.face_restoration.vqgan_arch",
     "restorax.restorers.frame_interpolation.rife_arch.*",
     "restorax.restorers.colorization.ddcolor_arch.*",
@@ -213,6 +215,8 @@ module = [
     "restorax.restorers.super_resolution.evtexture",
     "restorax.restorers.super_resolution.vrt",
     "restorax.restorers.face_restoration.codeformer",
+    "restorax.restorers.face_restoration.codeformer_pp",
+    "restorax.restorers.face_restoration.dicface",
     "restorax.restorers.frame_interpolation.rife",
     "restorax.telemetry",
 ]

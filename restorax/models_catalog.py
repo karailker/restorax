@@ -64,9 +64,22 @@ CATALOG: list[ModelEntry] = [
     ModelEntry("evtexture", "sr", "DachunKai/EvTexture", ["evtexture_x4.pth"], 80),
     ModelEntry("flashvsr", "sr", "restorax/flashvsr-weights", ["flashvsr_x4.pth"], 15),
     ModelEntry("codeformer", "face", "sczhou/CodeFormer", ["codeformer.pth"], 375),
-    ModelEntry("codeformer_pp", "face", "sczhou/CodeFormerPlusPlus", ["codeformer_pp.pth"], 380),
+    ModelEntry(
+        "codeformer_pp",
+        "face",
+        "TencentARC/GFPGAN",
+        ["RestoreFormer.pth"],
+        277,
+        urls={
+            "RestoreFormer.pth": (
+                "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/RestoreFormer.pth"
+            )
+        },
+    ),
     ModelEntry("gfpgan", "face", "TencentARC/GFPGANv1.4", ["GFPGANv1.4.pth"], 330),
-    ModelEntry("dicface", "face", "YaNgZhAnG-V5/DicFace", ["dicface.pth"], 200),
+    ModelEntry(
+        "dicface", "face", "fudan-generative-ai/DicFace_model", ["CodeFormer/bfr_100k.pth"], 887
+    ),
     ModelEntry("ddcolor", "sr", "piddnad/ddcolor_modelscope", ["pytorch_model.bin"], 870),
     ModelEntry("hdrtvdm", "extras", "AndreGuo/HDRTVDM", ["HDRTVNet.pth"], 50),
     ModelEntry("gavs", "extras", "Annbless/GAVS", ["gavs.pth"], 120),
@@ -120,9 +133,10 @@ _STATUS: dict[str, tuple[Status, str]] = {
     ),
     "dicface": (
         "needs_work",
-        "Upstream is github.com/fudan-generative-vision/DicFace (ICCV 2025); the weight "
-        "location is not verified and the adapter is not implemented. The Hugging Face id "
-        "here is unverified.",
+        "Arch handled by the vendored TemporalCodeFormerDirDistMultiScale (NTU S-Lab 1.0, "
+        "non-commercial) and the official weights are published at "
+        "fudan-generative-ai/DicFace_model (CodeFormer/bfr_100k.pth, 887 MB). The adapter "
+        "loads, but inference has not been verified end-to-end yet.",
     ),
     "deinterlace": (
         "needs_work",
@@ -151,9 +165,11 @@ _STATUS: dict[str, tuple[Status, str]] = {
         "shim exists, the real pipeline is not ported.",
     ),
     "codeformer_pp": (
-        "unavailable",
-        "CodeFormer++ is a 2025 paper (arXiv 2510.04410); no official code or weights were "
-        "found. The Hugging Face id here is a placeholder.",
+        "needs_work",
+        "CodeFormer++ (arXiv 2510.04410) has no public release, so this entry runs the "
+        "vendored RestoreFormer architecture (Apache-2.0) with GFPGAN's official "
+        "RestoreFormer.pth weight. The adapter loads, but inference has not been verified "
+        "end-to-end yet and RestoreFormer has no fidelity-weight control.",
     ),
     "tdm": (
         "unavailable",

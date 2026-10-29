@@ -218,7 +218,7 @@ class TestDicFace:
         assert caps.category == RestorerCategory.FACE_RESTORATION
         assert caps.input_color_space == "bgr"
         assert caps.scale_factor == 1
-        assert "iccv2023" in caps.tags
+        assert "iccv2025" in caps.tags
 
     def test_process_frame_passthrough_when_no_model(self, restorer):
         frame = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)

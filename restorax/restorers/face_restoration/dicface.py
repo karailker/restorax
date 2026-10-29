@@ -36,7 +36,6 @@ logger = logging.getLogger(__name__)
 
 _HF_REPO = "fudan-generative-ai/DicFace_model"
 _HF_WEIGHT_PATH = "CodeFormer/bfr_100k.pth"
-_WEIGHT_FILE = "bfr_100k.pth"
 _DEFAULT_FIDELITY = 0.5
 
 # Checkpoint was trained with this fixed temporal window; the arch's
@@ -112,14 +111,15 @@ class DicFaceRestorer(BaseRestorer):
 
         from restorax.config import settings
 
-        weight_path = Path(settings.model_dir) / "dicface" / _WEIGHT_FILE
+        weight_dir = Path(settings.model_dir) / "dicface"
+        weight_path = weight_dir / _HF_WEIGHT_PATH
         if not weight_path.exists():
             try:
                 from huggingface_hub import hf_hub_download
 
                 weight_path.parent.mkdir(parents=True, exist_ok=True)
                 hf_hub_download(
-                    repo_id=_HF_REPO, filename=_WEIGHT_FILE, local_dir=str(weight_path.parent)
+                    repo_id=_HF_REPO, filename=_HF_WEIGHT_PATH, local_dir=str(weight_dir)
                 )
             except Exception as exc:
                 raise RestorerLoadError(
