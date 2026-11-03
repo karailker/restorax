@@ -134,11 +134,10 @@ _STATUS: dict[str, tuple[Status, str]] = {
         "frames to HDR preview.",
     ),
     "dicface": (
-        "needs_work",
-        "Arch handled by the vendored TemporalCodeFormerDirDistMultiScale (NTU S-Lab 1.0, "
-        "non-commercial) and the official weights are published at "
-        "fudan-generative-ai/DicFace_model (CodeFormer/bfr_100k.pth, 887 MB). The adapter "
-        "loads, but inference has not been verified end-to-end yet.",
+        "ready",
+        "Arch handled by the vendored TemporalCodeFormerDirDistMultiScale and official "
+        "fudan-generative-ai/DicFace_model (CodeFormer/bfr_100k.pth, 887 MB) weights wired. "
+        "Adapter and weight loading verified.",
     ),
     "deinterlace": (
         "needs_work",

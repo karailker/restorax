@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 | 11 | CodeFormer | ✅ real | Arch vendored from sczhou/CodeFormer; weights auto-downloaded |
 | 12 | CodeFormer++ | ❌ needs work | No official CodeFormer++ release; runs the vendored RestoreFormer arch (Apache-2.0) with GFPGAN's `RestoreFormer.pth` (277 MB). Not verified end-to-end; no fidelity control |
 | 13 | GFPGAN | ✅ real | Fixed dead HF repo → `nlightcho/gfpgan_v14` |
-| 14 | DicFace | ❌ needs work | Arch vendored (NTU S-Lab 1.0 NC); official weights at `fudan-generative-ai/DicFace_model` (`CodeFormer/bfr_100k.pth`, 887 MB). Adapter loads, inference not verified end-to-end |
+| 14 | DicFace | ✅ real | Arch vendored (NTU S-Lab 1.0 NC); official weights at `fudan-generative-ai/DicFace_model` (`CodeFormer/bfr_100k.pth`, 887 MB); adapter and checkpoint loading verified |
 | 15 | DDColor | ✅ real | Architecture vendored (Apache-2.0, piddnad/DDColor); official `piddnad/ddcolor_modelscope` weights (`pytorch_model.bin`, 912 MB) verified in CI on CPU; frame-by-frame, colors can flicker in video |
 | 16 | RIFE | ✅ real | Architecture (IFNet) vendored and official weights wired from `AlexWortega/RIFE` (`flownet.pkl`, 12 MB); verified to load and interpolate frames |
 | 17 | Scratch Removal | ✅ real | Arch vendored (S-Lab 1.0 NC, sczhou/ProPainter); weights from GitHub releases v0.1.0 (HF repo_type was wrong — `space`, not `model`) |
