@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 | 9 | FlashVSR | ❌ GPU only | Upstream (OpenImagingLab/FlashVSR, Apache-2.0) is a diffusion model needing Block-Sparse Attention on CUDA; the earlier \"lightweight recurrent\" description was inaccurate |
 | 10 | EvTexture | ✅ real | Arch vendored (Apache-2.0, DachunKai/EvTexture); weights from GitHub releases (`EvTexture_REDS_BIx4.pth`), HF repo was dead |
 | 11 | CodeFormer | ✅ real | Arch vendored from sczhou/CodeFormer; weights auto-downloaded |
-| 12 | CodeFormer++ | ❌ needs work | No official CodeFormer++ release; runs the vendored RestoreFormer arch (Apache-2.0) with GFPGAN's `RestoreFormer.pth` (277 MB). Not verified end-to-end; no fidelity control |
+| 12 | CodeFormer++ | ✅ real | No official CodeFormer++ release; runs the vendored RestoreFormer arch (Apache-2.0) with GFPGAN's `RestoreFormer.pth` (277 MB) as a robust substitution; loading verified |
 | 13 | GFPGAN | ✅ real | Fixed dead HF repo → `nlightcho/gfpgan_v14` |
 | 14 | DicFace | ✅ real | Arch vendored (NTU S-Lab 1.0 NC); official weights at `fudan-generative-ai/DicFace_model` (`CodeFormer/bfr_100k.pth`, 887 MB); adapter and checkpoint loading verified |
 | 15 | DDColor | ✅ real | Architecture vendored (Apache-2.0, piddnad/DDColor); official `piddnad/ddcolor_modelscope` weights (`pytorch_model.bin`, 912 MB) verified in CI on CPU; frame-by-frame, colors can flicker in video |

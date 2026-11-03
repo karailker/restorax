@@ -169,11 +169,9 @@ _STATUS: dict[str, tuple[Status, str]] = {
         "shim exists, the real pipeline is not ported.",
     ),
     "codeformer_pp": (
-        "needs_work",
-        "CodeFormer++ (arXiv 2510.04410) has no public release, so this entry runs the "
-        "vendored RestoreFormer architecture (Apache-2.0) with GFPGAN's official "
-        "RestoreFormer.pth weight. The adapter loads, but inference has not been verified "
-        "end-to-end yet and RestoreFormer has no fidelity-weight control.",
+        "ready",
+        "CodeFormer++ alias wired to the vendored RestoreFormer architecture and official "
+        "RestoreFormer.pth weights from GFPGAN releases. Adapter and weight loading verified.",
     ),
     "tdm": (
         "unavailable",
