@@ -130,8 +130,8 @@ class DemucsRestorer(AudioRestorer):
 
             return result.cpu().numpy().T.astype(np.float32)
         except Exception as exc:
-            logger.warning("Demucs separation failed (%s) — returning original audio", exc)
-            return audio.copy()
+            logger.error("Demucs separation failed: %s", exc)
+            raise RuntimeError(f"Demucs separation failed: {exc}") from exc
 
     @staticmethod
     def _build_model(device: torch.device) -> object:

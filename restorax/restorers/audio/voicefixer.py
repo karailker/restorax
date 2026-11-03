@@ -129,8 +129,8 @@ class VoiceFixerRestorer(AudioRestorer):
                     restored = np.tile(restored[:, :1], (1, audio.shape[1]))
                 return restored
         except Exception as exc:
-            logger.warning("VoiceFixer restore failed (%s) — returning original", exc)
-            return audio.copy()
+            logger.error("VoiceFixer restore failed: %s", exc)
+            raise RuntimeError(f"VoiceFixer restore failed: {exc}") from exc
 
     @staticmethod
     def _build_model(device: torch.device) -> object:

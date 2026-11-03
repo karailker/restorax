@@ -93,8 +93,8 @@ class RNNoiseRestorer(AudioRestorer):
         try:
             denoised = self._run_rnnoise(mono)
         except Exception as exc:
-            logger.warning("RNNoise processing failed (%s) — returning original", exc)
-            denoised = mono
+            logger.error("RNNoise processing failed: %s", exc)
+            raise RuntimeError(f"RNNoise processing failed: {exc}") from exc
 
         # Resample back
         if original_sr != _RNNOISE_SR:
