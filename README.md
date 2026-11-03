@@ -102,9 +102,9 @@ Not every registered restorer ships working weights yet. This table is the sourc
 
 | State | Models |
 |---|---|
-| **Ready** (real output, real weights) | Real-ESRGAN, VRT, DDColor, Waifu2x, EvTexture, CodeFormer, GFPGAN, ProPainter (scratch removal), YADIF, Demucs, VoiceFixer, HDRTVDM, RIFE, DicFace |
+| **Ready** (real output, real weights) | Real-ESRGAN, VRT, DDColor, Waifu2x, EvTexture, CodeFormer, GFPGAN, ProPainter (scratch removal), YADIF, Demucs, VoiceFixer, HDRTVDM, RIFE, DicFace, BasicVSR++ |
 | **Classical fallback** (no neural weights wired) | Video Stabilization, GaVS, RNNoise |
-| **Needs work** (public weights/code exist, adapter unfinished) | BasicVSR++, AI Deinterlace, CodeFormer++ (runs RestoreFormer) |
+| **Needs work** (public weights/code exist, adapter unfinished) | AI Deinterlace, CodeFormer++ (runs RestoreFormer) |
 | **GPU only** (upstream needs CUDA-only kernels or very large VRAM; not implemented) | MambaIR, FlashVSR, SeedVR, Upscale-A-Video |
 | **Unavailable** (no public release found) | TDM |
 

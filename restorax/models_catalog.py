@@ -44,7 +44,11 @@ class ModelEntry:
 CATALOG: list[ModelEntry] = [
     ModelEntry("real_esrgan", "sr", "xinntao/Real-ESRGAN", ["RealESRGANx4plus.pth"], 67),
     ModelEntry(
-        "basicvsr_pp", "sr", "sczhou/BasicVSR-PlusPlus", ["BasicVSR_PlusPlus_REDS4.pth"], 20
+        "basicvsr_pp",
+        "sr",
+        "maybleMyers/interpolate",
+        ["BasicVSR_PlusPlus_REDS4.pth"],
+        20,
     ),
     ModelEntry(
         "vrt",
@@ -116,10 +120,9 @@ _STATUS: dict[str, tuple[Status, str]] = {
     ),
     "rnnoise": ("fallback", "Classical noise gate; the RNNoise network is not bundled."),
     "basicvsr_pp": (
-        "needs_work",
-        "Weights are public (OpenMMLab model zoo) but the architecture needs compiled CUDA "
-        "deformable-convolution ops; a CPU-capable port on torchvision.ops.deform_conv2d is "
-        "not written yet.",
+        "ready",
+        "Architecture vendored in BasicSR, official REDS weights wired from maybleMyers/interpolate "
+        "(BasicVSR_PlusPlus_REDS4.pth, 20 MB).",
     ),
     "ddcolor": (
         "ready",

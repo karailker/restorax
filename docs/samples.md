@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
 | # | Model | Status | Notes |
 |---|-------|--------|-------|
 | 1 | RealESRGAN x4plus | ✅ real | Weights: `models/real_esrgan/` |
-| 2 | BasicVSR++ | ❌ needs work | Weights are public (OpenMMLab model zoo); the architecture needs compiled CUDA deformable-conv ops, a CPU-capable port is not written |
+| 2 | BasicVSR++ | ✅ real | Architecture vendored in BasicSR; official REDS weights wired from `maybleMyers/interpolate` (`BasicVSR_PlusPlus_REDS4.pth`, 20 MB) |
 | 3 | Upscale-A-Video | ❌ GPU only | Diffusion model (NTU S-Lab License 1.0, non-commercial); only an adapter shim exists, the real pipeline is not ported |
 | 4 | VRT | ✅ real | Arch vendored (CC BY-NC 4.0); official `001_VRT_videosr_bi_REDS_6frames.pth` (166 MB) downloads from the project's GitHub release; verified on CPU, +2.8 to +5.8 dB over bicubic |
 | 5 | MambaIR | ❌ GPU only | Needs the `mamba-ssm` CUDA kernels (no CPU path); architecture not vendored |

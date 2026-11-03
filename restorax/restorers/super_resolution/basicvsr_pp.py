@@ -171,8 +171,25 @@ class BasicVSRPlusPlusRestorer(BaseRestorer):
 
     @staticmethod
     def _download_weights(model_dir: Path) -> Path:
-        raise RestorerLoadError(
-            f"BasicVSR++ weights ({_WEIGHT_FILE}) have no public mirror. "
-            "Download manually from https://github.com/ckkelvinchan/BasicVSR_PlusPlus "
-            f"and place at {model_dir / _WEIGHT_FILE}"
-        )
+        try:
+            from huggingface_hub import hf_hub_download
+        except ImportError as exc:
+            raise RestorerLoadError("huggingface_hub required.") from exc
+
+        logger.info("Downloading BasicVSR++ weights…")
+        model_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            path = hf_hub_download(
+                repo_id="maybleMyers/interpolate",
+                filename="basicvsr_plusplus_reds4.pth",
+                local_dir=str(model_dir),
+            )
+            target = model_dir / _WEIGHT_FILE
+            if not target.exists() and Path(path).exists():
+                Path(path).rename(target)
+            return target
+        except Exception as exc:
+            raise RestorerLoadError(
+                f"Failed to download BasicVSR++ weights: {exc}. "
+                "Download manually from https://github.com/ckkelvinchan/BasicVSR_PlusPlus"
+            ) from exc
