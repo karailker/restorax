@@ -128,8 +128,10 @@ _STATUS: dict[str, tuple[Status, str]] = {
         "than the gray input. Works frame by frame, so colors can flicker between video frames.",
     ),
     "hdrtvdm": (
-        "needs_work",
-        "Upstream is github.com/andreguo/hdrtvdm; the architecture and weights are not wired.",
+        "ready",
+        "Arch (TriSegNet) vendored from AndreGuo/HDRTVDM (MPL 2.0) and official "
+        "params.pth weights wired from GitHub raw. Verified to load and convert SDR "
+        "frames to HDR preview.",
     ),
     "dicface": (
         "needs_work",

@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 | 15 | DDColor | ✅ real | Architecture vendored (Apache-2.0, piddnad/DDColor); official `piddnad/ddcolor_modelscope` weights (`pytorch_model.bin`, 912 MB) verified in CI on CPU; frame-by-frame, colors can flicker in video |
 | 16 | RIFE | ⚠️ fallback | Architecture vendored, weights not wired (Practical-RIFE weights live on Google Drive / third-party mirrors); linear blend is used |
 | 17 | Scratch Removal | ✅ real | Arch vendored (S-Lab 1.0 NC, sczhou/ProPainter); weights from GitHub releases v0.1.0 (HF repo_type was wrong — `space`, not `model`) |
-| 18 | HDRTVDM | ❌ needs work | Upstream: andreguo/hdrtvdm; architecture and weights not wired |
+| 18 | HDRTVDM | ✅ real | Arch (TriSegNet) vendored (MPL 2.0, AndreGuo/HDRTVDM); official weights downloaded from GitHub raw (`params.pth`, 50 MB); verified to load and convert SDR frames |
 | 19 | Video Stabilization | ⚠️ fallback | OpenCV optical-flow stabilization (classical) |
 | 20 | GaVS | ⚠️ fallback | Upstream: huawei-bayerlab/GaVS, not integrated; OpenCV fallback is used |
 | 21 | AI Deinterlace | ❌ needs work | Referenced source could not be verified; use YADIF |
