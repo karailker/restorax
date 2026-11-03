@@ -105,9 +105,9 @@ _STATUS: dict[str, tuple[Status, str]] = {
         "(+2.8 to +5.8 dB over bicubic). Input is padded to a multiple of 32 (min 64 px).",
     ),
     "rife": (
-        "fallback",
-        "Architecture is vendored, but the Practical-RIFE weights (Google Drive / third-party "
-        "mirrors) are not wired, so frames are interpolated with a linear blend.",
+        "ready",
+        "Architecture (IFNet) vendored and official weights wired from AlexWortega/RIFE "
+        "(flownet.pkl, 12 MB). Verified to load and interpolate frames.",
     ),
     "gavs": (
         "fallback",

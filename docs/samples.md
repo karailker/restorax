@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
 | 13 | GFPGAN | ✅ real | Fixed dead HF repo → `nlightcho/gfpgan_v14` |
 | 14 | DicFace | ❌ needs work | Arch vendored (NTU S-Lab 1.0 NC); official weights at `fudan-generative-ai/DicFace_model` (`CodeFormer/bfr_100k.pth`, 887 MB). Adapter loads, inference not verified end-to-end |
 | 15 | DDColor | ✅ real | Architecture vendored (Apache-2.0, piddnad/DDColor); official `piddnad/ddcolor_modelscope` weights (`pytorch_model.bin`, 912 MB) verified in CI on CPU; frame-by-frame, colors can flicker in video |
-| 16 | RIFE | ⚠️ fallback | Architecture vendored, weights not wired (Practical-RIFE weights live on Google Drive / third-party mirrors); linear blend is used |
+| 16 | RIFE | ✅ real | Architecture (IFNet) vendored and official weights wired from `AlexWortega/RIFE` (`flownet.pkl`, 12 MB); verified to load and interpolate frames |
 | 17 | Scratch Removal | ✅ real | Arch vendored (S-Lab 1.0 NC, sczhou/ProPainter); weights from GitHub releases v0.1.0 (HF repo_type was wrong — `space`, not `model`) |
 | 18 | HDRTVDM | ✅ real | Arch (TriSegNet) vendored (MPL 2.0, AndreGuo/HDRTVDM); official weights downloaded from GitHub raw (`params.pth`, 50 MB); verified to load and convert SDR frames |
 | 19 | Video Stabilization | ⚠️ fallback | OpenCV optical-flow stabilization (classical) |
