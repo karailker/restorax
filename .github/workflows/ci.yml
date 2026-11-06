@@ -86,7 +86,7 @@ jobs:
             --cov=restorax --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           file: coverage.xml
         continue-on-error: true
