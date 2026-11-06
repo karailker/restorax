@@ -261,7 +261,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build API image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -271,7 +271,7 @@ jobs:
           tags: restorax:ci
 
       - name: Build worker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.worker
