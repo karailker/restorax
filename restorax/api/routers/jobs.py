@@ -34,6 +34,17 @@ from restorax.db.repositories.job_repo import JobRepository
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
+# Extensions accepted for output files (used in output.{output_format} paths)
+_ALLOWED_OUTPUT_FORMATS = frozenset({"mp4", "mkv", "avi", "mov", "webm"})
+
+def _validate_output_format(output_format: str) -> None:
+    if output_format not in _ALLOWED_OUTPUT_FORMATS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported output_format '{output_format}'. "
+            f"Allowed: {sorted(_ALLOWED_OUTPUT_FORMATS)}",
+        )
+
 
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
@@ -51,6 +62,7 @@ async def create_job(
     if pipeline_id is None and dag_id is None:
         raise HTTPException(status_code=422, detail="Either pipeline_id or dag_id is required")
 
+    _validate_output_format(output_format)
     job_id = str(uuid.uuid4())
 
     # Save uploaded file to local storage root
@@ -145,6 +157,10 @@ async def download_output(job_id: str, db: AsyncSession = Depends(get_db)) -> Fi
     if job.status != "completed" or not job.output_path:
         raise HTTPException(status_code=409, detail="Job output not ready")
     output_path = Path(job.output_path)
+    # Containment: only serve files under storage_local_root/outputs
+    outputs_root = (Path(settings.storage_local_root) / "outputs").resolve()
+    if not output_path.resolve().is_relative_to(outputs_root):
+        raise HTTPException(status_code=403, detail="Output path outside storage root")
     if not output_path.exists():
         raise HTTPException(status_code=404, detail="Output file not found on disk")
     return FileResponse(
@@ -182,6 +198,7 @@ async def create_batch_jobs(
     """
     from restorax.tasks.gpu_router import next_gpu_queue
 
+    _validate_output_format(output_format)
     repo = JobRepository(db)
     preset_path = _resolve_preset(pipeline_id)
     storage_root = Path(settings.storage_local_root)
@@ -296,20 +313,22 @@ async def merge_job_branches(
 
 
 def _resolve_preset(pipeline_id: str) -> str:
-    """Return the absolute path to a YAML preset file."""
-    candidates = [
-        Path(f"configs/presets/{pipeline_id}.yaml"),
-        Path(f"configs/presets/{pipeline_id}"),
-        Path(pipeline_id),
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return str(candidate.resolve())
-    raise HTTPException(
-        status_code=400,
-        detail=f"Pipeline preset '{pipeline_id}' not found. "
-        f"Available presets: {[p.stem for p in Path('configs/presets').glob('*.yaml')]}",
-    )
+    """Return the absolute path to a YAML preset file (presets dir only)."""
+    # Reject path separators — pipeline_id must be a bare preset name
+    if Path(pipeline_id).name != pipeline_id or pipeline_id.startswith("."):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid pipeline_id '{pipeline_id}' — must be a preset name",
+        )
+    presets_dir = Path("configs/presets").resolve()
+    candidate = (presets_dir / f"{pipeline_id}.yaml").resolve()
+    if not candidate.is_relative_to(presets_dir) or not candidate.exists():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Pipeline preset '{pipeline_id}' not found. "
+            f"Available presets: {[p.stem for p in presets_dir.glob('*.yaml')]}",
+        )
+    return str(candidate)
 
 
 def _to_response(job: JobModel) -> JobResponse:

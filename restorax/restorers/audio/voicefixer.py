@@ -88,9 +88,6 @@ class VoiceFixerRestorer(AudioRestorer):
         assert self._device is not None
         mode = int(params.extra.get("mode", 0))
 
-        if isinstance(self._model, _VoiceFixerStub):
-            return audio.copy()
-
         return self._voicefixer_restore(audio, params.sample_rate, mode)
 
     def _voicefixer_restore(self, audio: np.ndarray, sr: int, mode: int) -> np.ndarray:
@@ -134,21 +131,8 @@ class VoiceFixerRestorer(AudioRestorer):
 
     @staticmethod
     def _build_model(device: torch.device) -> object:
-        try:
-            from voicefixer import VoiceFixer
+        from voicefixer import VoiceFixer
 
-            model = VoiceFixer()
-            logger.info("VoiceFixer loaded from installed package")
-            return model
-        except ImportError:
-            logger.info("voicefixer not installed — using passthrough stub")
-            return _VoiceFixerStub()
-        except Exception as exc:
-            logger.warning("VoiceFixer load failed (%s) — using stub", exc)
-            return _VoiceFixerStub()
-
-
-class _VoiceFixerStub:
-    """Passthrough stub used when voicefixer is not installed."""
-
-    pass
+        model = VoiceFixer()
+        logger.info("VoiceFixer loaded from installed package")
+        return model

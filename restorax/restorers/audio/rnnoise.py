@@ -77,8 +77,8 @@ class RNNoiseRestorer(AudioRestorer):
         if hasattr(self._denoiser, "process_frame") or hasattr(self._denoiser, "reduce_noise"):
             return self._denoise(audio, sr)
 
-        # Stub: return input unchanged
-        return audio.copy()
+        # No denoiser backend was loaded
+        raise RuntimeError("RNNoise denoiser was not initialized — call load() first")
 
     def _denoise(self, audio: np.ndarray, sr: int) -> np.ndarray:
         """Resample → denoise → resample back."""
@@ -151,8 +151,10 @@ class RNNoiseRestorer(AudioRestorer):
         except ImportError:
             pass
 
-        logger.info("No noise suppression library found — using passthrough stub")
-        return _RNNoiseStub()
+        raise RuntimeError(
+            "RNNoise requires the rnnoise-python or noisereduce package — "
+            "install one of them to use this restorer"
+        )
 
 
 def _resample(audio: np.ndarray, from_sr: int, to_sr: int) -> np.ndarray:
@@ -182,9 +184,3 @@ class _NoisereduceAdapter:
     def reduce_noise(self, y: np.ndarray, sr: int) -> np.ndarray:
         reduced: np.ndarray = self._nr.reduce_noise(y=y, sr=sr)  # type: ignore[attr-defined]
         return reduced
-
-
-class _RNNoiseStub:
-    """Passthrough stub."""
-
-    pass

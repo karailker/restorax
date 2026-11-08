@@ -11,35 +11,30 @@ from restorax.audio.restorer import (
     AudioRestorerParams,
 )
 
-
 def _stereo(seconds: float = 1.0, sr: int = 44100) -> np.ndarray:
     """Synthetic stereo float32 audio, values in [-1, 1]."""
     samples = int(seconds * sr)
     rng = np.random.default_rng(0)
     return rng.uniform(-0.5, 0.5, (samples, 2)).astype(np.float32)
 
-
 def _mono(seconds: float = 1.0, sr: int = 48000) -> np.ndarray:
     samples = int(seconds * sr)
     rng = np.random.default_rng(1)
     return rng.uniform(-0.5, 0.5, (samples, 1)).astype(np.float32)
 
-
 # ── DemucsRestorer ────────────────────────────────────────────────────────────
-
 
 class TestDemucsRestorer:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.audio.demucs import DemucsRestorer, _DemucsStub
+        from restorax.restorers.audio.demucs import DemucsRestorer
 
         r = DemucsRestorer()
-        r._model = _DemucsStub()
         r._device = torch.device("cpu")
         r._loaded = True
         return r
 
-    def test_name(self, restorer):
+    def test_name(self):
         from restorax.restorers.audio.demucs import DemucsRestorer
 
         assert DemucsRestorer().name == "demucs_htdemucs"
@@ -50,20 +45,10 @@ class TestDemucsRestorer:
     def test_sample_rates(self, restorer):
         assert 44100 in restorer.capabilities.sample_rates
 
-    def test_process_audio_preserves_shape(self, restorer):
+    def test_process_audio_without_model_raises(self, restorer):
         audio = _stereo()
-        result = restorer.process_audio(audio, AudioRestorerParams(sample_rate=44100))
-        assert result.shape == audio.shape
-
-    def test_process_audio_dtype_float32(self, restorer):
-        audio = _stereo()
-        result = restorer.process_audio(audio, AudioRestorerParams(sample_rate=44100))
-        assert result.dtype == np.float32
-
-    def test_process_audio_values_bounded(self, restorer):
-        audio = _stereo()
-        result = restorer.process_audio(audio, AudioRestorerParams(sample_rate=44100))
-        assert result.max() <= 1.0 and result.min() >= -1.0
+        with pytest.raises((RuntimeError, Exception)):
+            restorer.process_audio(audio, AudioRestorerParams(sample_rate=44100))
 
     def test_is_loaded(self, restorer):
         assert restorer.is_loaded
@@ -72,17 +57,14 @@ class TestDemucsRestorer:
         restorer.unload()
         assert not restorer.is_loaded
 
-
 # ── VoiceFixerRestorer ────────────────────────────────────────────────────────
-
 
 class TestVoiceFixerRestorer:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.audio.voicefixer import VoiceFixerRestorer, _VoiceFixerStub
+        from restorax.restorers.audio.voicefixer import VoiceFixerRestorer
 
         r = VoiceFixerRestorer()
-        r._model = _VoiceFixerStub()
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -98,31 +80,23 @@ class TestVoiceFixerRestorer:
     def test_multiple_sample_rates_supported(self, restorer):
         assert len(restorer.capabilities.sample_rates) >= 2
 
-    def test_process_audio_preserves_shape(self, restorer):
+    def test_process_audio_without_model_raises(self, restorer):
         audio = _stereo()
-        result = restorer.process_audio(audio, AudioRestorerParams(sample_rate=44100))
-        assert result.shape == audio.shape
-
-    def test_process_audio_dtype(self, restorer):
-        audio = _stereo()
-        result = restorer.process_audio(audio, AudioRestorerParams(sample_rate=44100))
-        assert result.dtype == np.float32
+        with pytest.raises((RuntimeError, Exception)):
+            restorer.process_audio(audio, AudioRestorerParams(sample_rate=44100))
 
     def test_unload(self, restorer):
         restorer.unload()
         assert not restorer.is_loaded
 
-
 # ── RNNoiseRestorer ───────────────────────────────────────────────────────────
-
 
 class TestRNNoiseRestorer:
     @pytest.fixture
     def restorer(self):
-        from restorax.restorers.audio.rnnoise import RNNoiseRestorer, _RNNoiseStub
+        from restorax.restorers.audio.rnnoise import RNNoiseRestorer
 
         r = RNNoiseRestorer()
-        r._denoiser = _RNNoiseStub()
         r._device = torch.device("cpu")
         r._loaded = True
         return r
@@ -135,20 +109,15 @@ class TestRNNoiseRestorer:
     def test_category(self, restorer):
         assert restorer.capabilities.category == AudioRestorerCategory.NOISE_SUPPRESSION
 
-    def test_process_audio_preserves_shape_mono(self, restorer):
-        audio = _mono()
-        result = restorer.process_audio(audio, AudioRestorerParams(sample_rate=48000))
-        assert result.shape == audio.shape
+    def test_build_denoiser_without_library_raises(self):
+        """With no backend installed, _build_denoiser must raise, not return a stub."""
+        import unittest.mock as mock
 
-    def test_process_audio_preserves_shape_stereo(self, restorer):
-        audio = _stereo()
-        result = restorer.process_audio(audio, AudioRestorerParams(sample_rate=44100))
-        assert result.shape == audio.shape
+        from restorax.restorers.audio.rnnoise import RNNoiseRestorer
 
-    def test_process_audio_dtype(self, restorer):
-        audio = _mono()
-        result = restorer.process_audio(audio, AudioRestorerParams(sample_rate=48000))
-        assert result.dtype == np.float32
+        with mock.patch.dict("sys.modules", {"rnnoise": None, "noisereduce": None}):
+            with pytest.raises(RuntimeError):
+                RNNoiseRestorer()._build_denoiser()
 
     def test_unload(self, restorer):
         restorer.unload()

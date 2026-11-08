@@ -101,9 +101,6 @@ class DemucsRestorer(AudioRestorer):
 
         stems_to_keep = list(params.extra.get("stems", list(_DEFAULT_STEMS)))
 
-        if isinstance(self._model, _DemucsStub):
-            return audio.copy()
-
         return self._demucs_separate(audio, stems_to_keep)
 
     # ── Internal ──────────────────────────────────────────────────────────────
@@ -135,23 +132,8 @@ class DemucsRestorer(AudioRestorer):
 
     @staticmethod
     def _build_model(device: torch.device) -> object:
-        try:
-            from demucs.pretrained import get_model
+        from demucs.pretrained import get_model
 
-            model = get_model("htdemucs")
-            model = model.to(device)
-            model.eval()
-            logger.info("Demucs HTDemucs weights loaded from pretrained")
-            return model
-        except ImportError:
-            logger.info("demucs not installed — using passthrough stub")
-            return _DemucsStub()
-        except Exception as exc:
-            logger.warning("Demucs load failed (%s) — using stub", exc)
-            return _DemucsStub()
-
-
-class _DemucsStub:
-    """Identity stub: returns input unchanged. Used when demucs is not installed."""
-
-    pass
+        model = get_model("htdemucs")
+        logger.info("Demucs HTDemucs weights loaded from pretrained")
+        return model.to(device).eval()

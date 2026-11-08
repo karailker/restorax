@@ -141,8 +141,13 @@ def _on_task_failure(**_: object) -> None:
 
 
 def _update_job_db(job_id: str, **kwargs: object) -> None:
-    """Synchronous wrapper to update job status in the DB from a Celery worker."""
+    """Synchronous wrapper to update job status in the DB from a Celery worker.
+
+    Safe to call from any thread: if the current thread already has a running
+    event loop, the coroutine runs on a dedicated loop instead of asyncio.run().
+    """
     import asyncio
+    import threading
 
     from restorax.db.repositories.job_repo import JobRepository
     from restorax.db.session import AsyncSessionLocal
@@ -152,7 +157,15 @@ def _update_job_db(job_id: str, **kwargs: object) -> None:
             repo = JobRepository(session)
             await repo.update_status(job_id, **kwargs)  # type: ignore[arg-type]
 
-    asyncio.run(_do())
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        asyncio.run(_do())
+    else:
+        # Called from within a running loop — run on a separate loop in a helper thread
+        t = threading.Thread(target=lambda: asyncio.run(_do()))
+        t.start()
+        t.join()
 
 
 class JobTask(Task):  # type: ignore[type-arg]
