@@ -1,3 +1,4 @@
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,7 +25,11 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = "http://localhost:9000"
     s3_bucket: str = "restorax"
     s3_access_key: str = "minioadmin"
-    s3_secret_key: str = "minioadmin"  # noqa: S105 - local MinIO dev default; override in production
+    s3_secret_key: str = Field(
+        default="",
+        validation_alias="S3_SECRET_KEY",
+        description="S3 secret key (must be set in production)",
+    )  # noqa: S105 - local MinIO dev default; override in production
 
     # ML
     device: str = "cuda"
