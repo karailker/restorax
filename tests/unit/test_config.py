@@ -7,6 +7,11 @@ import pytest
 from restorax.config import Settings
 
 
+def _fresh_settings() -> Settings:
+    """Settings with defaults only — the repo `.env` must not leak into unit tests."""
+    return Settings(_env_file=None)
+
+
 class TestSettingsDefaults:
     """Test settings default values when no env vars are set."""
 
@@ -24,48 +29,48 @@ class TestSettingsDefaults:
             monkeypatch.delenv(key, raising=False)
 
     def test_default_database_url_is_sqlite(self):
-        s = Settings()
+        s = _fresh_settings()
         assert "sqlite" in s.database_url
 
     def test_default_device_is_cuda(self):
-        s = Settings()
+        s = _fresh_settings()
         assert s.device == "cuda"
 
     def test_default_storage_backend(self):
-        s = Settings()
+        s = _fresh_settings()
         assert s.storage_backend == "local"
 
     def test_default_registry_max_loaded(self):
-        s = Settings()
+        s = _fresh_settings()
         assert s.registry_max_loaded == 2
 
     def test_default_log_level(self):
-        s = Settings()
+        s = _fresh_settings()
         assert s.log_level == "INFO"
 
 
 class TestSettingsEnvOverride:
     def test_env_prefix(self, monkeypatch):
         monkeypatch.setenv("RESTORAX_DEVICE", "cpu")
-        s = Settings()
+        s = _fresh_settings()
         assert s.device == "cpu"
 
     def test_redis_url_override(self, monkeypatch):
         monkeypatch.setenv("RESTORAX_REDIS_URL", "redis://myhost:6380/1")
-        s = Settings()
+        s = _fresh_settings()
         assert "myhost" in s.redis_url
 
     def test_registry_max_loaded_override(self, monkeypatch):
         monkeypatch.setenv("RESTORAX_REGISTRY_MAX_LOADED", "4")
-        s = Settings()
+        s = _fresh_settings()
         assert s.registry_max_loaded == 4
 
     def test_s3_bucket_override(self, monkeypatch):
         monkeypatch.setenv("RESTORAX_S3_BUCKET", "my-bucket")
-        s = Settings()
+        s = _fresh_settings()
         assert s.s3_bucket == "my-bucket"
 
     def test_extra_env_vars_ignored(self, monkeypatch):
         monkeypatch.setenv("RESTORAX_UNKNOWN_KEY", "value")
-        s = Settings()  # should not raise
+        s = _fresh_settings()  # should not raise
         assert s is not None

@@ -2,66 +2,15 @@
 
 from __future__ import annotations
 
-import os
-import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
+import click
+import huggingface_hub as _hfh
 import pytest
 from click.testing import CliRunner
 
-# Set env vars before any restorax import so pydantic_settings resolves them.
-os.environ.setdefault("RESTORAX_DATABASE_URL", "sqlite+aiosqlite:///./test_restorax.db")
-os.environ.setdefault("RESTORAX_REDIS_URL", "redis://localhost:6379/0")
-os.environ.setdefault("RESTORAX_DEVICE", "cpu")
-os.environ.setdefault("RESTORAX_STORAGE_LOCAL_ROOT", "/tmp/restorax_test_data")
-
-# Stub torch so the root conftest (and any transitive imports) don't fail.
-if "torch" not in sys.modules:
-    _torch_stub = MagicMock()
-    sys.modules["torch"] = _torch_stub
-    sys.modules["torch.nn"] = _torch_stub
-    sys.modules["torch.cuda"] = _torch_stub
-
-# Stub huggingface_hub — not installed in the test env.
-if "huggingface_hub" not in sys.modules:
-    _hfh_stub = MagicMock()
-    sys.modules["huggingface_hub"] = _hfh_stub
-
-import huggingface_hub as _hfh  # noqa: E402  (now guaranteed to be the stub)
-
-# Stub pydantic_settings — not installed in the test env.
-# restorax.config does:  from pydantic_settings import BaseSettings, SettingsConfigDict
-# We need a real class for BaseSettings (subclassed by Settings), and a dummy
-# SettingsConfigDict.  Use MagicMock for the module so all attribute accesses succeed.
-if "pydantic_settings" not in sys.modules:
-    _ps = MagicMock()
-
-    class _BaseSettings:
-        """Minimal stand-in that lets Settings() be instantiated."""
-
-        model_config: dict = {}
-
-        def __init_subclass__(cls, **kwargs):
-            super().__init_subclass__(**kwargs)
-
-        def __init__(self, **kwargs):
-            # Apply defaults from class-level field annotations, then kwargs.
-            import inspect
-
-            for name, _annotation in inspect.get_annotations(type(self), eval_str=False).items():
-                if hasattr(type(self), name):
-                    setattr(self, name, getattr(type(self), name))
-            for k, v in kwargs.items():
-                setattr(self, k, v)
-
-    _ps.BaseSettings = _BaseSettings
-    _ps.SettingsConfigDict = dict  # close enough — it's just called to build a dict
-    sys.modules["pydantic_settings"] = _ps
-
-import click  # noqa: E402
-
-from restorax.cli_download import download_models_group  # noqa: E402
-from restorax.models_catalog import ModelEntry  # noqa: E402
+from restorax.cli_download import download_models_group
+from restorax.models_catalog import ModelEntry
 
 
 # Thin wrapper group so we can invoke `download-models` via CliRunner the same

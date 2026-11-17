@@ -7,14 +7,27 @@ GPU fixtures are marked @pytest.mark.gpu and skipped in CI by default.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
 
-from restorax.core.registry import ModelRegistry
-from restorax.core.restorer import (
+# Test env must be set before any restorax import: `restorax.config.settings` and the
+# SQLAlchemy engine in `restorax.db.session` are built at import time, so whichever
+# module imports them first freezes the database/device for the whole session. Doing
+# this in the per-directory conftests made a full `pytest` run bind to the developer's
+# `./restorax.db`, polluting it and failing on leftover rows.
+TEST_DB_PATH = Path("test_restorax.db")
+os.environ["RESTORAX_DATABASE_URL"] = f"sqlite+aiosqlite:///./{TEST_DB_PATH}"
+os.environ["RESTORAX_REDIS_URL"] = "redis://localhost:6379/0"
+os.environ["RESTORAX_DEVICE"] = "cpu"
+os.environ["RESTORAX_STORAGE_LOCAL_ROOT"] = "/tmp/restorax_test_data"
+os.environ["CELERY_TASK_ALWAYS_EAGER"] = "1"
+
+from restorax.core.registry import ModelRegistry  # noqa: E402
+from restorax.core.restorer import (  # noqa: E402
     BaseRestorer,
     RestorerCapabilities,
     RestorerCategory,
@@ -22,6 +35,15 @@ from restorax.core.restorer import (
 )
 
 pytest_plugins = ["tests.conftest_assets"]
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _reset_test_db():
+    """Start every session from an empty test database, so runs are repeatable."""
+    TEST_DB_PATH.unlink(missing_ok=True)
+    yield
+    TEST_DB_PATH.unlink(missing_ok=True)
+
 
 # ── Mock restorer ─────────────────────────────────────────────────────────────
 
