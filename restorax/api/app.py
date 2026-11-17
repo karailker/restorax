@@ -54,6 +54,20 @@ def create_app() -> FastAPI:
     app.include_router(pipelines.router)
     app.include_router(ws.router)
 
+    # ── Static artifacts ──────────────────────────────────────────────────────
+    # Branch previews (PNGs written by ParallelNode) live under
+    # <storage_local_root>/outputs; only that subtree is served. check_dir=False so the
+    # app still starts before the first job creates the directory.
+    from pathlib import Path
+
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount(
+        jobs.FILES_URL_PREFIX,
+        StaticFiles(directory=Path(settings.storage_local_root) / "outputs", check_dir=False),
+        name="files",
+    )
+
     # ── Exception handlers ────────────────────────────────────────────────────
     from restorax.core.exceptions import (
         JobNotFoundError,

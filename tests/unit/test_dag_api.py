@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -91,12 +92,40 @@ def test_get_branches_for_nonexistent_job_returns_404(client):
     assert resp.status_code == 404
 
 
-def test_merge_request_schema_validates():
-    from restorax.api.schemas.job import MergeRequest
+def test_branches_come_from_recorded_node_metadata(client):
+    """Branch rows describe what the parallel node ran, not node-id substring matches."""
+    with patch("restorax.api.routers.jobs.JobRepository") as MockRepo:
+        job = SimpleNamespace(
+            dag_run={
+                "node_states": {"par": "succeeded"},
+                "node_metadata": {
+                    "par": {
+                        "branches": [
+                            {"index": 0, "name": "sharp", "preview_path": None},
+                            {"index": 1, "name": "soft", "preview_path": None},
+                        ]
+                    }
+                },
+            }
+        )
+        mock_repo = AsyncMock()
+        mock_repo.get.return_value = job
+        MockRepo.return_value = mock_repo
+        resp = client.get("/jobs/any/branches")
 
-    req = MergeRequest(strategy="select", branch_index=2)
-    assert req.strategy == "select"
-    assert req.branch_index == 2
+    assert resp.status_code == 200
+    branches = resp.json()["branches"]
+    assert [b["name"] for b in branches] == ["sharp", "soft"]
+    assert {b["node_id"] for b in branches} == {"par"}
+    assert all(b["status"] == "succeeded" for b in branches)
 
-    req2 = MergeRequest(strategy="blend")
-    assert req2.branch_index == 0  # default
+
+def test_branches_empty_without_metadata(client):
+    with patch("restorax.api.routers.jobs.JobRepository") as MockRepo:
+        mock_repo = AsyncMock()
+        mock_repo.get.return_value = SimpleNamespace(dag_run=None)
+        MockRepo.return_value = mock_repo
+        resp = client.get("/jobs/any/branches")
+
+    assert resp.status_code == 200
+    assert resp.json()["branches"] == []

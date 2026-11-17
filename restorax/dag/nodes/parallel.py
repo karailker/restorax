@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -8,6 +9,8 @@ import numpy as np
 from restorax.dag.context import ExecutionContext
 from restorax.dag.node import Node, NodeResult, Port
 from restorax.dag.serializer import dag_node_type
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -60,6 +63,7 @@ class ParallelNode(Node):
         chunks: list[list[np.ndarray]] = inputs["chunks"]
         meta = inputs.get("meta")
         branch_outputs: list[list[list[np.ndarray]]] = []
+        branch_info: list[dict[str, Any]] = []
 
         for branch_idx, branch in enumerate(self.branches):
             branch_chunks: list[list[np.ndarray]] = [list(c) for c in chunks]
@@ -85,8 +89,43 @@ class ParallelNode(Node):
                 branch_chunks = out_chunks
 
             branch_outputs.append(branch_chunks)
+            branch_info.append(
+                {
+                    "index": branch_idx,
+                    "name": branch.name,
+                    "preview_path": self._write_preview(ctx, branch_idx, branch_chunks),
+                }
+            )
 
-        return NodeResult(outputs={"branch_outputs": branch_outputs, "meta": meta})
+        return NodeResult(
+            outputs={"branch_outputs": branch_outputs, "meta": meta},
+            metadata={"branches": branch_info},
+        )
+
+    @staticmethod
+    def _write_preview(
+        ctx: ExecutionContext, branch_idx: int, branch_chunks: list[list[np.ndarray]]
+    ) -> str | None:
+        """
+        Save one PNG of the branch's first frame so the UI can compare branches.
+
+        Written to <work_dir>/branches/branch_<i>.png — cheap (one frame per branch) and
+        the only artifact the comparison view needs; branch frames themselves stay in RAM.
+        """
+        first = next((chunk[0] for chunk in branch_chunks if chunk), None)
+        if first is None:
+            return None
+        try:
+            from PIL import Image
+
+            out_dir = ctx.work_dir / "branches"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            path = out_dir / f"branch_{branch_idx}.png"
+            Image.fromarray(first).save(path)
+            return str(path)
+        except Exception as exc:  # noqa: BLE001 - a missing preview must not fail the job
+            logger.warning("branch preview write failed: %s", exc)
+            return None
 
     def to_dict(self) -> dict[str, Any]:
         return {"branches": [b.to_dict() for b in self.branches]}

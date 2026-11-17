@@ -57,17 +57,6 @@ export function fetchJobBranches(id: string): Promise<BranchList> {
   return request<BranchList>(`/jobs/${id}/branches`);
 }
 
-export function mergeJobBranches(
-  id: string,
-  body: { strategy: "blend" | "select"; branch_index?: number },
-): Promise<Job> {
-  return request<Job>(`/jobs/${id}/merge`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
 export function jobDownloadUrl(id: string): string {
   return `${API_BASE}/jobs/${id}/download`;
 }

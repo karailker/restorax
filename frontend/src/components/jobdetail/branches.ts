@@ -8,14 +8,15 @@ export interface CombinedBranch {
   node_id?: string;
   status: string;
   progress: number;
-  output_path: string | null;
+  /** Preview image URL for the branch's first frame, when the backend recorded one. */
+  preview_url: string | null;
 }
 
 /**
- * Merge fetched branch list (static, has names + output paths) with live
+ * Merge fetched branch list (static, has names + previews) with live
  * per-branch progress events (fresher status/progress). Returns rows sorted by
  * branch_index. Live values win for progress/status; fetched values supply
- * name + output_path.
+ * name + preview_url.
  */
 export function combineBranches(
   fetched: BranchInfo[],
@@ -27,9 +28,10 @@ export function combineBranches(
     byIndex.set(b.branch_index, {
       branch_index: b.branch_index,
       name: b.name,
+      node_id: b.node_id,
       status: b.status,
       progress: b.progress,
-      output_path: b.output_path,
+      preview_url: b.preview_url,
     });
   }
 
@@ -47,7 +49,7 @@ export function combineBranches(
         node_id: evt.node_id,
         status: evt.status ?? "running",
         progress: typeof evt.progress === "number" ? evt.progress : 0,
-        output_path: null,
+        preview_url: null,
       });
     }
   }

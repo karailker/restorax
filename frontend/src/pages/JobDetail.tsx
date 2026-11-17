@@ -10,7 +10,6 @@ import type { BranchInfo, Job } from "@/types";
 import { combineBranches } from "@/components/jobdetail/branches";
 import { BranchList } from "@/components/jobdetail/BranchList";
 import { BranchCompare } from "@/components/jobdetail/BranchCompare";
-import { MergePanel } from "@/components/jobdetail/MergePanel";
 import { ResultPanel } from "@/components/jobdetail/ResultPanel";
 
 /**
@@ -47,7 +46,6 @@ export default function JobDetail() {
 
   const isCompleted = status === "completed";
   const hasOutput = Boolean(job?.output_path) || isCompleted;
-  const canMerge = branches.length >= 2 && !isCompleted;
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 p-8">
@@ -90,10 +88,6 @@ export default function JobDetail() {
       {branches.length > 0 && <BranchList branches={branches} />}
 
       <BranchCompare branches={branches} />
-
-      {canMerge && jobId && (
-        <MergePanel jobId={jobId} branches={branches} onMerged={setJob} />
-      )}
 
       {hasOutput && job && <ResultPanel job={job} />}
 

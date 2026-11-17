@@ -41,16 +41,14 @@ class JobListResponse(BaseModel):
 class BranchInfo(BaseModel):
     branch_index: int
     name: str
+    node_id: str
     status: str
     progress: float
-    output_path: str | None = None
+    # Served preview image (/files/...) of the branch's first frame; None when the
+    # node recorded no preview.
+    preview_url: str | None = None
 
 
 class BranchListResponse(BaseModel):
     job_id: str
     branches: list[BranchInfo]
-
-
-class MergeRequest(BaseModel):
-    strategy: str = Field(..., description="'blend' or 'select'")
-    branch_index: int = Field(0, description="Used when strategy='select'")

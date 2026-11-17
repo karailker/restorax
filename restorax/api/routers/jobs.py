@@ -25,7 +25,6 @@ from restorax.api.schemas.job import (
     BranchListResponse,
     JobListResponse,
     JobResponse,
-    MergeRequest,
 )
 from restorax.config import settings
 from restorax.core.exceptions import JobNotFoundError
@@ -33,6 +32,9 @@ from restorax.db.models import JobModel
 from restorax.db.repositories.job_repo import JobRepository
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
+
+# Mount point for artifacts under <storage_local_root>/outputs (branch previews).
+FILES_URL_PREFIX = "/files"
 
 # Extensions accepted for output files (used in output.{output_format} paths)
 _ALLOWED_OUTPUT_FORMATS = frozenset({"mp4", "mkv", "avi", "mov", "webm"})
@@ -275,7 +277,11 @@ async def create_batch_jobs(
 
 @router.get("/{job_id}/branches", response_model=BranchListResponse)
 async def get_job_branches(job_id: str, db: AsyncSession = Depends(get_db)) -> BranchListResponse:
-    """Return per-branch status, progress, and output paths for a DAG job."""
+    """Per-branch name, status and preview image for a DAG job's parallel node.
+
+    The branch list is what the parallel node actually ran (recorded in
+    `dag_run["node_metadata"]`), not an inference from node ids.
+    """
     repo = JobRepository(db)
     try:
         job = await repo.get(job_id)
@@ -283,62 +289,40 @@ async def get_job_branches(job_id: str, db: AsyncSession = Depends(get_db)) -> B
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found") from None
 
     dag_run: dict[str, Any] = job.dag_run or {}
-    node_states: dict[str, Any] = dag_run.get("node_states", {})
+    node_states: dict[str, Any] = dag_run.get("node_states") or {}
+    node_metadata: dict[str, Any] = dag_run.get("node_metadata") or {}
 
-    # Find parallel nodes from dag_run and extract branch info
     branches: list[BranchInfo] = []
-    for node_id, state in node_states.items():
-        if "parallel" in node_id.lower() or "branch" in node_id.lower():
+    for node_id, md in node_metadata.items():
+        state = node_states.get(node_id, "pending")
+        for entry in md.get("branches", []):
             branches.append(
                 BranchInfo(
-                    branch_index=len(branches),
-                    name=node_id,
+                    branch_index=entry["index"],
+                    name=entry.get("name", ""),
+                    node_id=node_id,
                     status=state,
                     progress=1.0 if state == "succeeded" else 0.0,
+                    preview_url=_preview_url(entry.get("preview_path")),
                 )
             )
-
-    if not branches:
-        # No DAG run data yet — return empty
-        return BranchListResponse(job_id=job_id, branches=[])
 
     return BranchListResponse(job_id=job_id, branches=branches)
 
 
-@router.post("/{job_id}/merge", response_model=JobResponse)
-async def merge_job_branches(
-    job_id: str,
-    req: MergeRequest,
-    db: AsyncSession = Depends(get_db),
-) -> JobResponse:
-    """
-    Trigger merge for a DAG job that has completed its parallel branches.
-    Updates the MergeNode strategy/select_index in the stored DAGRun and
-    marks the job for re-execution of the merge step.
-    """
-    repo = JobRepository(db)
-    try:
-        job = await repo.get(job_id)
-    except JobNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Job {job_id} not found") from None
-
-    dag_run: dict[str, Any] = job.dag_run or {}
-    if not dag_run:
-        raise HTTPException(
-            status_code=409, detail="Job has no DAG run data (not a DAG job or not yet executed)"
-        )
-
-    # Store merge decision in job metrics for the worker to pick up
-    metrics = dict(job.metrics or {})
-    metrics["merge_strategy"] = req.strategy
-    metrics["merge_branch_index"] = req.branch_index
-    await repo.update_status(job_id, status=job.status, metrics=metrics)
-
-    job = await repo.get(job_id)
-    return _to_response(job)
-
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _preview_url(preview_path: str | None) -> str | None:
+    """Map an absolute preview path under <storage>/outputs to its /files URL."""
+    if not preview_path:
+        return None
+    outputs_root = (Path(settings.storage_local_root) / "outputs").resolve()
+    try:
+        rel = Path(preview_path).resolve().relative_to(outputs_root)
+    except (ValueError, OSError):
+        return None  # outside the served tree — never leak an arbitrary path
+    return f"{FILES_URL_PREFIX}/{rel.as_posix()}"
 
 
 def _resolve_preset(pipeline_id: str) -> str:

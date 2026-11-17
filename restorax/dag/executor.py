@@ -34,6 +34,11 @@ class DAGRun:
             "dag_id": self.dag_id,
             "job_id": self.job_id,
             "node_states": {k: v.value for k, v in self.node_states.items()},
+            # Per-node metadata (e.g. branch names/preview paths) so the UI can describe
+            # what actually ran, not guess it from node ids.
+            "node_metadata": {
+                nid: res.metadata for nid, res in self.node_results.items() if res.metadata
+            },
             "failed_node_id": self.failed_node_id,
             "error": self.error,
             "started_at": self.started_at.isoformat(),

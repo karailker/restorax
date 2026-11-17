@@ -57,9 +57,11 @@ export interface RestorerInfo {
 export interface BranchInfo {
   branch_index: number;
   name: string;
+  node_id: string;
   status: string;
   progress: number;
-  output_path: string | null;
+  /** Served preview image of the branch's first frame (/files/...), if recorded. */
+  preview_url: string | null;
 }
 
 export interface BranchList {
