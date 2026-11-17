@@ -25,11 +25,10 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = "http://localhost:9000"
     s3_bucket: str = "restorax"
     s3_access_key: str = "minioadmin"
-    s3_secret_key: str = Field(
-        default="",
-        validation_alias="S3_SECRET_KEY",
-        description="S3 secret key (must be set in production)",
-    )  # noqa: S105 - local MinIO dev default; override in production
+    # No default secret: `RESTORAX_S3_SECRET_KEY` must be set for storage_backend="s3".
+    # (A validation_alias here once bypassed env_prefix, so the documented
+    # RESTORAX_S3_SECRET_KEY was ignored and deployments ran with an empty secret.)
+    s3_secret_key: str = Field(default="", description="S3 secret key (required for s3)")
 
     # ML
     device: str = "cuda"

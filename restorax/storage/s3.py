@@ -104,6 +104,11 @@ def get_storage_backend() -> object:
     from restorax.config import settings
 
     if settings.storage_backend == "s3":
+        if not settings.s3_secret_key:
+            raise StorageError(
+                "storage_backend='s3' but RESTORAX_S3_SECRET_KEY is empty — refusing to "
+                "start with no credentials"
+            )
         return S3StorageBackend(
             bucket=settings.s3_bucket,
             endpoint_url=settings.s3_endpoint_url,

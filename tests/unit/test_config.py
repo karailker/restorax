@@ -70,6 +70,16 @@ class TestSettingsEnvOverride:
         s = _fresh_settings()
         assert s.s3_bucket == "my-bucket"
 
+    def test_s3_secret_key_reads_prefixed_env(self, monkeypatch):
+        """The documented RESTORAX_S3_SECRET_KEY must be honoured (a validation_alias
+        once bypassed env_prefix, so production silently ran with an empty secret)."""
+        monkeypatch.setenv("RESTORAX_S3_SECRET_KEY", "supersecret")
+        s = _fresh_settings()
+        assert s.s3_secret_key == "supersecret"
+
+    def test_s3_secret_key_defaults_to_empty(self):
+        assert _fresh_settings().s3_secret_key == ""
+
     def test_extra_env_vars_ignored(self, monkeypatch):
         monkeypatch.setenv("RESTORAX_UNKNOWN_KEY", "value")
         s = _fresh_settings()  # should not raise
