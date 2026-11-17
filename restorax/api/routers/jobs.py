@@ -314,20 +314,20 @@ async def merge_job_branches(
 
 
 def _resolve_preset(pipeline_id: str) -> str:
-    """Return the absolute path to a YAML preset file (presets dir only)."""
-    # Reject path separators — pipeline_id must be a bare preset name
-    if Path(pipeline_id).name != pipeline_id or pipeline_id.startswith("."):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid pipeline_id '{pipeline_id}' — must be a preset name",
-        )
+    """Return the absolute path to a YAML preset file (presets dir only).
+
+    The path is never built from the user-supplied string: `pipeline_id` is only used
+    as a key into the set of presets that actually exist, so no traversal payload can
+    reach the filesystem (this is also what CodeQL's py/path-injection query wants).
+    """
     presets_dir = Path("configs/presets").resolve()
-    candidate = (presets_dir / f"{pipeline_id}.yaml").resolve()
-    if not candidate.is_relative_to(presets_dir) or not candidate.exists():
+    available = {p.stem: p for p in presets_dir.glob("*.yaml")}
+    candidate = available.get(pipeline_id)
+    if candidate is None:
         raise HTTPException(
             status_code=400,
             detail=f"Pipeline preset '{pipeline_id}' not found. "
-            f"Available presets: {[p.stem for p in presets_dir.glob('*.yaml')]}",
+            f"Available presets: {sorted(available)}",
         )
     return str(candidate)
 
