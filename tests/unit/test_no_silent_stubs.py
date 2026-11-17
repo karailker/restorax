@@ -15,6 +15,7 @@ _RESTORERS_DIR = Path(__file__).parent.parent.parent / "restorax" / "restorers"
 
 _STUB_PATTERN = re.compile(r"^class (_\w*Stub)\b", re.MULTILINE)
 
+
 def _find_stubs():
     """Return (relative_path, stub_name) for every stub class found."""
     results = []
@@ -24,6 +25,7 @@ def _find_stubs():
         for match in _STUB_PATTERN.finditer(text):
             results.append((rel, match.group(1)))
     return results
+
 
 def test_no_silent_stubs():
     """No _*Stub passthrough classes allowed under restorers/."""

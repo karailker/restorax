@@ -37,6 +37,7 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 # Extensions accepted for output files (used in output.{output_format} paths)
 _ALLOWED_OUTPUT_FORMATS = frozenset({"mp4", "mkv", "avi", "mov", "webm"})
 
+
 def _validate_output_format(output_format: str) -> None:
     if output_format not in _ALLOWED_OUTPUT_FORMATS:
         raise HTTPException(

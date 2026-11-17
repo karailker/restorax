@@ -11,18 +11,22 @@ from restorax.audio.restorer import (
     AudioRestorerParams,
 )
 
+
 def _stereo(seconds: float = 1.0, sr: int = 44100) -> np.ndarray:
     """Synthetic stereo float32 audio, values in [-1, 1]."""
     samples = int(seconds * sr)
     rng = np.random.default_rng(0)
     return rng.uniform(-0.5, 0.5, (samples, 2)).astype(np.float32)
 
+
 def _mono(seconds: float = 1.0, sr: int = 48000) -> np.ndarray:
     samples = int(seconds * sr)
     rng = np.random.default_rng(1)
     return rng.uniform(-0.5, 0.5, (samples, 1)).astype(np.float32)
 
+
 # ── DemucsRestorer ────────────────────────────────────────────────────────────
+
 
 class TestDemucsRestorer:
     @pytest.fixture
@@ -57,7 +61,9 @@ class TestDemucsRestorer:
         restorer.unload()
         assert not restorer.is_loaded
 
+
 # ── VoiceFixerRestorer ────────────────────────────────────────────────────────
+
 
 class TestVoiceFixerRestorer:
     @pytest.fixture
@@ -89,7 +95,9 @@ class TestVoiceFixerRestorer:
         restorer.unload()
         assert not restorer.is_loaded
 
+
 # ── RNNoiseRestorer ───────────────────────────────────────────────────────────
+
 
 class TestRNNoiseRestorer:
     @pytest.fixture
