@@ -105,6 +105,22 @@ async def test_submit_job_returns_201(client):
 
 
 @pytest.mark.asyncio
+async def test_submit_job_rejects_oversized_upload(client, monkeypatch):
+    """An upload above settings.max_upload_mb must be refused, not written to disk."""
+    from restorax.config import settings
+
+    monkeypatch.setattr(settings, "max_upload_mb", 1)  # 1 MB
+    with patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"):
+        resp = await client.post(
+            "/jobs",
+            files={"file": ("big.mp4", io.BytesIO(b"x" * (2 * 1024 * 1024)), "video/mp4")},
+            data={"pipeline_id": "sr_x4"},
+        )
+    assert resp.status_code == 413
+    assert "limit" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
 async def test_submit_job_missing_file_returns_422(client):
     resp = await client.post("/jobs", data={"pipeline_id": "sr_x4"})
     assert resp.status_code == 422

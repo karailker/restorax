@@ -47,6 +47,29 @@ def _validate_output_format(output_format: str) -> None:
         )
 
 
+# Chunk size for streaming uploads — bounded RAM regardless of file size.
+_UPLOAD_CHUNK_BYTES = 1024 * 1024
+
+
+async def _save_upload(file: UploadFile, dest: Path) -> None:
+    """Stream an upload to `dest`, rejecting anything above settings.max_upload_mb."""
+    max_bytes = settings.max_upload_mb * 1024 * 1024
+    written = 0
+    try:
+        with dest.open("wb") as out:
+            while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+                written += len(chunk)
+                if max_bytes and written > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Upload exceeds the {settings.max_upload_mb} MB limit",
+                    )
+                out.write(chunk)
+    except HTTPException:
+        dest.unlink(missing_ok=True)  # don't leave a truncated file behind
+        raise
+
+
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
     file: UploadFile = File(..., description="Input video file"),
@@ -73,8 +96,7 @@ async def create_job(
 
     safe_filename = Path(file.filename or "input.mp4").name
     input_path = input_dir / safe_filename
-    content = await file.read()
-    input_path.write_bytes(content)
+    await _save_upload(file, input_path)
 
     output_path = str(storage_root / "outputs" / job_id / f"output.{output_format}")
 
@@ -214,7 +236,7 @@ async def create_batch_jobs(
         input_dir.mkdir(parents=True, exist_ok=True)
         safe_name = Path(file.filename or "input.mp4").name
         input_path = input_dir / safe_name
-        input_path.write_bytes(await file.read())
+        await _save_upload(file, input_path)
         output_path = str(storage_root / "outputs" / job_id / f"output.{output_format}")
 
         job_model = JobModel(

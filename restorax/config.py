@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     # Storage
     storage_backend: str = "local"  # "local" | "s3"
     storage_local_root: str = "./data"
+    # Reject uploads above this size while streaming them to disk (0 = no limit).
+    max_upload_mb: int = 4096
 
     # S3 / MinIO
     s3_endpoint_url: str = "http://localhost:9000"
