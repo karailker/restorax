@@ -38,14 +38,14 @@ jobs:
     env:
       RESTORAX_MODEL_DIR: ${{ github.workspace }}/models
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
       - name: Cache weights
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: models
           key: weights-${{ matrix.model }}-${{ hashFiles('restorax/models_catalog.py') }}
