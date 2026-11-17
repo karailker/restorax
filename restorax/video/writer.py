@@ -88,6 +88,14 @@ class VideoWriter:
         """Write a single RGB uint8 HxWxC frame."""
         if self._container is None or self._video_stream is None:
             raise VideoWriteError("VideoWriter is not open.")
+        height, width = frame.shape[:2]
+        if (width, height) != (self._out_width, self._out_height):
+            # PyAV silently scales/crops a mismatched frame into the stream geometry,
+            # which produced corrupt output instead of an error.
+            raise VideoWriteError(
+                f"Frame is {width}x{height}, but the output stream is "
+                f"{self._out_width}x{self._out_height} — output size was computed wrongly"
+            )
         av_frame = av.VideoFrame.from_ndarray(frame, format="rgb24")
         av_frame.pts = self._pts
         self._pts += 1

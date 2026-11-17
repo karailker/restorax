@@ -8,6 +8,7 @@ ModelRegistry that persists across tasks (warm LRU cache).
 from __future__ import annotations
 
 import contextlib
+import math
 import os
 import time
 from datetime import UTC, datetime
@@ -246,12 +247,15 @@ def run_job(
 
     with VideoReader(input_path) as reader:
         meta = reader.meta
-        scale = _infer_output_scale(pipeline_preset_path)
-        out_w = meta.width * scale
-        out_h = meta.height * scale
-
         pipeline = load_pipeline_from_yaml(pipeline_preset_path, registry)
         runner = PipelineRunner()
+
+        # Output geometry comes from the pipeline itself: each stage's params.scale is
+        # what the restorer actually applies. Parsing the preset YAML separately (the
+        # old _infer_output_scale) could disagree with the pipeline and silently crop.
+        scale = math.prod(stage.params.scale for stage in pipeline.stages if stage.enabled) or 1
+        out_w = meta.width * scale
+        out_h = meta.height * scale
 
         # Compute output fps — RIFE doubles it; most restorers leave it unchanged
         out_fps = compute_output_fps(pipeline, meta.fps)
@@ -436,18 +440,3 @@ def _run_audio_pipeline(
     processed = AudioPipelineRunner().run(pipeline, audio_arr, sr)
     AudioWriter().mux_into_video(output_path, processed, sr, output_path)
     logger.info("audio pipeline complete", stages=len(pipeline.stages))
-
-
-def _infer_output_scale(preset_path: str) -> int:
-    """Quick parse of the preset YAML to get overall output scale."""
-    import yaml
-
-    try:
-        with open(preset_path) as f:
-            config = yaml.safe_load(f)
-        scale = 1
-        for stage in config.get("stages", []):
-            scale *= stage.get("scale", 1)
-        return max(scale, 1)
-    except Exception:
-        return 1

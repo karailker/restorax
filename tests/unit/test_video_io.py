@@ -67,3 +67,19 @@ def test_writer_output_readable(synthetic_video: Path, tmp_path: Path) -> None:
 
     assert len(out_frames) == len(in_frames)
     assert out_frames[0].shape == (64, 64, 3)
+
+
+def test_writer_rejects_frame_not_matching_stream_geometry(
+    synthetic_video: Path, tmp_path: Path
+) -> None:
+    """A frame of the wrong size must fail loudly — PyAV would silently crop it."""
+    from restorax.core.exceptions import VideoWriteError
+
+    out_path = tmp_path / "out.mp4"
+    with VideoReader(synthetic_video) as reader:
+        meta = reader.meta
+
+    wrong = np.zeros((128, 128, 3), dtype=np.uint8)
+    with VideoWriter(out_path, meta=meta, out_width=64, out_height=64) as writer:
+        with pytest.raises(VideoWriteError, match="output size was computed wrongly"):
+            writer.write_frame(wrong)
