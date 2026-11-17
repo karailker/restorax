@@ -58,8 +58,10 @@ class PipelineRunner:
     ) -> None:
         total = max(reader.meta.frame_count, 1)
         frames_written = 0
+        # Output frames per input frame — 2 for an interpolator like RIFE, 1 otherwise.
+        temporal_scale = self._temporal_scale(pipeline)
 
-        for _chunk_idx, (chunk, is_first, is_last) in enumerate(
+        for _chunk_idx, (chunk, _is_first, is_last) in enumerate(
             self._iter_chunks(reader, pipeline.chunk_size, pipeline.chunk_overlap)
         ):
             processed = chunk
@@ -88,7 +90,13 @@ class PipelineRunner:
                 processed = [_convert_cs(f, current_cs, "rgb") for f in processed]
 
             # Trim overlap to avoid writing duplicate frames at boundaries
-            trimmed = self._trim_overlap(processed, pipeline.chunk_overlap, is_first, is_last)
+            trimmed = self._trim_overlap(
+                processed,
+                overlap=pipeline.chunk_overlap,
+                input_frames=len(chunk),
+                temporal_scale=temporal_scale,
+                is_last=is_last,
+            )
 
             for frame in trimmed:
                 writer.write_frame(frame)
@@ -130,22 +138,36 @@ class PipelineRunner:
             yield buffer, first_chunk, True
 
     @staticmethod
+    def _temporal_scale(pipeline: Pipeline) -> int:
+        """Product of temporal_scale over enabled stages (matches compute_output_fps)."""
+        multiplier = 1
+        for stage in pipeline.stages:
+            if stage.enabled:
+                multiplier *= stage.restorer.capabilities.temporal_scale
+        return max(multiplier, 1)
+
+    @staticmethod
     def _trim_overlap(
         frames: list[np.ndarray],
         overlap: int,
-        is_first: bool,
+        input_frames: int,
+        temporal_scale: int,
         is_last: bool,
     ) -> list[np.ndarray]:
         """
-        Remove the overlap region from the end of each non-last chunk.
-        First chunk: keep all frames from the start.
-        Non-last chunk: drop the last `overlap` frames (they appear in next chunk).
-        Last chunk: keep everything.
+        Drop the frames produced by the overlapping tail of a non-last chunk.
+
+        The overlap region is re-decoded as the head of the next chunk, so those input
+        frames must not be written twice. A temporal restorer emits
+        [f0, sub(f0,f1), f1, sub(f1,f2), ...], so the last group kept here is the one
+        bridging into the next chunk's first frame — keeping `new_inputs × scale`
+        outputs leaves the seam pair intact without duplicating a frame.
         """
         if is_last:
             return frames
-        trim_end = len(frames) - overlap
-        return frames[:trim_end]
+        new_inputs = max(input_frames - overlap, 0)
+        keep = new_inputs * temporal_scale
+        return frames[: max(min(keep, len(frames)), 0)]
 
 
 def load_pipeline_from_yaml(path: str | Path, registry: object) -> Pipeline:

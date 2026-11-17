@@ -5,9 +5,14 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 import numpy as np
+import pytest
 
 from restorax.core.pipeline import Pipeline, PipelineRunner, Stage, compute_output_fps
-from restorax.core.restorer import RestorerParams
+from restorax.core.restorer import (
+    RestorerCapabilities,
+    RestorerCategory,
+    RestorerParams,
+)
 from tests.conftest import IdentityRestorer
 
 
@@ -173,3 +178,75 @@ def test_fewer_frames_than_chunk_size() -> None:
     stages = [Stage(restorer=restorer, params=RestorerParams())]
     result = _run(frames, stages, chunk_size=16, overlap=2)
     assert len(result) == 3
+
+
+# ── temporal-scale–aware overlap trim ─────────────────────────────────────────
+
+
+class _TemporalDoubler:
+    """Minimal 2× interpolator with RIFE's 2N-1 output contract."""
+
+    def __init__(self) -> None:
+        self._loaded = False
+
+    @property
+    def capabilities(self):
+        return RestorerCapabilities(
+            category=RestorerCategory.FRAME_INTERPOLATION,
+            input_color_space="rgb",
+            output_color_space="rgb",
+            requires_temporal=True,
+            temporal_scale=2,
+        )
+
+    def load(self, device) -> None:
+        self._loaded = True
+
+    def unload(self) -> None:
+        self._loaded = False
+
+    def process_frame(self, frame, params):  # noqa: ANN001, ANN201
+        return frame
+
+    def process_sequence(self, frames, params):  # noqa: ANN001, ANN201
+        out = [frames[0]]
+        for i in range(len(frames) - 1):
+            out += [frames[i], frames[i + 1]]
+        return out
+
+
+@pytest.mark.parametrize(
+    ("n_frames", "chunk_size", "overlap"),
+    [(40, 16, 2), (12, 4, 2), (10, 16, 2), (5, 3, 1), (7, 4, 3)],
+)
+def test_temporal_scale_overlap_trim_writes_exact_frame_count(
+    n_frames: int, chunk_size: int, overlap: int
+) -> None:
+    """A 2× interpolator over N frames must yield exactly 2N-1 frames, chunking aside."""
+    restorer = _TemporalDoubler()
+    restorer.load(None)
+    result = _run(
+        _make_frames(n_frames),
+        [Stage(restorer=restorer, params=RestorerParams())],  # type: ignore[arg-type]
+        chunk_size=chunk_size,
+        overlap=overlap,
+    )
+    assert len(result) == 2 * n_frames - 1
+
+
+def test_temporal_scale_overlap_trim_has_no_duplicate_frames() -> None:
+    """The seam between chunks must not repeat a frame (stutter)."""
+    restorer = _TemporalDoubler()
+    restorer.load(None)
+    result = _run(
+        _make_frames(20),
+        [Stage(restorer=restorer, params=RestorerParams())],  # type: ignore[arg-type]
+        chunk_size=4,
+        overlap=2,
+    )
+    values = [int(f[0, 0, 0]) for f in result]
+    # Every consecutive triple [a, mid, b] must be non-decreasing; a repeat of the
+    # same source frame back-to-back would break that.
+    assert values == sorted(values)
+    assert values[0] == 0
+    assert values[-1] == 19
