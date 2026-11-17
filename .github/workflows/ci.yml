@@ -269,9 +269,32 @@ jobs:
           context: .
           file: Dockerfile
           push: false
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: restorax:ci
+
+      - name: Boot the API image and hit /health + /models
+        # Building an image proves nothing about whether it starts: the API image was
+        # missing structlog/torch/otel/prometheus-client and could never boot.
+        run: |
+          docker run -d --name restorax-api -p 8000:8000 \
+            -e RESTORAX_DATABASE_URL=sqlite+aiosqlite:////tmp/boot.db \
+            -e RESTORAX_DEVICE=cpu \
+            restorax:ci
+          ok=0
+          for _ in $(seq 1 40); do
+            if curl -fsS http://localhost:8000/health >/dev/null; then ok=1; break; fi
+            sleep 2
+          done
+          echo "health ok=$ok"
+          if [ "$ok" = "1" ]; then
+            curl -fsS http://localhost:8000/models | head -c 200
+            curl -fsS -o /dev/null -w "\nmetrics:%{http_code}\n" http://localhost:8000/metrics
+          fi
+          docker logs restorax-api
+          docker rm -f restorax-api
+          [ "$ok" = "1" ]
 
       - name: Build worker image
         uses: docker/build-push-action@v7

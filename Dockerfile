@@ -16,9 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Dependencies ──────────────────────────────────────────────────────────────
-COPY pyproject.toml .
-# Install without the heavy torch (API service doesn't run inference)
-RUN pip install --no-deps -e ".[dev]" || true
+# The API does not run inference, but it must be able to import the restorer
+# catalog: `restorax.api.routers.models` imports every restorer, and those import
+# torch / opencv. CPU torch keeps the image small enough to boot.
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install \
     fastapi \
     "uvicorn[standard]" \
@@ -36,7 +37,18 @@ RUN pip install \
     pyyaml \
     click \
     rich \
-    "redis[asyncio]"
+    opencv-python-headless \
+    structlog \
+    python-multipart \
+    prometheus-client \
+    opentelemetry-sdk \
+    opentelemetry-api \
+    opentelemetry-instrumentation-fastapi \
+    opentelemetry-instrumentation-celery \
+    opentelemetry-instrumentation-sqlalchemy \
+    opentelemetry-instrumentation-redis \
+    opentelemetry-exporter-otlp-proto-grpc \
+    opentelemetry-exporter-prometheus
 
 # ── App source ────────────────────────────────────────────────────────────────
 COPY restorax/ restorax/
