@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from restorax.config import settings
+
+logger = logging.getLogger(__name__)
 
 engine = create_async_engine(
     settings.database_url,
@@ -26,7 +29,17 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def create_tables() -> None:
-    """Create all tables (used in development and tests — prefer Alembic in prod)."""
+    """Create all tables for development and tests.
+
+    Production must run `alembic upgrade head` instead: `create_all` only creates
+    missing tables, so it silently leaves an existing schema un-migrated.
+    """
+    if settings.app_env == "production":
+        logger.warning(
+            "app_env=production: skipping create_all — run 'alembic upgrade head' to migrate"
+        )
+        return
+
     from restorax.db.models import Base
 
     async with engine.begin() as conn:

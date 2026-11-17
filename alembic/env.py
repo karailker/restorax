@@ -14,8 +14,8 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Import models so Alembic can detect schema changes
-from restorax.db.models import Base  # noqa: E402
 from restorax.config import settings  # noqa: E402
+from restorax.db.models import Base  # noqa: E402
 
 target_metadata = Base.metadata
 

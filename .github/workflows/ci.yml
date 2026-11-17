@@ -57,6 +57,34 @@ jobs:
       - name: mypy
         run: mypy restorax/ --ignore-missing-imports --no-strict-optional
 
+  # ── Migrations ────────────────────────────────────────────────────────────────
+  migrations:
+    name: Migrations (alembic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (CPU torch)
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install basicsr av opencv-python-headless
+          pip install -e ".[dev]"
+
+      - name: Upgrade on a fresh database, then verify no model drift
+        env:
+          RESTORAX_DATABASE_URL: sqlite+aiosqlite:///./migration_check.db
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+          # Fails if models.py and alembic/versions disagree (the exact bug that made
+          # create_all the only schema path).
+          alembic check
+
   # ── Unit tests ────────────────────────────────────────────────────────────────
   unit-tests:
     name: Unit Tests (CPU)
