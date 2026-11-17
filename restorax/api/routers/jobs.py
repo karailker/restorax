@@ -54,7 +54,7 @@ async def create_job(
     dag_id: str | None = Form(None, description="DAG pipeline ID (alternative to pipeline_id)"),
     output_format: str = Form("mp4"),
     output_codec: str = Form("libx264"),
-    output_crf: int = Form(18),
+    output_crf: int = Form(18, ge=0, le=51),
     preserve_audio: bool = Form(True),
     restore_audio: bool = Form(False, description="Run audio restoration pipeline"),
     db: AsyncSession = Depends(get_db),
@@ -118,6 +118,9 @@ async def create_job(
                 "input_path": str(input_path),
                 "output_path": output_path,
                 "restore_audio": restore_audio,
+                "output_codec": output_codec,
+                "output_crf": output_crf,
+                "preserve_audio": preserve_audio,
             }
         )
     await repo.update_status(job_id, status="queued", celery_task_id=task.id)
@@ -236,6 +239,9 @@ async def create_batch_jobs(
                 "pipeline_preset_path": preset_path,
                 "input_path": str(input_path),
                 "output_path": output_path,
+                "output_codec": output_codec,
+                "output_crf": output_crf,
+                "preserve_audio": preserve_audio,
             },
             queue=gpu_queue,
         )

@@ -111,6 +111,31 @@ async def test_submit_job_missing_file_returns_422(client):
 
 
 @pytest.mark.asyncio
+async def test_submit_job_forwards_encode_options(client):
+    """output_codec/crf/preserve_audio must reach the worker, not just the DB row."""
+    with (
+        patch("restorax.tasks.job_tasks.run_job") as mock_run,
+        patch("restorax.api.routers.jobs._resolve_preset", return_value="/fake/sr_x4.yaml"),
+    ):
+        mock_run.apply_async.return_value = _fake_task()
+        resp = await client.post(
+            "/jobs",
+            files={"file": ("v.mp4", io.BytesIO(b"fake"), "video/mp4")},
+            data={
+                "pipeline_id": "sr_x4",
+                "output_codec": "libx265",
+                "output_crf": "28",
+                "preserve_audio": "false",
+            },
+        )
+    assert resp.status_code == 201
+    kwargs = mock_run.apply_async.call_args.kwargs["kwargs"]
+    assert kwargs["output_codec"] == "libx265"
+    assert kwargs["output_crf"] == 28
+    assert kwargs["preserve_audio"] is False
+
+
+@pytest.mark.asyncio
 async def test_submit_job_missing_pipeline_returns_422(client):
     resp = await client.post(
         "/jobs",

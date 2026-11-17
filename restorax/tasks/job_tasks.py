@@ -209,6 +209,9 @@ def run_job(
     input_path: str,
     output_path: str,
     restore_audio: bool = False,
+    output_codec: str = "libx264",
+    output_crf: int = 18,
+    preserve_audio: bool = True,
 ) -> dict[str, Any]:
     """
     Execute a restoration pipeline on a video file.
@@ -220,6 +223,9 @@ def run_job(
         output_path: Absolute path for the output video.
         restore_audio: If True, run the audio pipeline (from audio_stages in preset)
                        and remux processed audio into the output. Default False.
+        output_codec: Encoder name passed to PyAV (e.g. libx264, libx265).
+        output_crf: Constant-rate-factor quality (0 = lossless, 51 = worst).
+        preserve_audio: Copy the source audio stream when not restoring audio.
     """
     reporter = ProgressReporter(job_id)
     _start_time = time.perf_counter()
@@ -264,7 +270,7 @@ def run_job(
 
         # When audio restoration is requested, skip passthrough so processed audio
         # can be added in the second pass (prevents double audio streams).
-        passthrough_audio = meta.has_audio and not restore_audio
+        passthrough_audio = meta.has_audio and preserve_audio and not restore_audio
 
         with VideoWriter(
             output_path,
@@ -272,6 +278,8 @@ def run_job(
             out_width=out_w,
             out_height=out_h,
             fps=out_fps,
+            codec=output_codec,
+            crf=output_crf,
             source_path=input_path if passthrough_audio else None,
         ) as writer:
             runner.run(
