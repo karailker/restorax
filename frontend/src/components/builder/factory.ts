@@ -19,7 +19,7 @@ function dataFor(payload: PaletteDragPayload): BuilderNodeData {
     case "merge":
       return { kind: "merge", label: payload.label, strategy: "blend", select_index: 0 };
     case "parallel":
-      return { kind: "parallel", label: payload.label };
+      return { kind: "parallel", label: payload.label, branches: [] };
     case "pass":
       return { kind: "pass", label: payload.label };
     default:

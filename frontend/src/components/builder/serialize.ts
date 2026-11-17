@@ -33,7 +33,7 @@ function toDagNode(node: BuilderNode): DAGNode {
       return out;
     }
     case "parallel":
-      return { ...base, type: "parallel", branches: [] };
+      return { ...base, type: "parallel", branches: data.branches ?? [] };
     case "video_input":
     case "video_output":
     case "pass":

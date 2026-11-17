@@ -15,9 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type {
+  BranchConfig,
   BuilderNode,
   BuilderNodeData,
   MergeNodeData,
+  ParallelNodeData,
   RestoreNodeData,
 } from "./types";
 
@@ -67,8 +69,10 @@ export function ConfigPanel({ node, onChange }: Props) {
           {node.data.kind === "merge" && (
             <MergeFields node={node} onChange={onChange} />
           )}
-          {(node.data.kind === "parallel" ||
-            node.data.kind === "pass" ||
+          {node.data.kind === "parallel" && (
+            <ParallelFields node={node} models={models} onChange={onChange} />
+          )}
+          {(node.data.kind === "pass" ||
             node.data.kind === "video_input" ||
             node.data.kind === "video_output") && (
             <p className="text-sm text-muted-foreground">
@@ -386,5 +390,146 @@ function MergeFields({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Branch editor for a Parallel node. Each branch is a named, ordered list of restorer
+ * steps — exactly what the backend `ParallelNode` executes. An empty branch list means
+ * the node passes its input through untouched, so this panel is the only way to make a
+ * Parallel node do anything on the canvas.
+ */
+function ParallelFields({
+  node,
+  models,
+  onChange,
+}: {
+  node: BuilderNode;
+  models: RestorerInfo[];
+  onChange: Props["onChange"];
+}) {
+  const data = node.data as ParallelNodeData;
+  const branches = data.branches ?? [];
+  const setBranches = (next: BranchConfig[]) => onChange(node.id, { branches: next });
+  const restorerNames = models.filter((m) => m.kind !== "audio").map((m) => m.name);
+
+  const patchBranch = (idx: number, patch: Partial<BranchConfig>) =>
+    setBranches(branches.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <Label className={labelCls}>Branches</Label>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 text-xs"
+          onClick={() =>
+            setBranches([
+              ...branches,
+              { name: `branch ${branches.length + 1}`, restorer_steps: [] },
+            ])
+          }
+        >
+          Add branch
+        </Button>
+      </div>
+
+      {branches.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          No branches yet — this node will pass frames through unchanged. Add at least
+          two branches and a Merge node downstream to compare results.
+        </p>
+      )}
+
+      {branches.map((branch, bIdx) => (
+        <div key={bIdx} className="rounded-md border border-border p-2">
+          <div className="mb-2 flex items-center gap-1.5">
+            <Input
+              className="h-7 text-xs"
+              value={branch.name}
+              placeholder="branch name"
+              onChange={(e) => patchBranch(bIdx, { name: e.target.value })}
+            />
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="size-7 shrink-0"
+              title="Remove branch"
+              onClick={() => setBranches(branches.filter((_, i) => i !== bIdx))}
+            >
+              ×
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            {branch.restorer_steps.map(([name], sIdx) => (
+              <div key={sIdx} className="flex items-center gap-1.5">
+                <Select
+                  value={name || undefined}
+                  onValueChange={(v) =>
+                    patchBranch(bIdx, {
+                      restorer_steps: branch.restorer_steps.map((step, i) =>
+                        i === sIdx ? [v, step[1]] : step,
+                      ),
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-7 w-full text-xs">
+                    <SelectValue placeholder="— restorer —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(name && !restorerNames.includes(name)
+                      ? [name, ...restorerNames]
+                      : restorerNames
+                    ).map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="size-7 shrink-0"
+                  title="Remove step"
+                  onClick={() =>
+                    patchBranch(bIdx, {
+                      restorer_steps: branch.restorer_steps.filter((_, i) => i !== sIdx),
+                    })
+                  }
+                >
+                  ×
+                </Button>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-6 justify-start px-1 text-[11px] text-muted-foreground"
+              onClick={() =>
+                patchBranch(bIdx, {
+                  restorer_steps: [...branch.restorer_steps, [restorerNames[0] ?? "", {}]],
+                })
+              }
+            >
+              + step
+            </Button>
+          </div>
+
+          {branch.restorer_steps.length === 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              No steps — this branch copies the input frames.
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }

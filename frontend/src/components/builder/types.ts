@@ -26,13 +26,33 @@ export interface MergeNodeData {
   [key: string]: unknown;
 }
 
+/** One step inside a parallel branch: restorer slug + its params dict. */
+export type BranchStep = [string, Record<string, unknown>];
+
+/** A named branch of restorer steps — mirrors the backend BranchConfig. */
+export interface BranchConfig {
+  name: string;
+  restorer_steps: BranchStep[];
+}
+
+export interface ParallelNodeData {
+  kind: "parallel";
+  label: string;
+  branches: BranchConfig[];
+  [key: string]: unknown;
+}
+
 export interface StructuralNodeData {
-  kind: "video_input" | "video_output" | "parallel" | "pass";
+  kind: "video_input" | "video_output" | "pass";
   label: string;
   [key: string]: unknown;
 }
 
-export type BuilderNodeData = RestoreNodeData | MergeNodeData | StructuralNodeData;
+export type BuilderNodeData =
+  | RestoreNodeData
+  | MergeNodeData
+  | ParallelNodeData
+  | StructuralNodeData;
 
 export type BuilderNode = Node<BuilderNodeData>;
 
